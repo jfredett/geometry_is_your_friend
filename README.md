@@ -1,13 +1,20 @@
 # geometry-is-your-friend
 
-## GitHub configuration
+When I was a kid, I had a deeply formative experience learning geometry. When I got to college, in my middle year, I
+took a course on geometry that used the third edition of _Euclidean and Noneuclidean Geometry_, by Martin Greenberg.
 
-To set up your new GitHub repository, follow these steps:
+I really love Geometry, even though it's caused me a fair amount of pain and torment, and so I have returned here to
+formalize my favorite geometry book (so far).
 
-* Under your repository name, click **Settings**.
-* In the **Actions** section of the sidebar, click "General".
-* Check the box **Allow GitHub Actions to create and approve pull requests**.
-* Click the **Pages** section of the settings sidebar.
-* In the **Source** dropdown menu, select "GitHub Actions".
+I don't really know Lean very well, but this seems like a good way to learn it. I'll try to keep things organized enough
+that it's easy to find formal proofs of the propositions and theora set out by Greenberg.
 
-After following the steps above, you can remove this section from the README file.
+I do quote the book frequently, but I believe this work is transformative and valuable, and thus Fair Use. That said, if
+Dr. Greenberg ever happens by this and wants it taken down, I am happy to comply.
+
+The content of this repository is otherwise offered under the terms of [[LICENSE]], unless you are a governmental or law
+enforcement agency, in which case this software is not licensed to you in any way whatsoever. See attached caveat in the
+license file itself.
+
+ACAB.
+
