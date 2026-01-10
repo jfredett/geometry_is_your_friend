@@ -22,7 +22,6 @@ theorem P1 (L M : G.Line) :
 := by
     intro hDistinctLines
     unfold NotParallel
-    push_neg
     rintro ⟨_, ⟨P, hPonLM⟩⟩
     refine ⟨P, ?cEx, ?cUniq⟩
     -- existence

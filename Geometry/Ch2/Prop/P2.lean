@@ -44,10 +44,9 @@ lemma P2.L1 {G : IncidenceGeometry} (L M N : G.Line) :
 -- Editor's Lemma: We need to be able to establish that two intersecting lines are never
 -- parallel
 lemma P2.L2 {G : IncidenceGeometry} (L M : G.Line) :
-    L ≠ M -> ∀ P : G.Point, G.Incident P L -> G.Incident P M -> NotParallel L M := by
+    L ≠ M -> ∀ P : G.Point, (P on L) -> (P on M) -> NotParallel L M := by
       intros hLMDistinct P hPonM hPonL
       unfold NotParallel
-      push_neg
       -- L ≠ M by assumption
       constructor
       exact hLMDistinct
@@ -56,7 +55,7 @@ lemma P2.L2 {G : IncidenceGeometry} (L M : G.Line) :
 
 -- p71, "There exist three distinct lines that are not concurrent."
 theorem P2 {G : IncidenceGeometry} :
-        ∃ L M N : G.Line, ¬Concurrent L M N
+        ∃ L M N : G.Line, (L ≠ M ∧ M ≠ N ∧ L ≠ N) ∧ ¬Concurrent L M N
     := by
     -- Idea: Use the 3 non-collinear points to build three lines, we can prove they're distinct with
     -- some RAA, and then use the lemma to do the rest.
@@ -82,9 +81,9 @@ theorem P2 {G : IncidenceGeometry} :
       have hCoffAC := hNC AC hAonAC hBonBC
       contradiction
     -- Use our constructed apparatus
-    use AB
-    use BC
-    use AC
+    use AB, BC, AC
+    -- distinctness is already proven above
+    constructor; trivial
     -- Now that everything is built, we proceed by contradiction
     by_contra! hNeg
     -- Let's find the Point the Author talks about in the proposed lemma
@@ -113,3 +112,59 @@ theorem P2 {G : IncidenceGeometry} :
     -- Use Non-collinearity to show non-concurrence
     specialize hNC AC hAonAC hBonAC
     contradiction
+
+/-
+-- TODO: Corrolary syntax?
+-- Editor's Corrolary: There is a configuration of points and lines such that:
+--
+-- A ≠ B ≠ C
+-- AB ≠ BC ≠ AC
+-- ¬ Concurrent AB BC AC
+-- ∃! P : P on AB, BC, AC
+--
+-- This is useful in getting 'all the properties' from the construction of P2 in one go.
+lemma P2.C1 {G : IncidenceGeometry} :
+  ∃ AB BC AC : G.Line,
+  ∃ A B C : G.Point,
+    (AB ≠ BC ∧ BC ≠ AC ∧ AB ≠ AC) ->
+    (A ≠ B ∧ B ≠ C ∧ A ≠ C) ->
+     ¬(Concurrent AB BC AC) ∧
+     (NotParallel AB BC) ∧ (NotParallel BC AC) ∧ (NotParallel AB AC) ∧
+     (A on AB) ∧ (B on AB) ∧
+     (B on BC) ∧ (C on BC) ∧
+     (A on AC) ∧ (C on AC)
+  := by
+      -- We'll take the configuration from P2
+      obtain ⟨AB, BC, AC, ⟨hABneBC, hBCneAC, hABneAC⟩, hNC⟩ := P2
+      -- Plug the lines in
+      use AB, BC, AC
+      -- unfold Concurrent at hNC; push_neg at hNC
+
+      have hABnotparBC : NotParallel AB BC := by
+        by_contra! hNeg
+        unfold NotParallel at *
+        unfold Concurrent at *
+        push_neg at *
+        specialize hNeg hABneBC
+        obtain ⟨A, B, hAneB, ⟨hAonAB, hBonAB⟩⟩ := G.ia_2_lines_have_two_points AB
+        have hBoffBC := hNeg B hBonAB
+        specialize hNC B hBonAB
+        sorry
+
+      have hABnotparAC : NotParallel AB AC := by
+        sorry
+
+      have hACnotparBC : NotParallel AC BC := by
+        sorry
+
+      obtain ⟨A, ⟨hAonAB, hAonBC⟩, hAuniq⟩ := Geometry.Ch2.Prop.P1 G AB AC hABneAC hABnotparAC
+      obtain ⟨B, ⟨hBonAB, hBonBC⟩, hBuniq⟩ := Geometry.Ch2.Prop.P1 G AB BC hABneBC hABnotparBC
+      obtain ⟨C, ⟨hConAC, hConBC⟩, hCuniq⟩ := Geometry.Ch2.Prop.P1 G AC BC hBCneAC.symm hACnotparBC
+
+      use A,B,C
+      intros hDistinctLines hDistinctPoints
+
+      sorry
+-/
+
+end Geometry.Ch2.Prop
