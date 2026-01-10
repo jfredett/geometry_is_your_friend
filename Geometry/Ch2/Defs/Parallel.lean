@@ -2,6 +2,8 @@ module
 
 public import Geometry.Ch2.Theory
 
+@[expose] public section
+
 namespace Geometry.Ch2.Defs
 
 open Geometry.Ch2.Theory
@@ -12,7 +14,6 @@ variable {G : FreeGeometry}
 -- of them. We denote this by `l ‖ m`"
 -- p. 70, "Lines `l` and `m` are _parallel_ if they are distinct lines and no point is incident to both
 -- of them."
--- TODO: implement the notation
 @[expose] public def Parallel (L M : G.Line) : Prop := L ≠ M ->
   ∀ P : G.Point, ¬((P on L) ∧ (P on M))
 
@@ -25,5 +26,8 @@ public lemma ed_0_not_parallel_equiv (L M : G.Line) : ¬(Parallel L M) ↔ NotPa
   unfold Parallel
   push_neg
   tauto
+
+notation:20 L " ∥ " M => Parallel L M
+notation:20 L " ∦ " M => NotParallel L M
 
 end Geometry.Ch2.Defs

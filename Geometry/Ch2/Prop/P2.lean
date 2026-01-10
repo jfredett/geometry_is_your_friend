@@ -22,7 +22,7 @@ lemma P2.L1 {G : IncidenceGeometry} (L M N : G.Line) :
         L ≠ M ∧ M ≠ N ∧ L ≠ N ->
         Concurrent L M N ->
         ∃! P : G.Point,
-        G.Incident P L ∧ G.Incident P M ∧ G.Incident P N
+        (P on L) ∧ (P on M) ∧ (P on N)
 := by
     intros hDistinct hConcurrent
     unfold Concurrent at *
@@ -44,7 +44,7 @@ lemma P2.L1 {G : IncidenceGeometry} (L M N : G.Line) :
 -- Editor's Lemma: We need to be able to establish that two intersecting lines are never
 -- parallel
 lemma P2.L2 {G : IncidenceGeometry} (L M : G.Line) :
-    L ≠ M -> ∀ P : G.Point, (P on L) -> (P on M) -> NotParallel L M := by
+    L ≠ M -> ∀ P : G.Point, (P on L) -> (P on M) -> (L ∦ M) := by
       intros hLMDistinct P hPonM hPonL
       unfold NotParallel
       -- L ≠ M by assumption
