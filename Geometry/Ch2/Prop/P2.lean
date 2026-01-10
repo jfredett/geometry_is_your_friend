@@ -9,6 +9,8 @@ open Geometry.Ch2.Defs
 
 @[expose] public section
 
+namespace Geometry.Ch2.Prop
+
 open Geometry.Ch2.Theory
 open Geometry.Ch2.Defs
 
