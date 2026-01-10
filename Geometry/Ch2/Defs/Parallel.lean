@@ -24,3 +24,5 @@ public lemma ed_0_not_parallel_equiv {G : IncidenceGeometry} (L M : G.Line) : ¬
   unfold Parallel
   unfold NotParallel
   tauto
+
+end Geometry.Ch2.Defs

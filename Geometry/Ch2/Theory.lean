@@ -26,10 +26,7 @@ public structure IncidenceGeometry where
     (ia_3_three_noncolinear_points :
         ∃ A B C : Point,
         (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧
-        (∀ L : Line,
-        (Incident A L ∧ Incident B L -> ¬Incident C L) ∨
-         (Incident B L ∧ Incident C L -> ¬Incident A L) ∨
-         (Incident A L ∧ Incident C L -> ¬Incident B L)))
+        (∀ (L : Line), Incident A L → Incident B L → ¬Incident C L))
 
 end Geometry.Ch2.Theory
 
