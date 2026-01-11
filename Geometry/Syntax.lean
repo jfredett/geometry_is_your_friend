@@ -1,14 +1,18 @@
 module
 
 import Lean
+import MathLib.Data.List.Basic
 
 open Lean
 
-/-
-  =====================================================
-  Textbook-style declarations with informal statements
-  =====================================================
--/
+@[expose] public section
+
+-- TODO: some kind of shorthand for all the relevant properties of a line between two points
+
+namespace Geometry.Syntax
+
+def distinct {α : Type*} (l : List α) : Prop :=
+  ∀ (x y : α), x ∈ l → y ∈ l → x ≠ y
 
 /-- proposition ch.p statement := proof -/
 syntax (name := propositionDecl)
@@ -96,3 +100,5 @@ macro_rules
 macro_rules
   | `(tactic| precisely! ex $ch:num . $e:num) =>
       `(tactic| exact (refer ex $ch.$e))
+
+end Geometry.Syntax

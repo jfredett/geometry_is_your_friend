@@ -20,10 +20,10 @@ variable {G : FreeGeometry}
 
 def On [FreeGeometry] (P : FreeGeometry.Point) (L : FreeGeometry.Line) : Prop := FreeGeometry.Incident P L
 
-notation:20 P " on " L => On P L
-notation:20 P " off " L => ¬(On P L)
-notation:20 L " has " P => (On P L)
-notation:20 L " avoids " P => ¬(On P L)
+notation:80 P " on " L => On P L
+notation:80 P " off " L => ¬(On P L)
+notation:80 L " has " P => (On P L)
+notation:80 L " avoids " P => ¬(On P L)
 
 -- p. 69-70, IncidenceGeometry
 public class IncidenceGeometry extends FreeGeometry where

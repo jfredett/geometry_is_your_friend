@@ -12,11 +12,6 @@
 # TODO
 
 ```lean
-- theorem prop_2_3 := by sorry
--- p71. "For every point, there is at least one line not passing through it."
--- theorem prop_2_4 := by sorry
--- theorem prop_2_5 := by sorry
-
 
 -- p92. "For each pair of axioms of incidence geometry, invent an interpretation in which those two axioms are satisfied,
 -- but the third is not. (This will show that the three axioms are _independent_ in the sense that it is impossible to

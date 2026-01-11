@@ -13,6 +13,6 @@ open Geometry.Ch2.Defs
 
 variable (G : IncidenceGeometry)
 
-theorem Ex1 := by
+-- theorem Ex1 := by
 
 end Geometry.Ch2.Ex

@@ -112,3 +112,5 @@ theorem P2 {G : IncidenceGeometry} :
     -- Use Non-collinearity to show non-concurrence
     specialize hNC AC hAonAC hBonAC
     contradiction
+
+end Geometry.Ch2.Prop
