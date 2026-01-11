@@ -13,7 +13,6 @@ open Geometry.Ch2.Defs
 
 variable (G : IncidenceGeometry)
 
-
 -- pp. 71: If `l` and `m` are distinct lines that are not parallel, then `l` and
 -- `m` have a unique point in common
 theorem P1 (L M : G.Line) :

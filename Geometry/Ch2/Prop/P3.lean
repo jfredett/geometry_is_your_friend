@@ -3,7 +3,6 @@ module
 public import Geometry.Tactics
 public import Geometry.Ch2.Theory
 public import Geometry.Ch2.Defs
-public import Geometry.Ch2.Prop.P2
 
 open Geometry.Ch2.Defs
 

@@ -20,7 +20,6 @@ variable {G : FreeGeometry}
 
 def On [FreeGeometry] (P : FreeGeometry.Point) (L : FreeGeometry.Line) : Prop := FreeGeometry.Incident P L
 
--- FIXME: Not sure if this notation is accurate
 notation:20 P " on " L => On P L
 notation:20 P " off " L => ¬(On P L)
 notation:20 L " has " P => (On P L)
