@@ -30,4 +30,7 @@ public lemma ed_0_not_parallel_equiv (L M : G.Line) : ¬(Parallel L M) ↔ NotPa
 notation:20 L " ∥ " M => Parallel L M
 notation:20 L " ∦ " M => NotParallel L M
 
+-- TODO: A `simp` extension or something that just unfolds and pushnegs definitions, then I can probably
+-- drop the `NotParallel` def.
+
 end Geometry.Ch2.Defs

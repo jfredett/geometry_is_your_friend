@@ -17,8 +17,8 @@ variable (G : IncidenceGeometry)
 -- pp. 71: If `l` and `m` are distinct lines that are not parallel, then `l` and
 -- `m` have a unique point in common
 theorem P1 (L M : G.Line) :
-  L ≠ M → NotParallel L M → ∃! P : G.Point,
-     G.Incident P L ∧ G.Incident P M
+  L ≠ M → (L ∦ M) → ∃! P : G.Point,
+     (P on L) ∧ (P on M)
 := by
     intro hDistinctLines
     unfold NotParallel
