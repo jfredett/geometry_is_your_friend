@@ -21,6 +21,7 @@ variable {G : FreeGeometry}
 @[expose] public def NotParallel (L M : G.Line) : Prop :=
   L ≠ M ∧ ∃ P, ((P on L) ∧ (P on M))
 
+@[simp]
 public lemma ed_0_not_parallel_equiv (L M : G.Line) : ¬(Parallel L M) ↔ NotParallel L M := by
   unfold NotParallel
   unfold Parallel

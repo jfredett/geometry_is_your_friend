@@ -31,7 +31,7 @@ lemma P5.L1 {G : IncidenceGeometry} : ∀ P : G.Point, ∃ Q : G.Point, P ≠ Q 
     use A
 
 -- Ed. Lemma "Two lines are coincident iff every point on one is on the other."
-lemma P5.L2 {G : IncidenceGeometry} : ∀ L M : G.Line,
+@[simp] lemma P5.L2 {G : IncidenceGeometry} : ∀ L M : G.Line,
      L = M ↔ ∀ P : G.Point, (P on L) ↔ (P on M) := by
      intros L M
      constructor
@@ -54,7 +54,7 @@ lemma P5.L2 {G : IncidenceGeometry} : ∀ L M : G.Line,
      rw [ABeqL, ABeqM]
 
 -- Ed. Corollary "Two lines are distinct iff they have at least one point not in common"
-lemma P5.L2.C1 {G : IncidenceGeometry} : ∀ L M : G.Line,
+@[simp] lemma P5.L2.C1 {G : IncidenceGeometry} : ∀ L M : G.Line,
     L ≠ M ↔ ∃ P, ((P on L) ∧ (P off M)) ∨ ((P off L) ∧ (P on M)) := by
     -- TODO: This is ugly, and it's essentially just !P5.L2, but I couldn't cajole it into place.
     intros L M

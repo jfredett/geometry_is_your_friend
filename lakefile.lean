@@ -10,7 +10,7 @@ require aesop from git "https://github.com/leanprover-community/aesop"
 abbrev opts : Array LeanOption := #[
   -- pretty-prints `fun a ↦ b`
   ⟨`pp.unicode.fun, true⟩,
-  ⟨`relaxedAutoImplicit, false⟩,
+  ⟨`relaxedAutoImplicit, true⟩,
   -- ⟨`linter.allScriptsDocumented, true⟩,
   -- ⟨`linter.pythonStyle, true⟩,
   -- ⟨`linter.style.longFile, .ofNat 1500⟩,
