@@ -2,6 +2,7 @@ module
 
 public import Mathlib.Data.Set.Basic
 public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Insert
 public import Geometry.Tactics
 public import Geometry.Ch2.Theory
 public import Geometry.Ch2.Defs
@@ -19,8 +20,6 @@ open Geometry.Ch3.Theory
 open Geometry.Ch3.Defs
 
 variable (G : BetweenGeometry)
-
-set_option maxRecDepth 10000
 
 
 -- p.109 "By the definition of a segment and ray, Segment A B ⊆ Ray A B"
@@ -51,6 +50,9 @@ lemma P1.L2 (A B : G.Point) :
     }
 
 @[simp]
+-- Ed. Promoting between commutativity into the set definition. I don't love the
+-- use of sets for Ray/Segment, I feel like it might've been easier to just use
+-- betweenness directly.
 lemma P1.L3 {A B : G.Point} :
   { P | G.Between A P B } = {P | G.Between B P A } := by
   apply Subset.antisymm
@@ -66,6 +68,7 @@ lemma P1.L3 {A B : G.Point} :
   exact hEinSet
 
 @[simp]
+-- Ed. Segments commute their endpoints, so do lines, technically, but I don't have a lemma for that.
 lemma P1.L4 {A B : G.Point} :
   (Segment A B) = (Segment B A) := by
   unfold Segment
@@ -80,8 +83,8 @@ lemma P1.L4 {A B : G.Point} :
 @[simp]
 -- Ed. P1.L5.{i,ii,iii}: "Given a {i: Segment, ii: Ray, iii: LineThrough} A B, there is a Line containing A and B"
 lemma P1.L5.i (A B : G.Point) :
-  (Segment A B) -> A ≠ B -> ∃! L : G.Line, (A on L) ∧ (B on L) := by
-  intro AB hDistinct
+  A ≠ B -> (Segment A B) -> ∃! L : G.Line, (A on L) ∧ (B on L) := by
+  intro hDistinct AB
   obtain ⟨L, h0, h1⟩ := G.ia_1_unique_line A B hDistinct
   use L
 
@@ -100,13 +103,13 @@ lemma P1.L5.iii {A B : G.Point} :
   use L
 
 @[simp]
--- Ed. P1.L6: "If Segment A B, then A is on Segment A B, and B is on Segment A B"
+-- Ed. P1.L6: "For any Segment A B, then A is on Segment A B, and B is on Segment A B"
 lemma P1.L6 {A B : G.Point} :
   let AB := Segment A B; A ∈ AB ∧ B ∈ AB := by
   intro AB
   apply And.intro
   subst AB; unfold Segment; tauto
-  subst AB; unfold Segment; simp; tauto
+  subst AB; unfold Segment; simp;
 
 @[simp]
 -- Ed. P1.L7: "If D is between B and B, then B = D"
@@ -118,21 +121,84 @@ lemma P1.L7 {B D : G.Point} :
   obtain ⟨⟨_, _, hContraWitness⟩, _, _⟩  := G.ba_1a_distinct_colinear B D B hBDB
   contradiction
 
-/-
 @[simp]
--- Ed. P1.L8.{i,ii,iii}: "If distinct points A, B, and C lie on the same {i: Segment, ii: Ray, iii: LineThrough}, they are collinear"
-lemma P1.L8.i {A B C X Y : G.Point}:
-  let XY := Segment X Y;
-  A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ X ≠ Y ->
-  XY ->
-  A ∈ XY ∧ B ∈ XY ∧ C ∈ XY -> Collinear A B C := by
-  simp only [and_imp];
-  intro AneB BneC AneC XneY XY AonXY BonXY ConXY
-  unfold Collinear
-  obtain ⟨L, hIncidence, hUniq⟩ := (P1.L5.i G X Y) XY XneY
-  use L
-  -- TODO: 
--/
+-- Ed. P1.L8: "C ∈ Segment A B -> C on AB (where AB : Line that passes through AB)"
+lemma P1.L8 {A B C : G.Point}:
+  A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ C ∈ (Segment A B) ->
+  ∃! L : G.Line, (C on L) := by
+  intro ⟨AneB, BneC, AneC, ConSegAB⟩
+  obtain hAB : ∃! L : G.Line, (A on L) ∧ (B on L) := by
+    apply L5.i
+    exact AneB
+    exact ⟨C, ConSegAB⟩
+  obtain ⟨AB, ⟨AonAB, BonAB⟩, ABUniq⟩ := hAB
+  use AB
+  constructor
+  unfold Segment at ConSegAB
+  
+  -- Ed. This is a pain, because this sudden move to make a Line a concrete set of points,
+  -- we end up in conversion hell just to have a psuedo-model inside the theory? Makes sense
+  -- on paper, not formally though, I think. Adding another class of objects to manage is
+  -- redundant.
+  --
+  -- A potentially better model would be to drop the two absurdities w/ Between, and just define
+  -- Segment, Ray, and LineThrough as properties of Between, something like:
+  --
+  -- Segment A B := ∀ C : Point, Between A C B    -- "All the points between A and B"
+  -- Extension A B := ∀ C : Point, Between A B C  -- "All the points to one side of Segment AB"
+  -- Ray A B := Segment A B ∨ Extension A B       -- "All the points in the Segment or Extension
+  -- LineThrough A B := Ray A B ∨ Ray B A         -- "All the points in each ray through Segment AB"
+  --
+  -- notation:80 P " on " (Segment A B) => Between A P B ∨ P = A ∨ P = B
+  -- notation:80 P " on " (Extension A B) => Between A B P -- no endpoints
+  -- notation:80 P " on " (Ray A B) => (Segment A B) ∨ (Extension A B)
+  -- notation:80 P " on " (LineThrough A B) => (Ray A P) ∨ (Ray P A)
+  --
+  -- these are now just propositions, not sets, and this means we can't use Set Theory at them,
+  -- which is a loss I do not expect to feel at any point ever.
+
+
+  sorry
+
+
+
+@[simp]
+-- Ed. P1.L9.{i,ii,iii}: "If C is on {i: Segment, ii: Ray, iii: LineThrough} A B, then Collinear A B C"
+lemma P1.L9.i {A B C : G.Point}:
+  A ≠ B -> (C ∈ Segment A B) -> Collinear A B C := by
+    intro AneB ConAB
+    -- FIXME: Some weird type issue here when I just try to pass (L5.i A B AneB) directly results in a type error
+    obtain hAB : ∃! L : G.Line, (A on L) ∧ (B on L) := by
+      apply L5.i
+      exact AneB
+      exact ⟨C, ConAB⟩
+    obtain ⟨AB, ⟨AonAB, BonAB⟩, ABUniq⟩ := hAB
+    -- Let's check the simple case where C is A or B; which is easy since two points are always collinear with each
+    -- other.
+    by_cases hSuppose : A = C ∨ B = C
+    unfold Collinear; use AB;
+    rcases hSuppose with AeqC | BeqC
+    rw [<- AeqC]; tauto
+    rw [<- BeqC]; tauto
+    push_neg at hSuppose
+    unfold Segment at *; unfold Collinear at *
+    dsimp at *
+    use AB, AonAB, BonAB
+    simp_all only [mem_union, mem_insert_iff, mem_singleton_iff, mem_setOf_eq, and_imp];
+    rcases ConAB with (hCinSetA | hCinSetB) | hBetween
+    -- hCinSetA,
+    tauto
+    -- hCinSetB
+    tauto
+    -- hBetween, Idea, C ∈ Segment A B -> C on AB:Line
+    have ConSegAB : C ∈ Segment A B := by
+      unfold Segment; simp; tauto
+
+
+
+
+    sorry
+
 
 -- p.109, "For any two points A and B:
 -- (i) Ray A B ∩ Ray B A = Segment A B
@@ -150,18 +216,55 @@ theorem P1.i (A B : G.Point) : A ≠ B -> -- Ed: Note the addition of distinctio
   -- to get into a state to continue the author's proof.
   rw [@Subset.antisymm_iff]
   constructor
-  unfold Ray
   intro C hCinInter
   rcases hCinInter with ⟨hConRayAB, hConRayBA⟩
   -- "... (3) If C = A or C = B"
   by_cases hSuppose : C = A ∨ C = B --
-  aesop -- Ed: aesop easily resolves "... C is an endpoint of AB."
+  aesop -- Ed: aesop easily resolves "... C is an endpoint of AB.", but it's an ugly proof, FIXME.
   push_neg at hSuppose
   obtain ⟨CneA, CneB⟩ := hSuppose
-  -- "otherwise, A,B, and C are three Collinear points (by def of Ray and Axiom B-1)"
-  -- missing the betweenness hypothesis here. I could get it from B3, potentially?
-  obtain h := G.ba_1a_distinct_colinear A B C ?hBetweenABC
-  obtain ⟨h0, h1, h2⟩ := G.ba_3_lines_arent_circles A B C ⟨AneB, CneB.symm, CneA.symm, ?hCol⟩
+  -- "otherwise, A,B, and C are three Collinear points (by def of Ray and Axiom B-1), ..."
+  obtain hCol : Collinear A B C := by
+    unfold Collinear
+    have hBetweenABC : G.Between A B C := by
+      -- we know C is neither A nor B by supposition above, so it must be that C ∈ {P | A * B * P}
+      have CinExtension : C ∈ {P | G.Between A B P} := by
+        sorry -- TODO: I think betweenness may be establishable, but I suspect I'll need a lemma
+
+      simp_all only [ne_eq, subset_inter_iff, L1, L2, and_self, mem_setOf_eq]
+    obtain ⟨hDistinct, L, hCollinearABC⟩ := G.ba_1a_distinct_colinear A B C hBetweenABC
+    exact hCollinearABC
+  -- "... so exactly one of the releation A * C * B, A * B * C, or C * A * B holds (Axiom B-3)."
+  rcases G.ba_3_lines_arent_circles A B C ⟨AneB, CneB.symm, CneA.symm, hCol⟩ with hABC | hCAB | hACB
+  -- "(4) If A * B * C holds, then C is not on Ray B A; ..."
+  exfalso ; unfold Ray at hConRayBA ; unfold Segment at hConRayBA ; simp_all; tauto
+  -- "... if C * A * B holds, then C is not on Ray A B."
+  exfalso ; unfold Ray at hConRayAB ; unfold Segment at hConRayAB; simp_all; tauto
+  -- "... In either case, C does not belone to both rays.
+  -- (5) Hence, the relation A * C * B must hold, so C belongs to Segment AB (definition of Segment AB, proof by cases)"
+  obtain ⟨nbABC, nbBAC, bACB⟩ := hACB
+  unfold Segment; simp_all
+  -- Ed. The author doesn't do the reverse here, probably because it's pretty trivial:
+  trivial
+
+
+/-
+  unfold Segment
+  have CnotinSetA : C ∉ ({A} : Set G.Point) := by tauto
+  have CnotinSetB : C ∉ ({B} : Set G.Point) := by tauto
+  have CnotinAuB : C ∉ (({A} : Set G.Point) ∪ {B}) := by
+    simp_all only [ne_eq, not_false_eq_true, subset_inter_iff, L1, L2, and_self, mem_union, mem_setOf_eq, or_true, L4,
+      or_false, or_self]
+-/
+
+
+
+
+
+
+
+
+
   sorry
 
 

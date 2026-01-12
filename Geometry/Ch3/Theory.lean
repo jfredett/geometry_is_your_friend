@@ -55,11 +55,21 @@ public class BetweenGeometry extends IncidenceGeometry where
   (ba_3_lines_arent_circles :
     ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ Collinear A B C ->
     let bABC := Between A B C; let bBAC := Between B A C; let bACB := Between A C B;
-    (bABC ∧ ¬bBAC ∧ ¬bACB) ∨ (¬bABC ∧ ¬bBAC ∧ bACB) ∨ (¬bABC ∧ bBAC ∧ ¬bACB))
+    (bABC ∧ ¬bBAC ∧ ¬bACB) ∨ (¬bABC ∧ bBAC ∧ ¬bACB) ∨ (¬bABC ∧ ¬bBAC ∧ bACB))
 
 variable [G : BetweenGeometry]
 
 nonrec def between (A B C : G.Point) := G.Between A B C
+
+-- Ed. There are several implied invalid notations that need to be taken as
+-- contradictions. In particular we can construct invalid `Between` instances by
+-- rewriting in a proof-by-contradiction. The wording of B1 is "If A * B * C,
+-- _then_ A B and C are three _distinct_ points lying on the same line." I take
+-- that to mean B must be any point _not_ on the endpoints, e.g., A * A * B and
+-- A * B * B are illegal notations, so we have some hidden axioms
+-- ("absurdities") here
+@[simp] axiom between_absurdity_i : (∀ A B : G.Point, G.Between A A B -> False)
+@[simp] axiom between_absurdity_ii : (∀ A B : G.Point, G.Between A B B -> False)
 
 -- TODO: in a language this absolutely batshit flexible, there must be a way to introduce the
 -- "A * B * C" so that I can use it in the definitions of the axioms and elsewhere. I don't know how to
