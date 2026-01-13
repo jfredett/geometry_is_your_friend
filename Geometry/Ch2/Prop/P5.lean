@@ -1,26 +1,16 @@
-module
-
-public import Geometry.Tactics
-public import Geometry.Ch2.Theory
-public import Geometry.Ch2.Defs
-public import Geometry.Ch2.Prop.P2
-public import Geometry.Ch2.Prop.P3
-
-open Geometry.Ch2.Defs
-
-@[expose] public section
+import Geometry.Tactics
+import Geometry.Theory
+import Geometry.Ch2.Prop.P2
+import Geometry.Ch2.Prop.P3
 
 namespace Geometry.Ch2.Prop
 
-open Geometry.Ch2.Theory
-open Geometry.Ch2.Defs
-
-variable (G : IncidenceGeometry)
+open Geometry.Theory
 
 -- Ed. Lemma "For every Point, there is at least one point that isn't that point."
-lemma P5.L1 {G : IncidenceGeometry} : ∀ P : G.Point, ∃ Q : G.Point, P ≠ Q := by
+@[simp] lemma P5.L1 : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
     intro P
-    obtain ⟨A, B, C, hDistinct, _⟩ := G.ia_3_three_noncolinear_points
+    obtain ⟨A, B, C, hDistinct, _⟩ := I3
     -- Idea: There is a configuration of 3 non-colinear points. Either P is one of those points, or it's none of
     -- them. If it's one of them, there are two other points distinct from P; if it's not one of them, then
     -- there are three distinct points.
@@ -31,8 +21,8 @@ lemma P5.L1 {G : IncidenceGeometry} : ∀ P : G.Point, ∃ Q : G.Point, P ≠ Q 
     use A
 
 -- Ed. Lemma "Two lines are coincident iff every point on one is on the other."
-@[simp] lemma P5.L2 {G : IncidenceGeometry} : ∀ L M : G.Line,
-     L = M ↔ ∀ P : G.Point, (P on L) ↔ (P on M) := by
+@[simp] lemma P5.L2 : ∀ L M : Line,
+     L = M ↔ ∀ P : Point, (P on L) ↔ (P on M) := by
      intros L M
      constructor
      -- Forward Case
@@ -40,21 +30,21 @@ lemma P5.L1 {G : IncidenceGeometry} : ∀ P : G.Point, ∃ Q : G.Point, P ≠ Q 
      rw [LeqM]
      -- Backward Case
      intro hAllPonLonM
-     obtain ⟨A,B,AneB,AonL,BonL⟩ := G.ia_2_lines_have_two_points L
-     obtain ⟨C,D,CneD,ConM,DonM⟩ := G.ia_2_lines_have_two_points M
+     obtain ⟨A,B,AneB,AonL,BonL⟩ := I2 L
+     obtain ⟨C,D,CneD,ConM,DonM⟩ := I2 M
      have ABonM : (A on M) ∧ (B on M) := by
         have AonM := hAllPonLonM A
         have BonM := hAllPonLonM B
         tauto
      -- Idea: Above, we show that under this case, A,B are on M, so let's construct the unique line AB from AB
      -- This is obviously equal to both L and M, since it's uniquely defined by A and B
-     obtain ⟨AB, ⟨AonAB, BonAB⟩, ABuniq⟩ := G.ia_1_unique_line A B AneB
+     obtain ⟨AB, ⟨AonAB, BonAB⟩, ABuniq⟩ := I1 A B AneB
      have ABeqL := ABuniq L ⟨AonL, BonL⟩
      have ABeqM := ABuniq M ABonM
      rw [ABeqL, ABeqM]
 
 -- Ed. Corollary "Two lines are distinct iff they have at least one point not in common"
-@[simp] lemma P5.L2.C1 {G : IncidenceGeometry} : ∀ L M : G.Line,
+@[simp] lemma P5.L2.C1 : ∀ L M : Line,
     L ≠ M ↔ ∃ P, ((P on L) ∧ (P off M)) ∨ ((P off L) ∧ (P on M)) := by
     -- TODO: This is ugly, and it's essentially just !P5.L2, but I couldn't cajole it into place.
     intros L M
@@ -79,12 +69,12 @@ lemma P5.L1 {G : IncidenceGeometry} : ∀ P : G.Point, ∃ Q : G.Point, P ≠ Q 
 -- some macro? I don't know how to do this exactly, I feel like it might be a `def`?
 
 -- p71. "For every point P, there are at least two distinct lines through P"
-theorem P5 {G : IncidenceGeometry} :
-    ∀ P : G.Point, ∃ L M : G.Line,
+@[simp] theorem P5 :
+    ∀ P : Point, ∃ L M : Line,
     L ≠ M ∧ (P on L) ∧ (P on M) := by
         intro P
         obtain ⟨Q, PneQ⟩ := P5.L1 P
-        obtain ⟨PQ, ⟨PonPQ, QonPQ⟩, PQuniq⟩ := G.ia_1_unique_line P Q PneQ
+        obtain ⟨PQ, ⟨PonPQ, QonPQ⟩, PQuniq⟩ := I1 P Q PneQ
         -- So we have an arbitrary ray PQ, by P2.3 there is a point R not on it.
         obtain ⟨R, RoffPQ⟩ := Geometry.Ch2.Prop.P3 PQ
         -- Since PQ avoids R, P ≠ R
@@ -93,7 +83,7 @@ theorem P5 {G : IncidenceGeometry} :
             rw [<- hNeg] at RoffPQ
             tauto
         -- So we have PR ≠ PQ
-        obtain ⟨PR, ⟨PonPR, RonPR⟩, PRuniq⟩ := G.ia_1_unique_line P R PneR
+        obtain ⟨PR, ⟨PonPR, RonPR⟩, PRuniq⟩ := I1 P R PneR
         -- Let's stake our claim
         use PQ, PR
         have PQnePR : PQ ≠ PR := by
