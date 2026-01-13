@@ -1,26 +1,18 @@
-module
-
-public import Geometry.Tactics
-public import Geometry.Ch2.Theory
-public import Geometry.Ch2.Defs
-
-@[expose] public section
+import Geometry.Tactics
+import Geometry.Theory
 
 namespace Geometry.Ch2.Prop
 
-open Geometry.Ch2.Theory
-open Geometry.Ch2.Defs
-
-variable (G : IncidenceGeometry)
+open Geometry.Theory
 
 -- pp. 71: If `l` and `m` are distinct lines that are not parallel, then `l` and
 -- `m` have a unique point in common
-theorem P1 (L M : G.Line) :
-  L ≠ M → (L ∦ M) → ∃! P : G.Point,
+@[simp] theorem P1 (L M : Line) :
+  L ≠ M → (L ∦ M) → ∃! P : Point,
      (P on L) ∧ (P on M)
 := by
     intro hDistinctLines
-    unfold NotParallel
+    unfold Parallel; push_neg
     rintro ⟨_, ⟨P, hPonLM⟩⟩
     refine ⟨P, ?cEx, ?cUniq⟩
     -- existence
@@ -29,7 +21,7 @@ theorem P1 (L M : G.Line) :
     intro Q
     by_contra! ⟨hQonLM, hNeg⟩
     -- idea, PQ = L, PQ = M, but L != M
-    obtain ⟨PQ, _, hPQUniq⟩ := G.ia_1_unique_line P Q hNeg.symm
+    obtain ⟨PQ, _, hPQUniq⟩ := I1 P Q hNeg.symm
     have hLisPQ := hPQUniq L ⟨hPonLM.left, hQonLM.left⟩
     have hMisPQ := hPQUniq M ⟨hPonLM.right, hQonLM.right⟩
     have hLeqM : (L = M) := by
