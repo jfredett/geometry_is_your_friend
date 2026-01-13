@@ -21,10 +21,6 @@ axiom Between : Point -> Point -> Point -> Prop
 notation:65 A:66 " - " B:66 " - " C:65 => Between A B C
 -- Segment, Ray, Extension, LineThrough
 
-@[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
-@[reducible] def Extension (A B : Point) := {C | A - B - C}
-@[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
-@[reducible] def LineThrough (A B : Point) := (Ray A B) ∪ (Ray B A)
 
 -- TODO: Review binding values for all this notation
 syntax:50 (name := onNotation) term:51 " on " term:50 : term
@@ -40,12 +36,24 @@ syntax:1000 "the " "ray " term:max term:max : term
 syntax:1000 "the " "extension " term:max term:max : term
 syntax:1000 "the " "line " term:max term:max : term
 
-
 notation:80 P " off " L => P ∉ L
 notation:80 L " has " P => P ∈ L
 notation:80 L " avoids " P => P ∉ L
 
--- Macro rules for "on" notation
+-- Macro rules for "on" notation - we need to specify these rules incrementally, so that
+-- I can introduce collinear as a definition.
+macro_rules (kind := onNotation)
+  | `($P on $L) => `($P ∈ $L)
+
+-- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
+def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
+
+@[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
+@[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
+@[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
+@[reducible] def LineThrough (A B : Point) := {C | Collinear A B C}
+
+-- Re-running
 macro_rules (kind := onNotation)
   | `($P on segment $A $B) => `($P ∈ Segment $A $B)
   | `($P on ray $A $B) => `($P ∈ Ray $A $B)
@@ -75,8 +83,6 @@ axiom I1 : ∀ P Q : Point, P ≠ Q -> ∃! L : Line, (P on L) ∧ (Q on L)
 axiom I2 : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ (A on L) ∧ (B on L)
 axiom I3 : ∃ A B C : Point, (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧ (∀ (L : Line), (A on L) → (B on L) → (C off L))
 
--- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
-def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
 def Concurrent (L M N : Line) : Prop :=
     ∃ P : Point, (P on L) ∧ (P on M) ∧ (P on N)
 
@@ -124,7 +130,6 @@ axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ Collinear A B 
   ( (A - B - C) ∧ ¬(B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧  (B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧ ¬(B - A - C) ∧  (A - C - B))
-
 
 
 
