@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
-      - uses: leanprover-community/docgen-action@v1
-        with:
-          blueprint: true
+      # FIXME: Doesn't presently work with a lakefile.lean, needs a .toml
+      #- uses: leanprover-community/docgen-action@v1
+      #  with:
+      #    blueprint: true
