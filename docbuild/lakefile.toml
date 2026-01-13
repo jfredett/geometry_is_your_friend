@@ -1,10 +1,10 @@
 name = "docbuild"
 reservoir = false
 version = "0.1.0"
-packagesDir = "../.lake/packages"
+packagesDir = "docbuild"
 
 [[require]]
-name = "Your Library Name"
+name = "geometry-is-your-friend"
 path = "../"
 
 [[require]]
