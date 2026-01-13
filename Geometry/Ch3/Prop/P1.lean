@@ -135,7 +135,8 @@ lemma P1.L8 {A B C : G.Point}:
   use AB
   constructor
   unfold Segment at ConSegAB
-  
+  sorry
+
   -- Ed. This is a pain, because this sudden move to make a Line a concrete set of points,
   -- we end up in conversion hell just to have a psuedo-model inside the theory? Makes sense
   -- on paper, not formally though, I think. Adding another class of objects to manage is
@@ -157,8 +158,19 @@ lemma P1.L8 {A B C : G.Point}:
   -- these are now just propositions, not sets, and this means we can't use Set Theory at them,
   -- which is a loss I do not expect to feel at any point ever.
 
+  -- I made an attempt at this in `refactor-1`, but failed, I think due to the way I've structured
+  -- the theory.
 
-  sorry
+  -- I might make a big change here, copying over Tao's approach with _Analysis I_, taking a
+  -- '1 chapter, 1 lean file' approach rather than my admittedly more computer-science-y
+  -- method here of breaking things into lots of small files.
+
+  -- Would also be an opportunity to try verso. :)
+
+
+lemma test : ∀ L : G.Line, ∃ S : Set G.Point, S = { P | P on L } := by
+  intro L
+  simp only [↓existsAndEq]
 
 
 
@@ -193,6 +205,12 @@ lemma P1.L9.i {A B C : G.Point}:
     -- hBetween, Idea, C ∈ Segment A B -> C on AB:Line
     have ConSegAB : C ∈ Segment A B := by
       unfold Segment; simp; tauto
+    have ConAB : C on AB := by
+      have l8 := L8
+      specialize l8 G A B C
+
+
+    trivial
 
 
 
