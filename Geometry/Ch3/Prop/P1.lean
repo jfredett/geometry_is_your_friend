@@ -53,7 +53,7 @@ theorem P1.i (A B : Point) : A ≠ B ->
   -- Ed. I'm inserting this `A ≠ B` condition because the author never clearly
   -- states, but definitely implies, that `the ray A A` is degenerate because `A
   -- - A - B` and the like are degenerate
-  (Segment A B) = (Ray A B) ∩ (Ray B A)  := by
+  (segment A B) = (ray A B) ∩ (ray B A)  := by
   /-
   "
   Proof of (i):
@@ -120,7 +120,7 @@ theorem P1.i (A B : Point) : A ≠ B ->
 @[simp] lemma P1.L5.extension {A B : Point} : A ≠ B ->
   ∀ C : Point, C on extension A B -> Collinear A B C := by
   intro AneB C ConExt; unfold Collinear
-  simp_all; tauto
+  simp_all;
 
 @[simp] lemma P1.L5.line {A B : Point} : A ≠ B ->
   ∀ C : Point, C on line A B -> Collinear A B C := by
@@ -167,6 +167,13 @@ Ed. Collinearity commutes in both argument pairs
     unfold LineThrough; simp only [mem_setOf_eq]
     exact P1.L5.extension AneB P hPonExtAB
 
+@[simp] lemma P1.L7.line.ii {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) (AneB : A ≠ B) :
+  A - P - B -> P on the line A B := by
+    intro hABP;
+    have hPonExtAB : P on segment A B := P1.L7.segment PneAB hABP
+    unfold LineThrough; simp only [mem_setOf_eq]
+    exact P1.L5.segment AneB P hPonExtAB
+
 -- (ii) Ray A B ∪ Ray B A = LineThrough A B"
 @[simp] theorem P1.ii (A B : Point) : A ≠ B -> -- Ed. Same as above.
   (ray A B) ∪ (ray B A) = (line A B) := by
@@ -212,5 +219,8 @@ Ed. Collinearity commutes in both argument pairs
   -- APB means we're on the segment, not the extension, otherwise a similar argument
   obtain hPonsegAB : P on the segment A B := L7.segment hABPdistinct bAPB
   unfold Ray; tauto
+
+#print axioms P1.i
+#print axioms P1.ii
 
 end Geometry.Ch3.Prop

@@ -65,9 +65,6 @@ open Geometry.Theory
     have hR := h.right
     tauto
 
--- TODO: P5.L1 allows an 'arbitrary ray' construction, given P, obtain PQ a random ray from P.
--- some macro? I don't know how to do this exactly, I feel like it might be a `def`?
-
 -- p71. "For every point P, there are at least two distinct lines through P"
 @[simp] theorem P5 :
     ∀ P : Point, ∃ L M : Line,
@@ -98,5 +95,6 @@ open Geometry.Theory
             tauto -/
         -- trivial from here
         tauto
+
 
 end Geometry.Ch2.Prop

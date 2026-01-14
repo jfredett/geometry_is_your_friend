@@ -17,3 +17,6 @@ import Geometry.Ch2.Prop.P5
 -- Chapter 3
 -- -- Propositions
 import Geometry.Ch3.Prop.P1
+-- import Geometry.Ch3.Prop.B4iii -- A corrolary of B4, nothing without proof.
+
+
