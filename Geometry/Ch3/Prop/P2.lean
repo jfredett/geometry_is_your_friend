@@ -25,7 +25,6 @@ lemma P2.Lz {A B : Point} {L : Line} : (L splits A and B) -> (L avoids A) ∧ (L
   unfold Segment at PonAB; simp only [mem_setOf_eq] at PonAB
   tauto
 
-
 /- This is true too, I think my formulation may be a little off. -/
 lemma P2.Lz2 {A B : Point} {L : Line} : (L guards A and B) -> (L avoids A) ∧ (L avoids B) := by
   by_contra! hNeg
@@ -65,9 +64,96 @@ lemma P2.Ly {A B : Point} {L : Line} : (L splits A and B) -> ∃! X : Point, X o
   have Yuniq := (PUniq Y YonL YonAB)
   rw [<- Xuniq] at Yuniq; contradiction
 
+lemma P2.Lb : A - B - C ∧ A - C - B -> False := by
+  intro ⟨ABC, ACB⟩
+  obtain ⟨⟨AneB, BneC, AneC⟩, ⟨⟨L, AonL, BonL, ConL⟩, ABCCol⟩⟩ := B1a ABC
+  obtain ⟨⟨AneC, CneB, AneB⟩, ⟨⟨M, AonM, ConM, BonM⟩, ACBCol⟩⟩ := B1a ACB
+  rcases B3 A B C ⟨AneB, BneC, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
+  contradiction; contradiction; contradiction
 
-/- Ed. If L splits A and B at the point X, then there is a point C such that A - C - X, C ≠ A, C off L -/
--- lemma P2.Lx : L splits A and B -> ∃ C : Point, A - O - B
+lemma P2.Lc : distinct A C X B -> Collinear A C X ∧ Collinear A X B -> Collinear A C B := by
+  intro_distinct hACXDistinct
+  intro ⟨ACXCol, AXBCol⟩
+  unfold PairwiseDistinct at hACXDistinct; simp at hACXDistinct;
+  have b3ConditionACX : A ≠ C ∧ C ≠ X ∧ A ≠ X ∧ Collinear A C X := by tauto
+  have b3ConditionAXB : A ≠ X ∧ X ≠ B ∧ A ≠ B ∧ Collinear A X B := by tauto
+  obtain ⟨ACB, _⟩ := B3 A C X b3ConditionACX
+  obtain ⟨AXB, _⟩ := B3 A X B b3ConditionAXB
+
+
+
+  sorry
+
+lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
+  intro ACX AXB
+  obtain ⟨⟨AneC, CneX, AneX⟩, ⟨⟨L, AonL, ConL, XonL⟩, ACXCol⟩⟩ := B1a ACX
+  obtain ⟨⟨AneX, XneB, AneB⟩, ⟨⟨M, AonM, XonM, BonM⟩, AXBCol⟩⟩ := B1a AXB
+  --
+  have CneB : C ≠ B := by
+    by_contra! hNeg
+    rw [hNeg] at ACX
+    -- need A B X and A X B are a contradiction
+    exact P2.Lb ⟨ACX, AXB⟩
+
+  have hDistinct : A ≠ B ∧ A ≠ C ∧ A ≠ X ∧ B ≠ X ∧ B ≠ X ∧ C ≠ X := by sorry
+  have LcCondition : distinct A C X B := by sorry
+  have ACBCol : Collinear A C B := Lc LcCondition ⟨ACXCol, AXBCol⟩
+  rcases B3 A C B ⟨AneC, CneB, AneB, ACBCol⟩ with ⟨ACB, nCAB, nABC⟩ | ⟨nACB, CAB, nABC⟩ | ⟨nACB, nCAB, ABC⟩
+  exact ACB
+  exfalso; -- ???
+
+
+
+
+
+
+
+  sorry
+
+/-
+Ed. If L splits A and B at the point X, then there is a point C such that A - C - X, C ≠ A, C off L
+
+The 'L intersects M at X' notation that is introduced here is not one the author
+defines directly anywhere I have seen. He mentions it in _Undefined Terms_
+(p.13) but does not provide a formal defintion.
+The details of the property in action can be seen below, the assertion I think will be non-controversial.
+-/
+lemma P2.Lx {A B X : Point} {L : Line} :
+  (L splits A and B) ∧ (L intersects (segment A B) at X) ->
+  ∃ C : Point, A - C - X ∧ C ≠ A ∧ C off L := by
+  rintro ⟨hLsplitsAB, LcrossesABatX⟩
+  obtain ⟨XonL, XonAB, Xuniq, XintABeqX⟩ := LcrossesABatX
+  have AoffL : A off L := by
+    by_contra! hNeg
+    specialize Xuniq A
+    unfold SameSide at hLsplitsAB; push_neg at hLsplitsAB
+    obtain ⟨⟨AoffL, _⟩, _⟩ := hLsplitsAB
+    contradiction
+  have AneX : A ≠ X := by
+    by_contra
+    rw [this] at AoffL
+    contradiction
+  have ⟨D,C,E, AX, ⟨_, AonAX, ConAX, XonAX, _⟩, hDistinctACX, DAX, ACX, AXE⟩ := B2 A X AneX
+  -- This is ugly, I am not very good at inductive datatypes in lean yet.
+  unfold PairwiseDistinct at hDistinctACX ; simp only [ne_eq, List.pairwise_cons, List.mem_cons,
+    List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true,
+    List.Pairwise.nil, and_self, and_true] at hDistinctACX
+  have ⟨⟨DneA, DneC, DneX, DneE⟩, ⟨AneC, AneX, AneE⟩, ⟨CneX, CneE⟩, XneX⟩ := hDistinctACX
+  use C
+  constructor; exact ACX;
+  constructor; tauto
+  by_contra! ConL
+  have ConAB : C on segment A B := by
+    unfold Segment; simp only [mem_setOf_eq];
+    constructor
+    unfold Segment at XonAB; simp only [mem_setOf_eq] at XonAB
+    rcases XonAB with AXB | AeqX | BeqX
+    exact La ACX AXB
+    contradiction;
+    rw [BeqX]; exact ACX
+  obtain CeqX := (Xuniq C ⟨ConL, ConAB⟩);
+  rw [CeqX] at CneX
+  contradiction
 
 
 /- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."

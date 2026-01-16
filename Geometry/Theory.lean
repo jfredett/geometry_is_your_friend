@@ -1,10 +1,71 @@
 import Geometry.Tactics
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
+import Mathlib.Data.List.Basic
 
 namespace Geometry.Theory
 
 open Set
+
+-- Use Mathlib's List.Pairwise directly
+def PairwiseDistinct {α : Type*} (xs : List α) : Prop :=
+  xs.Pairwise (· ≠ ·)
+
+-- Helper to check if an identifier is accessible
+open Lean in
+def isAccessible (id : TSyntax `ident) : Bool :=
+  let name := id.getId.toString
+  !name.startsWith "_" && !name.contains "✝"
+
+-- Custom syntax category for the distinct binder
+declare_syntax_cat distinct_binder
+syntax ident+ " : " term : distinct_binder
+
+-- Existential
+syntax (name := existsDistinct) "∃ " "distinct " distinct_binder ", " term : term
+
+macro_rules (kind := existsDistinct)
+  | `(∃ distinct $x:ident : $ty, $body) => do
+    if isAccessible x then
+      `(∃ $x:ident : $ty, PairwiseDistinct [$x] ∧ $body)
+    else
+      `(∃ $x:ident : $ty, $body)
+  | `(∃ distinct $x:ident $xs:ident* : $ty, $body) => do
+    let accessible := ((x :: xs.toList).filter isAccessible).toArray
+    if accessible.isEmpty then
+      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, $body)
+    else
+      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, PairwiseDistinct [$[$accessible],*] ∧ $body)
+
+-- Universal
+syntax (name := forallDistinct) "∀ " "distinct " distinct_binder ", " term : term
+
+macro_rules (kind := forallDistinct)
+  | `(∀ distinct $x:ident : $ty, $body) => do
+    if isAccessible x then
+      `(∀ $x:ident : $ty, PairwiseDistinct [$x] → $body)
+    else
+      `(∀ $x:ident : $ty, $body)
+  | `(∀ distinct $x:ident $xs:ident* : $ty, $body) => do
+    let accessible := ((x :: xs.toList).filter isAccessible).toArray
+    if accessible.isEmpty then
+      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, $body)
+    else
+      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, PairwiseDistinct [$[$accessible],*] → $body)
+
+-- Standalone distinct
+syntax "distinct " ident+ : term
+macro_rules
+  | `(distinct $[$xs]*) => do
+    let accessible := (xs.toList.filter isAccessible).toArray
+    `(PairwiseDistinct [$[$accessible],*])
+
+
+-- TODO: lemmas for distinct where it's something like `'if A and B are in a
+-- PairwiseDistinct structure, then they are distinct'`
+
+
+
 
 /--
 The core geometric theory presented in the text is contained here as simple structures/axia taken as needed into proofs.
@@ -72,6 +133,22 @@ macro_rules
   | `(the extension $A $B) => `(Extension $A $B)
   | `(the line $A $B) => `(LineThrough $A $B)
 
+-- Tactic to unfold PairwiseDistinct and introduce all conditions
+syntax "intro_distinct" (colGt ident)* : tactic
+
+macro_rules
+  | `(tactic| intro_distinct $[$ids]*) => do
+    `(tactic| (intro $[$ids]*;
+               repeat (first | (constructor) | (intro; intro; intro))))
+
+-- Or a more powerful version that also splits conjunctions:
+syntax "intros_distinct" : tactic
+
+macro_rules
+  | `(tactic| intros_distinct) =>
+    `(tactic| (intros;
+               repeat (first | (cases ‹PairwiseDistinct _› with | _ h => ?_)
+                             | (obtain ⟨h1, h2⟩ := ‹_ ∧ _›))))
 
 -- -- GEOMETRIC AXIOMS
 
@@ -151,6 +228,7 @@ line, there is always a point between them.
 @[simp] axiom B2 : ∀ B D : Point, B ≠ D ->
   ∃ A C E : Point, ∃ BD : Line,
   ((A on BD) ∧ (B on BD) ∧ (C on BD) ∧ (D on BD) ∧ (E on BD)) ∧
+  distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 /-
  p.108 "If A, B, and C are three distinct points lying on the same line, then
@@ -170,7 +248,7 @@ does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3
 @[reducible] def SameSide (A B : Point) (L : Line)
   := (A off L) ∧ (B off L)
   -> ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
--- Notation for opposite sides and same side
+
 /-
 "Splits" and "Guards", L "splits" A and B if A and B are on opposite sides of the 'wall' L, it 'guards'
 them if they are both on the same side of the wall (we presume all points are allied with other points
@@ -209,7 +287,23 @@ sides of L, then A and C are on the same side of L."
 @[simp] axiom B_absurdity_3 (A B : Point) : A - A - B -> False
 -/
 
+/-
+Ed. I declare by fiat this is what an intersection is. I should probably have lemmas that show all these things are achievable consequences of being
+an intersection, I do not expect it to be controversial, it asserts:
 
+1. X is on L and M. j
+2. Any point that is on both L and M must be X (Xuniq)
+3. The setwise intersection is the singleton containing X.
+
+-/
+@[reducible] def Intersects (L M : Line) (X : Point) : Prop :=
+  X on L ∧ X on M ∧ (∀ P : Point, P on L ∧ P on M → P = X) ∧ L ∩ M = {X}
+
+-- Syntax for "L intersects M at X"
+syntax (name := intersectsAt) term " intersects " term " at " term : term
+
+macro_rules (kind := intersectsAt)
+  | `($L intersects $M at $X) => `(Intersects $L $M $X)
 
 
 
