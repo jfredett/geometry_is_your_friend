@@ -164,11 +164,12 @@ line, there is always a point between them.
 /-
 p.110 "Definition. Let L be any line, and A and B points that do not lie on L. If A = B or if the segment A B
 contains no points that lie on L, we say that A and B are _on the same side_ of L; whereas, if A ≠ B and segment A B
-does intersect L, we say that A and B are _on opposit sides_ of L (see Figure 3.6). The law of the excluded middle
+does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3.6). The law of the excluded middle
 (Logic Rule 10) tells us that A and B are either on the same side or on opposite sides of L"
 -/
-@[reducible] def SameSide (A B : Point) (L : Line) := A = B ∨ (∀ P : Point, P on segment A B -> L avoids P)
-
+@[reducible] def SameSide (A B : Point) (L : Line)
+  := (A off L) ∧ (B off L)
+  -> ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
 -- Notation for opposite sides and same side
 /-
 "Splits" and "Guards", L "splits" A and B if A and B are on opposite sides of the 'wall' L, it 'guards'

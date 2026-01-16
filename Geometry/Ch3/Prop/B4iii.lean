@@ -18,6 +18,7 @@ open Geometry.Ch3.Prop.P1
 -- p111
 
 /- The only point between A and itself is A. -/
+-- TODO: Move this out, it's not used anymore.
 @[simp] lemma B4iii.L0 (A P : Point) : A - P - A -> P = A := by
   intro hAPA
   have ⟨hDistinct, _⟩ := B1a hAPA

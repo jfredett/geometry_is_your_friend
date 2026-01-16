@@ -220,7 +220,4 @@ Ed. Collinearity commutes in both argument pairs
   obtain hPonsegAB : P on the segment A B := L7.segment hABPdistinct bAPB
   unfold Ray; tauto
 
-#print axioms P1.i
-#print axioms P1.ii
-
 end Geometry.Ch3.Prop
