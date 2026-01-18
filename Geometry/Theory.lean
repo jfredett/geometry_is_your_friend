@@ -7,11 +7,8 @@ namespace Geometry.Theory
 
 open Set
 
--- Use Mathlib's List.Pairwise directly
-def PairwiseDistinct {α : Type*} (xs : List α) : Prop :=
-  xs.Pairwise (· ≠ ·)
-
 -- Helper to check if an identifier is accessible
+-- FIXME: doesn't really do what I want, which is to hide all the generated conditions that have daggers or underscores.
 open Lean in
 def isAccessible (id : TSyntax `ident) : Bool :=
   let name := id.getId.toString
@@ -23,11 +20,10 @@ syntax ident+ " : " term : distinct_binder
 
 -- Existential
 syntax (name := existsDistinct) "∃ " "distinct " distinct_binder ", " term : term
-
 macro_rules (kind := existsDistinct)
   | `(∃ distinct $x:ident : $ty, $body) => do
     if isAccessible x then
-      `(∃ $x:ident : $ty, PairwiseDistinct [$x] ∧ $body)
+      `(∃ $x:ident : $ty, List.Pairwise (· ≠ ·) [$x] ∧ $body)
     else
       `(∃ $x:ident : $ty, $body)
   | `(∃ distinct $x:ident $xs:ident* : $ty, $body) => do
@@ -35,15 +31,14 @@ macro_rules (kind := existsDistinct)
     if accessible.isEmpty then
       `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, $body)
     else
-      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, PairwiseDistinct [$[$accessible],*] ∧ $body)
+      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, List.Pairwise (· ≠ ·) [$[$accessible],*] ∧ $body)
 
 -- Universal
 syntax (name := forallDistinct) "∀ " "distinct " distinct_binder ", " term : term
-
 macro_rules (kind := forallDistinct)
   | `(∀ distinct $x:ident : $ty, $body) => do
     if isAccessible x then
-      `(∀ $x:ident : $ty, PairwiseDistinct [$x] → $body)
+      `(∀ $x:ident : $ty, List.Pairwise (· ≠ ·) [$x] → $body)
     else
       `(∀ $x:ident : $ty, $body)
   | `(∀ distinct $x:ident $xs:ident* : $ty, $body) => do
@@ -51,20 +46,32 @@ macro_rules (kind := forallDistinct)
     if accessible.isEmpty then
       `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, $body)
     else
-      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, PairwiseDistinct [$[$accessible],*] → $body)
+      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, List.Pairwise (· ≠ ·) [$[$accessible],*] → $body)
 
 -- Standalone distinct
 syntax "distinct " ident+ : term
 macro_rules
   | `(distinct $[$xs]*) => do
     let accessible := (xs.toList.filter isAccessible).toArray
-    `(PairwiseDistinct [$[$accessible],*])
+    `(List.Pairwise (· ≠ ·) [$[$accessible],*])
 
+syntax "intro_distinct" (colGt ident)* : tactic
+macro_rules
+  | `(tactic| intro_distinct $[$ids]*) => do
+    `(tactic| (intro $[$ids]*;
+               repeat (first | (constructor) | (intro; intro; intro))))
 
--- TODO: lemmas for distinct where it's something like `'if A and B are in a
--- PairwiseDistinct structure, then they are distinct'`
+syntax "intros_distinct" : tactic
+macro_rules
+  | `(tactic| intros_distinct) =>
+    `(tactic| (intros;
+               repeat (first | (cases ‹List.Pairwise (· ≠ ·) _› with | _ h => ?_)
+                             | (obtain ⟨h1, h2⟩ := ‹_ ∧ _›))))
 
-
+syntax (name := unfoldDefs) "unfold_defs" (ppSpace ident)* : tactic
+macro_rules
+  | `(tactic| unfold_defs $ids*) =>
+    `(tactic| repeat (unfold $ids*))
 
 
 /--
@@ -133,22 +140,8 @@ macro_rules
   | `(the extension $A $B) => `(Extension $A $B)
   | `(the line $A $B) => `(LineThrough $A $B)
 
--- Tactic to unfold PairwiseDistinct and introduce all conditions
-syntax "intro_distinct" (colGt ident)* : tactic
 
-macro_rules
-  | `(tactic| intro_distinct $[$ids]*) => do
-    `(tactic| (intro $[$ids]*;
-               repeat (first | (constructor) | (intro; intro; intro))))
 
--- Or a more powerful version that also splits conjunctions:
-syntax "intros_distinct" : tactic
-
-macro_rules
-  | `(tactic| intros_distinct) =>
-    `(tactic| (intros;
-               repeat (first | (cases ‹PairwiseDistinct _› with | _ h => ?_)
-                             | (obtain ⟨h1, h2⟩ := ‹_ ∧ _›))))
 
 -- -- GEOMETRIC AXIOMS
 
@@ -226,8 +219,8 @@ something like the density of rationals -- for any two distinct points on a
 line, there is always a point between them.
 -/
 @[simp] axiom B2 : ∀ B D : Point, B ≠ D ->
-  ∃ A C E : Point, ∃ BD : Line,
-  ((A on BD) ∧ (B on BD) ∧ (C on BD) ∧ (D on BD) ∧ (E on BD)) ∧
+  ∃ A C E : Point, ∃ seg : Line,
+  ((A on seg) ∧ (B on seg) ∧ (C on seg) ∧ (D on seg) ∧ (E on seg)) ∧
   distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 /-

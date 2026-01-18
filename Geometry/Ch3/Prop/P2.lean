@@ -79,10 +79,29 @@ lemma P2.Lc : distinct A C X B -> Collinear A C X ∧ Collinear A X B -> Colline
   have b3ConditionAXB : A ≠ X ∧ X ≠ B ∧ A ≠ B ∧ Collinear A X B := by tauto
   obtain ⟨ACB, _⟩ := B3 A C X b3ConditionACX
   obtain ⟨AXB, _⟩ := B3 A X B b3ConditionAXB
+  unfold Collinear at *; simp_all only [not_false_eq_true, and_self, true_and, and_true, ne_eq, B1a]
+
+
+  sorry
+
+lemma P2.Lk : A - C - X -> C - A - B -> A - X - B -> False := by
+  intro ACX CAB AXB
+  by_contra!
+  obtain ⟨⟨AneC, CneX, AneX⟩, ⟨⟨L, AonL, ConL, XonL⟩, ACXCol⟩⟩ := B1a ACX
+  obtain ⟨⟨CneA, CneB, AneB⟩, ⟨⟨M, ConM, AonM, BonM⟩, CABCol⟩⟩ := B1a CAB
+  obtain ⟨_, ⟨_, AXBCol⟩⟩ := B1a AXB
+  rcases B3 A C X ⟨AneC, CneX, AneX, ACXCol⟩ with ⟨ACX, nCAX, nAXC⟩ | ⟨nACX, CAX, nAXC⟩ | ⟨nACX, nCAX, AXC⟩
 
 
 
   sorry
+
+lemma P2.Lj : A - B - C -> A - C - B -> False := by
+  intro ABC ACB
+  by_contra!
+  exact P2.Lb ⟨ABC, ACB⟩
+
+
 
 lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
   intro ACX AXB
@@ -98,12 +117,27 @@ lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
   have hDistinct : A ≠ B ∧ A ≠ C ∧ A ≠ X ∧ B ≠ X ∧ B ≠ X ∧ C ≠ X := by sorry
   have LcCondition : distinct A C X B := by sorry
   have ACBCol : Collinear A C B := Lc LcCondition ⟨ACXCol, AXBCol⟩
+  -- the diagram is:  A - C - X - B
+  --
+  -- the options are ACB, CAB (rejected by ACX, since i)
   rcases B3 A C B ⟨AneC, CneB, AneB, ACBCol⟩ with ⟨ACB, nCAB, nABC⟩ | ⟨nACB, CAB, nABC⟩ | ⟨nACB, nCAB, ABC⟩
   exact ACB
-  exfalso; -- ???
+  exfalso; sorry -- ACX contradicts CAB, since A is 'to the left' of C
+  exfalso; sorry -- ACX contradicts ABC, since
 
 
 
+
+lemma P2.Lzz : A - X - B -> segment A B = segment A X ∪ segment X B := by
+  intro AXB
+  unfold Segment; simp only [P5.L2, mem_setOf_eq, mem_union]
+  intro P
+  constructor
+  intro h0
+  rcases h0 with APB | AeqP | BeqP
+
+
+  sorry
 
 
 
@@ -154,8 +188,6 @@ lemma P2.Lx {A B X : Point} {L : Line} :
   obtain CeqX := (Xuniq C ⟨ConL, ConAB⟩);
   rw [CeqX] at CneX
   contradiction
-
-
 /- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
 
 B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
@@ -166,58 +198,78 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
 := by
   /- p.112 "(1) There is a point A not lying on l, (Proposition 2.3 [Ch2.Prop.P3])." -/
   obtain ⟨A, AoffL⟩ := Ch2.Prop.P3 L
-  /- "There is a point O lying on l (Incidence Axiom 2 [I2])."-/
+  /- "(2) There is a point O lying on l (Incidence Axiom 2 [I2])."-/
   obtain ⟨O, _, _, OonL, _⟩ := I2 L
-  /- "There is a point B such that B * O * A (Betweenness Axiom 2 [B2])"-/
+  /- "(3) There is a point B such that B * O * A (Betweenness Axiom 2 [B2])"-/
   have AneO : A ≠ O := by -- author omits this step
     by_contra!; rw [this] at AoffL; tauto
-  obtain ⟨B, _, _, _, _, bBOA, _, _⟩ := B2 O A AneO.symm
-  /- "Then A and B are on opposite sides of l (by definition), ..."-/
+  obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm
+  /- "(4) Then A and B are on opposite sides of l (by definition), ..."-/
   have ⟨⟨BneO,OneA,BneA⟩, ⟨_, BOACol⟩⟩ := B1a bBOA -- author omits this step.
   have BoffL : B off L := by
     -- idea, three colinear points, one off a line and the other on, means the third point is off the line or
     -- is the on-line point.
     sorry;
   have LsplitsAB : L splits A and B := by
-    push_neg; constructor; constructor; exact AoffL
-    exact BoffL; constructor; exact BneA.symm
-    use O; unfold Segment; simp only [mem_setOf_eq]
-    constructor
-    left; rw [B1b]; tauto
-    tauto
+    push_neg;
+    constructor; exact Classical.not_imp.mp fun a ↦ BoffL (a AoffL)
+    constructor; exact Ne.intro (id (Ne.symm BneA))
+    use O;
+    constructor; unfold Segment; simp_all only [ne_eq, B1b, B1a, mem_setOf_eq, or_self, or_false]
+    exact OonL
   /- "so L has at least two sides." -/
-  /- "Let C be any point distinct from A and B not lying on l"
+  /- "(5) Let C be any point distinct from A and B not lying on l..."
 
   Ed. Construct point C off L and distinct from A and B as follows.
 
   1. Take AB and find it's intersection by L, call it X
   2. Examine segment A X with B2, we want C with A - C - X
   3. Use C.
-
-  obtain ⟨C, CoffL, CneA⟩ := by sorry
-  obtain ⟨C, CoffL⟩ := Ch2.Prop.P3 L
-  have ⟨CneA, CneB⟩  : C ≠ A ∧ C ≠ B := by
-    unfold SameSide at LsplitsAB; push_neg at LsplitsAB
-    have ⟨AneB, ⟨P, PonAB, PonL⟩⟩ := LsplitsAB
-    constructor;
   -/
-
-
-
-/-
-    by_contra! CeqA
-    -- Idea: B-O-A is B-O-C under the AeqB assumption, so BC and AB both pass through L at O, AOB and BOC are collinear
-    --  -- lemma, if ABC are Col, and BCD are col, then ABD are col -- I might have this already?
-    --  -- lemma, if ABC, B is on the segment A C
-    --  -- idea, if A-O-B and B-O-C -- this is the contradiction, I don't know how to prove it, but it's the contradiction.
-    have bBOC : B - O - C := by
-      rwa [<- CeqA] at bBOA;
-    have bAOB : A - O - B := by
+  obtain ⟨X, XintersectsABandL, Xuniq⟩ : ∃! X : Point, L intersects segment A B at X := by
+    sorry
+  have XneA : X ≠ A := by
+    by_contra! ;
+    rw [<- this] at AoffL
+    unfold Intersects at XintersectsABandL
+    tauto
+  have XneB : X ≠ B := by
+    by_contra! ;
+    rw [<- this] at BoffL
+    unfold Intersects at XintersectsABandL
+    tauto
+  have ⟨C, CoffL, ConAB, ACB, ACX⟩ : ∃ C : Point, (C off L) ∧ (C on segment A B) ∧ (A - C - B) ∧ (A - C - X) := by
+    have ⟨_, C, _, AX, ⟨_, AonAX, ConAX, XonAX, _⟩, distinctACX, _, ACX, _⟩ := B2 A X XneA.symm
+    use C
+    have AXsubAB : segment A X ⊆ segment A B := by sorry
+    have ConAB : C on segment A B := by
+      apply AXsubAB; tauto
+    have CoffL : C off L := by
+      -- idea: C ∈ AX, but AX ∩ L = {X}, so if C ∈ L, then C = X, but ACX distinct.
+      obtain ⟨XonL, XonAB, XuniqIntersection, LintABeqX⟩ := XintersectsABandL
+      by_contra! hNeg
+      have ConIntLandAB : C on (L ∩ segment A B) := by tauto
+      have CinSingleX : C ∈ ({X} : Set Point) := by tauto
+      have CeqX : C = X := by tauto
+      have CneX : C ≠ X := by
+        simp at distinctACX; tauto
+      contradiction
+    have ACB : A - C - B := by
+      unfold Segment at ConAB; simp at ConAB;
+      rcases ConAB with ACB | AeqC | BeqC
+      -- easy case
+      exact ACB;
+      -- A can't equal C
+      exfalso; simp at distinctACX; have AneC : A ≠ C := by tauto;
+      contradiction
+      -- B can't equal C
+      -- should follow from AXB and ACX, 
       sorry
--/
 
 
-
+    tauto
+  have ⟨CneA, CneB⟩  : C ≠ A ∧ C ≠ B := by
+    have h := B1a ACB; tauto
   /- "If C and B are not on the same side of L, then C and A are on the same
   side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
   by_cases LsplitsBC : L splits B and C
