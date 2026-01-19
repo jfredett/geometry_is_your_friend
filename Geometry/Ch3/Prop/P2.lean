@@ -58,7 +58,7 @@ lemma P2.Ly {A B : Point} {L : Line} : (L splits A and B) -> ∃! X : Point, X o
     contradiction
   have LnparAB : L ∦ segment A B := by tauto
   have YonAB : Y on segment A B := AYBorAeqYorBeqY
-  obtain ⟨P, _, PUniq⟩ := Ch2.Prop.P1 L (segment A B) LneAB LnparAB
+  obtain ⟨P, _, PUniq⟩ := Ch2.Prop.P1.direct L (segment A B) LneAB LnparAB
   simp only [mem_setOf_eq, and_imp] at PUniq
   have Xuniq := (PUniq X XonL XonAB)
   have Yuniq := (PUniq Y YonL YonAB)
@@ -74,7 +74,9 @@ lemma P2.Lb : A - B - C ∧ A - C - B -> False := by
 lemma P2.Lc : distinct A C X B -> Collinear A C X ∧ Collinear A X B -> Collinear A C B := by
   intro_distinct hACXDistinct
   intro ⟨ACXCol, AXBCol⟩
-  unfold PairwiseDistinct at hACXDistinct; simp at hACXDistinct;
+  simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
+    forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+    and_true] at hACXDistinct;
   have b3ConditionACX : A ≠ C ∧ C ≠ X ∧ A ≠ X ∧ Collinear A C X := by tauto
   have b3ConditionAXB : A ≠ X ∧ X ≠ B ∧ A ≠ B ∧ Collinear A X B := by tauto
   obtain ⟨ACB, _⟩ := B3 A C X b3ConditionACX
@@ -127,22 +129,16 @@ lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
 
 
 
-
+/-
 lemma P2.Lzz : A - X - B -> segment A B = segment A X ∪ segment X B := by
   intro AXB
   unfold Segment; simp only [P5.L2, mem_setOf_eq, mem_union]
   intro P
   constructor
   intro h0
-  rcases h0 with APB | AeqP | BeqP
-
-
   sorry
-
-
-
-
-  sorry
+  -- rcases h0 with APB | AeqP | Beq
+-/
 
 /-
 Ed. If L splits A and B at the point X, then there is a point C such that A - C - X, C ≠ A, C off L
@@ -169,9 +165,9 @@ lemma P2.Lx {A B X : Point} {L : Line} :
     contradiction
   have ⟨D,C,E, AX, ⟨_, AonAX, ConAX, XonAX, _⟩, hDistinctACX, DAX, ACX, AXE⟩ := B2 A X AneX
   -- This is ugly, I am not very good at inductive datatypes in lean yet.
-  unfold PairwiseDistinct at hDistinctACX ; simp only [ne_eq, List.pairwise_cons, List.mem_cons,
-    List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true,
-    List.Pairwise.nil, and_self, and_true] at hDistinctACX
+  simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp,
+    forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+    and_true] at hDistinctACX
   have ⟨⟨DneA, DneC, DneX, DneE⟩, ⟨AneC, AneX, AneE⟩, ⟨CneX, CneE⟩, XneX⟩ := hDistinctACX
   use C
   constructor; exact ACX;
@@ -188,6 +184,13 @@ lemma P2.Lx {A B X : Point} {L : Line} :
   obtain CeqX := (Xuniq C ⟨ConL, ConAB⟩);
   rw [CeqX] at CneX
   contradiction
+
+
+lemma P2.Lint : (L intersects M at A) ∧ (L intersects M at B) -> A = B := by
+  unfold Intersects
+  intro ⟨LMintA, LMintB⟩
+  tauto
+
 /- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
 
 B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
@@ -207,9 +210,38 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   /- "(4) Then A and B are on opposite sides of l (by definition), ..."-/
   have ⟨⟨BneO,OneA,BneA⟩, ⟨_, BOACol⟩⟩ := B1a bBOA -- author omits this step.
   have BoffL : B off L := by
-    -- idea, three colinear points, one off a line and the other on, means the third point is off the line or
-    -- is the on-line point.
-    sorry;
+    -- idea: if B is on L, then B = O (since AB passes through O), contradiction
+    -- FIXME: This is an insane amount of work for a basic fact, I am almost certainly missing something.
+    by_contra! hNeg
+    have BonAB : B on segment A B := by tauto
+    have OonAB : O on segment A B := by
+      unfold Segment at *
+      simp_all only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, not_false_eq_true, forall_eq, true_and, IsEmpty.forall_iff, implies_true,
+        List.Pairwise.nil, and_self, and_true, B1b, B1a, mem_setOf_eq, or_true, or_self]
+    have OintersectsLandABatX : L intersects segment A B at O := by
+      unfold Intersects
+      constructor
+      · exact OonL
+      · constructor
+        · exact OonAB
+        · constructor;
+          · intro P ⟨PonL, PonAB⟩; sorry -- follows from unique intersection
+          · simp only [P5.L2, mem_inter_iff, mem_setOf_eq, mem_singleton_iff]; intro P; constructor
+            · intro ⟨PonL, PonAB⟩; sorry -- similar to above case
+            · intro PeqO; rw [PeqO]; tauto;
+    have BintersectsLandABatX : L intersects segment A B at B := by
+      unfold Intersects
+      constructor
+      · exact hNeg
+      · constructor
+        · exact BonAB
+        · constructor;
+          · intro P ⟨PonL, PonAB⟩; sorry -- follows from unique intersection
+          · simp only [P5.L2, mem_inter_iff, mem_setOf_eq, mem_singleton_iff]; intro P; constructor
+            · intro ⟨PonL, PonAB⟩; sorry -- similar to above case
+            · intro PeqO; rw [PeqO]; tauto;
+    tauto
   have LsplitsAB : L splits A and B := by
     push_neg;
     constructor; exact Classical.not_imp.mp fun a ↦ BoffL (a AoffL)
@@ -226,8 +258,9 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   2. Examine segment A X with B2, we want C with A - C - X
   3. Use C.
   -/
-  obtain ⟨X, XintersectsABandL, Xuniq⟩ : ∃! X : Point, L intersects segment A B at X := by
-    sorry
+  have LnoparAB : L ∦ segment A B := by sorry
+  have LneAB : L ≠ segment A B := by sorry
+  obtain ⟨X, XintersectsABandL, Xuniq⟩ : ∃! X : Point, L intersects segment A B at X := Ch2.Prop.P1 LneAB LnoparAB
   have XneA : X ≠ A := by
     by_contra! ;
     rw [<- this] at AoffL
@@ -241,6 +274,7 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   have ⟨C, CoffL, ConAB, ACB, ACX⟩ : ∃ C : Point, (C off L) ∧ (C on segment A B) ∧ (A - C - B) ∧ (A - C - X) := by
     have ⟨_, C, _, AX, ⟨_, AonAX, ConAX, XonAX, _⟩, distinctACX, _, ACX, _⟩ := B2 A X XneA.symm
     use C
+    -- this is a lemma
     have AXsubAB : segment A X ⊆ segment A B := by sorry
     have ConAB : C on segment A B := by
       apply AXsubAB; tauto
@@ -255,7 +289,7 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
         simp at distinctACX; tauto
       contradiction
     have ACB : A - C - B := by
-      unfold Segment at ConAB; simp at ConAB;
+      unfold Segment at ConAB; simp only [mem_setOf_eq] at ConAB;
       rcases ConAB with ACB | AeqC | BeqC
       -- easy case
       exact ACB;
@@ -263,31 +297,30 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
       exfalso; simp at distinctACX; have AneC : A ≠ C := by tauto;
       contradiction
       -- B can't equal C
-      -- should follow from AXB and ACX, 
+      -- should follow from AXB and ACX,
       sorry
-
-
     tauto
   have ⟨CneA, CneB⟩  : C ≠ A ∧ C ≠ B := by
     have h := B1a ACB; tauto
   /- "If C and B are not on the same side of L, then C and A are on the same
   side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
   by_cases LsplitsBC : L splits B and C
-  have BoffL : B off L := by sorry
   have LguardsAC : L guards A and C := by
     by_contra LsplitsAC
     have LguardsAB := B4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, B4iii.L1.splits L B C LsplitsBC⟩
     contradiction
   /- "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B." -/
-
-
-
-  sorry
-
-
-
-
-  /- "" -/
+  have Hl := {P | L guards A and P}
+  have Hr := {P | L guards B and P}
+  have claim1 : ∀ P : Point, P ∈ L -> P ∉ Hl ∪ Hr := by sorry
+  /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
+  same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
+  disjoint." -/
+  have claim2 : Hl ∩ Hr = ∅ := by sorry
+  use Hl, Hr
+  constructor
+  · exact claim2
+  · sorry
 
 
 

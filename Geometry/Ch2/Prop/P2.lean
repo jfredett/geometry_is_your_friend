@@ -87,7 +87,8 @@ lemma P2.L2 :
     -- which is false.
     -- We can use 2.1 to find the unique intersection, we mostly care about the uniqueness condition, not the
     -- incidence on.
-    obtain ⟨X, _, hXUniq⟩ := Geometry.Ch2.Prop.P1 AB BC hABneBC hABnotparBC
+    -- Note: FIXME: Using the direct proof version of prop 2.1 since this predates the `.. intersects .. at ..` notation
+    obtain ⟨X, _, hXUniq⟩ := Geometry.Ch2.Prop.P1.direct AB BC hABneBC hABnotparBC
     -- This condition makes proving this a matter of plug and chug
     have hPeqB : P = B := by
       have BeqX := hXUniq B ⟨hBonAB, hBonBC⟩
