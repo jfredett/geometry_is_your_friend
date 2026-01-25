@@ -114,7 +114,7 @@ macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
 -- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
-def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
+@[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
 
 @[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
 @[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}

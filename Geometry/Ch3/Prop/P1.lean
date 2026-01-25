@@ -17,11 +17,11 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 
 "By the definition of segment and ray, `the segment A B ⊆ the ray A B`"
 -/
-@[simp] lemma P1.L1 (A B : Point) : segment A B ⊆ ray A B := by simp_all
+@[simp] lemma P1.L1 : segment A B ⊆ ray A B := by simp_all
 /-
 It helps to be able to commute these around
 -/
-@[simp] lemma P1.L2 (A B : Point) : segment A B = segment B A := by
+@[simp] lemma P1.L2 : segment A B = segment B A := by
   unfold Segment
   ext P
   rw [@mem_setOf]; simp_all only [mem_setOf_eq]
@@ -33,13 +33,13 @@ It helps to be able to commute these around
 /-
 Useful for dealing with the trivial cases.
 -/
-@[simp] lemma P1.L3 (A B : Point) : (A on ray A B) ∧ (B on ray A B) := by
+@[simp] lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by
   constructor
   repeat simp only [mem_union, mem_setOf_eq, true_or, or_true]
 /-
 The endpoint B is in common here.
 -/
-@[simp] lemma P1.L4 (A B : Point) : segment A B ⊆ ray B A := by
+@[simp] lemma P1.L4 : segment A B ⊆ ray B A := by
   intro P hPinSegAB
   simp_all only [mem_setOf_eq, mem_union, L2, true_or]
 
@@ -49,7 +49,7 @@ p.109, "For any two points A and B:
 (i) Ray A B ∩ Ray B A = Segment A B ..."
 -/
 @[simp]
-theorem P1.i (A B : Point) : A ≠ B ->
+theorem P1.i : A ≠ B ->
   -- Ed. I'm inserting this `A ≠ B` condition because the author never clearly
   -- states, but definitely implies, that `the ray A A` is degenerate because `A
   -- - A - B` and the like are degenerate
@@ -129,8 +129,7 @@ theorem P1.i (A B : Point) : A ≠ B ->
 /-
 Ed. Collinearity commutes
 -/
-@[simp] lemma P1.L6.i {A B C : Point} (hABCDistinct : A ≠ B ∧ B ≠ C ∧ A ≠ C) :
-  (Collinear A B C) ↔ (Collinear B A C) := by
+@[simp] lemma P1.L6.i : (Collinear A B C) ↔ (Collinear B A C) := by
   unfold Collinear;
   constructor
   intro hL
@@ -146,10 +145,7 @@ Ed. Collinearity commutes
 /-
 Ed. Collinearity commutes in both argument pairs
 -/
-@[simp] lemma P1.L6.ii {A B C : Point} : A ≠ B ∧ B ≠ C ∧ A ≠ C ->
-  (Collinear A B C) ↔ (Collinear A C B) := by
-  unfold Collinear; simp_all only [ne_eq, and_imp]
-  tauto
+@[simp] lemma P1.L6.ii : (Collinear A B C) ↔ (Collinear A C B) := by tauto
 
 @[simp] lemma P1.L7.segment {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
   A - P - B -> P on the segment A B := by intro h; unfold Segment; simp; tauto;
@@ -189,7 +185,6 @@ Ed. Collinearity commutes in both argument pairs
   rcases hPonRayBA with hPonSegmentBA | hPonExtensionBA
   rw [L2] at hPonSegmentBA; exact L5.segment AneB P hPonSegmentBA
   rw [L6.i]; exact L5.extension (id (Ne.symm AneB)) P hPonExtensionBA
-  constructor; trivial; unfold Extension at hPonExtensionBA; simp_all
   -- Backward Case: Just check all the cases.
   intro hPonLine
   unfold LineThrough at *;

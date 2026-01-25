@@ -103,8 +103,6 @@ lemma P2.Lj : A - B - C -> A - C - B -> False := by
   by_contra!
   exact P2.Lb ⟨ABC, ACB⟩
 
-
-
 lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
   intro ACX AXB
   obtain ⟨⟨AneC, CneX, AneX⟩, ⟨⟨L, AonL, ConL, XonL⟩, ACXCol⟩⟩ := B1a ACX
@@ -126,19 +124,6 @@ lemma P2.La {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
   exact ACB
   exfalso; sorry -- ACX contradicts CAB, since A is 'to the left' of C
   exfalso; sorry -- ACX contradicts ABC, since
-
-
-
-/-
-lemma P2.Lzz : A - X - B -> segment A B = segment A X ∪ segment X B := by
-  intro AXB
-  unfold Segment; simp only [P5.L2, mem_setOf_eq, mem_union]
-  intro P
-  constructor
-  intro h0
-  sorry
-  -- rcases h0 with APB | AeqP | Beq
--/
 
 /-
 Ed. If L splits A and B at the point X, then there is a point C such that A - C - X, C ≠ A, C off L
@@ -191,6 +176,166 @@ lemma P2.Lint : (L intersects M at A) ∧ (L intersects M at B) -> A = B := by
   intro ⟨LMintA, LMintB⟩
   tauto
 
+
+lemma P2.Lext3 : ∀ A C : Point, A ≠ C -> ∃ B : Point, B ≠ A ∧ B ≠ C -> B on extension A C := by
+  intro A C AneC
+
+
+  sorry
+
+lemma P2.between1 : A - B - C ∧ B - D - C -> A - D - C := by sorry
+/-
+lemma P2.between2 : A - e - C ∧ A - C - B -> A - e - B := by
+  rintro ⟨AeC, ACB⟩
+  exact La AeC ACB
+  sorry
+-/
+
+lemma P2.Lext2 : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
+  intro A C AneC
+  -- IDEA: show A - C - X, then let B be any of the Xes, then we have A B with C in the middle, so AC ⊆ AB by def (C ∈ A - C - B)
+  -- To show this, we need some way to 'promote' a segment AB -> ray AB, then find B on ext AB
+  have B : Point := by tauto;
+  use B
+  intro ⟨ACB, BneA, BneC⟩
+  have ⟨⟨AneC, CneB, AneB⟩, _⟩ := B1a ACB
+  unfold Segment
+  simp only [setOf_subset_setOf]
+  intro e h; rcases h with AeC | Aeqe | Ceqe
+  have h := La AeC ACB
+  left ; exact h
+  right; left; exact Aeqe
+  rw [<- Ceqe]; left; exact ACB
+
+lemma P2.Lext6 : ∀ A B : Point, ray A B ⊆ line A B := by
+  intro A B E EonRayAB
+  unfold LineThrough; unfold Ray at EonRayAB
+  simp_all only [mem_union, mem_setOf_eq, ne_eq]
+  rcases EonRayAB with (h1 | h2 | h3) | ⟨h4, h5, h6⟩
+  obtain ⟨_, _, hCol⟩ := B1a h1;
+  repeat tauto
+
+/- Ed. Extensions of intersection uniqueness -/
+lemma P2.Lext5 : (L intersects segment A B at X) ↔ (L intersects ray A B at X) := by
+  constructor
+  · intro forward; -- unfold Intersects at forward;
+    have ⟨XonL, XonAB, Xuniq, _⟩ := forward;
+    apply P1.L1 at XonAB;
+    sorry
+  · sorry
+lemma P2.Lext4 : (L intersects segment A B at X) ↔ (L intersects line A B at X) := by
+  constructor
+  -- forward
+  · intro LintABatX;
+    apply
+    sorry
+  -- reverse
+  · sorry
+
+
+/-
+IDEA: I need to take a step back and think about some ergonomics. The way the
+author cites propositions is a little gestural compared to what lean is looking
+for, and I want to see if I can wrap these assertions as a `structure`, an
+"Intersection Certificate" of sorts, and since many are consequences of another,
+it might be easier to get back a sort of 'rich' object to reference associated
+theorems, etc. Ideally you would be able to provide some minimal data, and get
+back an "IntersectionCertificate L M" which contains a proof of their common
+intersection, constructions to create points with various properties, etc.
+
+More generally it'd be convenient to work with something like a 'Figure' object,
+which contains points and structures built from those points.  You would
+construct a figure with certain properties (e.g., take three non-colinear
+points, name them A B C, construct segment AB and copy it such that a congruent
+line CD is created, connect AC and BD, this is a parallelogram (if my
+construction is valid I did that in my head)). Then given a figure, prove
+theorems by extending the construction and proving properties as you go.
+Properties stay with the figure, and can be later constructed inside of other
+figures -- maybe 'construction' is more the right word.
+
+as it is, Lean is forcing a more deductive approach, "Here is a statement, break
+it into parts", geometry is constructive, and I know Lean is capable, I'm just
+not sure how to write in that style.
+
+"Extending a segment through a line" says if we have a segment that intersects
+with some line, we can 'continue' that segment past the line."
+
+---
+
+An alternative idea: Maybe break this into a series of smaller lemmas so I can just grab the bits I per-lemma?
+
+
+-/
+lemma P2.Lext : (A off L) -> (L intersects segment A O at O) ->
+   ∃ B : Point,
+    (B off L) ∧ B on segment A B ∧
+    (L intersects segment A B at O) ∧ Collinear A O B ∧
+    A - O - B ∧ (L splits A and B) := by
+    intro AoffL LintAOatO
+    have OonL : O on L := by tauto
+    have AneO : A ≠ O := by
+      by_contra! hNeg; rw [<- hNeg] at OonL; contradiction
+    obtain ⟨B, BneA, BneO, extend⟩ := P2.Lext2 A O AneO
+    use B
+    have BonAB : B on segment A B := by tauto
+    obtain ⟨OonL, OonAO, Ouniq, LintAOatO⟩ := by unfold Intersects at LintAOatO; exact LintAOatO
+    apply extend at OonAO
+    have OuniqonAB : ∀ P : Point, P ∈ L ∧ P on segment A B -> P = O := by
+      intro P ⟨PonL, PonAB⟩
+      have contraOuniq : P ≠ O -> ¬(P on L ∧ P on segment A O) := by tauto
+      by_cases PneO : P ≠ O
+      specialize contraOuniq PneO; push_neg at contraOuniq
+      specialize contraOuniq PonL
+
+      by_cases suppose: P on segment A O
+      exact Ouniq P ⟨PonL, suppose⟩
+      specialize Ouniq P
+      apply Ouniq
+      constructor; exact PonL
+      exfalso;
+      have PonExtOB : P ∈ ((segment A B) \ (segment A O)) := by tauto
+
+
+
+--      rw [(P1.i BneA.symm)] at OonAO
+
+
+      repeat sorry -- Idea: Apply prop 2.1 with L and AB, we know O is on AB and AO, so we can prove it's the uniq intersection, then prove that
+    have LintersectABatO : L intersects segment A B at O := by
+      unfold Intersects
+      constructor
+      · exact OonL
+      · constructor
+        · exact OonAO
+        · constructor
+          · exact OuniqonAB
+          · by_contra! hNeg;
+            unfold Segment at hNeg; simp only [ne_eq, P5.L2, mem_inter_iff, mem_setOf_eq,
+              mem_singleton_iff, not_forall] at hNeg; obtain ⟨X, hXneg⟩ := hNeg
+            push_neg at hXneg
+            simp only [ne_eq] at hXneg
+            specialize OuniqonAB X
+            rcases hXneg with ⟨⟨XonL, XonAB⟩, XneO⟩ | ⟨hXonLimpXoffAB, XeqO⟩
+            simp_all only [mem_setOf_eq, or_true, and_self, setOf_subset_setOf, implies_true,
+              imp_false, not_true_eq_false]
+            rw [<- XeqO] at OonL
+            rw [<- XeqO] at OonAO
+            specialize hXonLimpXoffAB OonL
+            unfold Segment at OonAO; simp only [mem_setOf_eq] at OonAO
+            obtain ⟨nAXB, AneX, BneX⟩ := hXonLimpXoffAB
+            rcases OonAO with AXB | AeqX | BeqX
+            contradiction
+            contradiction
+            contradiction
+    have BoffL : B off L := by sorry
+    have AneO : A ≠ O := by sorry
+    have BneO : B ≠ O := by sorry
+    have AOB : A - O - B := by sorry
+    --
+    refine ⟨BoffL, BonAB, LintersectABatO, ?ColAOB, AOB, ?LsplitsAB⟩
+    have ⟨_, _, h⟩ := B1a AOB; exact h
+    sorry
+
 /- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
 
 B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
@@ -206,13 +351,41 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   /- "(3) There is a point B such that B * O * A (Betweenness Axiom 2 [B2])"-/
   have AneO : A ≠ O := by -- author omits this step
     by_contra!; rw [this] at AoffL; tauto
-  obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm
+  have LintersectsAOatO : L intersects segment A O at O := by sorry
+
+  -- FIXME: I think these get removed.
+  -- obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
+  -- have ⟨⟨BneO,OneA,BneA⟩, ⟨⟨AB, BonAB, OonAB, AonAB⟩, BOACol⟩⟩ := B1a bBOA -- Author omits this step, note that the line generated here is line AB
+  -- FIXME: see above
+
+  obtain ⟨B, BoffL, BonAB, LintABatO, ColAOB, AOB, LsplitsAB⟩ := P2.Lext AoffL ?LintersectsAO
   /- "(4) Then A and B are on opposite sides of l (by definition), ..."-/
-  have ⟨⟨BneO,OneA,BneA⟩, ⟨_, BOACol⟩⟩ := B1a bBOA -- author omits this step.
+  -- Author Omits proving B isn't on L, it is intuitive, but unjustified, Lean accepts nothing without proof
+  have LneAB : L ≠ AB := by
+    by_contra! hNeg;
+    rw [hNeg] at AoffL; contradiction
+  have LnoparAB : L ∦ AB := by
+    by_contra! hNeg
+    unfold Parallel at hNeg
+    tauto
   have BoffL : B off L := by
     -- idea: if B is on L, then B = O (since AB passes through O), contradiction
     -- FIXME: This is an insane amount of work for a basic fact, I am almost certainly missing something.
     by_contra! hNeg
+    -- B is on L and AB, so B must be the intersection of L and AB
+    have LintABatB : L intersects AB at B := by
+      unfold Intersects;
+      constructor
+      · exact hNeg
+      · constructor
+        · tauto
+        · constructor
+          · intro P ⟨PonL, PonAB⟩; sorry
+          · sorry
+
+
+    sorry
+    /-
     have BonAB : B on segment A B := by tauto
     have OonAB : O on segment A B := by
       unfold Segment at *
@@ -242,6 +415,7 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
             · intro ⟨PonL, PonAB⟩; sorry -- similar to above case
             · intro PeqO; rw [PeqO]; tauto;
     tauto
+    -/
   have LsplitsAB : L splits A and B := by
     push_neg;
     constructor; exact Classical.not_imp.mp fun a ↦ BoffL (a AoffL)
@@ -316,7 +490,15 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
   same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
   disjoint." -/
-  have claim2 : Hl ∩ Hr = ∅ := by sorry
+  have claim2 : Hl ∩ Hr = ∅ := by
+    simp only [P5.L2, mem_inter_iff, mem_empty_iff_false, iff_false, not_and]
+    intro P PinHl
+
+
+
+
+
+    sorry
   use Hl, Hr
   constructor
   · exact claim2
