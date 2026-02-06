@@ -176,21 +176,6 @@ lemma P2.Lint : (L intersects M at A) ∧ (L intersects M at B) -> A = B := by
   intro ⟨LMintA, LMintB⟩
   tauto
 
-
-lemma P2.Lext3 : ∀ A C : Point, A ≠ C -> ∃ B : Point, B ≠ A ∧ B ≠ C -> B on extension A C := by
-  intro A C AneC
-
-
-  sorry
-
-lemma P2.between1 : A - B - C ∧ B - D - C -> A - D - C := by sorry
-/-
-lemma P2.between2 : A - e - C ∧ A - C - B -> A - e - B := by
-  rintro ⟨AeC, ACB⟩
-  exact La AeC ACB
-  sorry
--/
-
 lemma P2.Lext2 : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
   intro A C AneC
   -- IDEA: show A - C - X, then let B be any of the Xes, then we have A B with C in the middle, so AC ⊆ AB by def (C ∈ A - C - B)
@@ -218,10 +203,45 @@ lemma P2.Lext6 : ∀ A B : Point, ray A B ⊆ line A B := by
 /- Ed. Extensions of intersection uniqueness -/
 lemma P2.Lext5 : (L intersects segment A B at X) ↔ (L intersects ray A B at X) := by
   constructor
-  · intro forward; -- unfold Intersects at forward;
-    have ⟨XonL, XonAB, Xuniq, _⟩ := forward;
-    apply P1.L1 at XonAB;
-    sorry
+  · intro forward;
+    have ⟨XonL, XonAB, Xuniq, intSegCond⟩ := forward;
+    have AneB : A ≠ B := by sorry
+    have intExtCond : L ∩ extension A B = ∅ := by
+      unfold Extension; simp only [ne_eq, P5.L2, mem_inter_iff, mem_setOf_eq, mem_empty_iff_false,
+        iff_false, not_and, not_not]
+      intro P PonL ABP AneP
+      by_contra! BneP
+      specialize Xuniq P ⟨PonL, ?_⟩
+      unfold Segment
+      simp only [mem_setOf_eq]
+      have ABPCol : Collinear A B P := by tauto
+      -- rcases B3 A B P ⟨AneB, BneP, AneP, ABPCol⟩ with ⟨ABP, nBAP, nAPB⟩ | h1 | h2
+      
+
+
+
+
+      sorry
+
+    have intRayCond : L ∩ ray A B = {X} := by
+      unfold Ray;
+      rw [Set.inter_union_distrib_left, intSegCond];
+      sorry
+    have XonRayAB := by exact P1.L1 XonAB;
+    unfold Intersects
+    refine ⟨XonL, XonRayAB, ?_, ?_⟩
+    intro P ⟨PonL, PonAB⟩
+    specialize Xuniq P ⟨PonL, ?_⟩
+    unfold Ray at PonAB
+    rcases PonAB with PonSeg | PonExt
+    exact PonSeg
+    exfalso;
+    unfold Extension at PonExt;
+    simp only [ne_eq, mem_setOf_eq] at PonExt
+    -- idea: The unique intersection of ray and line to get another uniqueness condition, then
+    -- use the promotion condition (seg ⊆ ray ⊆ line) to promote X to the unique intersection of the ray.
+    -- alt: Use the intersection condition I blanked?
+    repeat sorry
   · sorry
 lemma P2.Lext4 : (L intersects segment A B at X) ↔ (L intersects line A B at X) := by
   constructor

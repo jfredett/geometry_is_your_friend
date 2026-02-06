@@ -18,6 +18,8 @@ def isAccessible (id : TSyntax `ident) : Bool :=
 declare_syntax_cat distinct_binder
 syntax ident+ " : " term : distinct_binder
 
+
+/-
 -- Existential
 syntax (name := existsDistinct) "∃ " "distinct " distinct_binder ", " term : term
 macro_rules (kind := existsDistinct)
@@ -47,31 +49,15 @@ macro_rules (kind := forallDistinct)
       `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, $body)
     else
       `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, List.Pairwise (· ≠ ·) [$[$accessible],*] → $body)
+-/
 
--- Standalone distinct
+
+-- TODO: Maybe replace this with a non-recursive version that just generates `≠` conditions.
 syntax "distinct " ident+ : term
 macro_rules
   | `(distinct $[$xs]*) => do
     let accessible := (xs.toList.filter isAccessible).toArray
     `(List.Pairwise (· ≠ ·) [$[$accessible],*])
-
-syntax "intro_distinct" (colGt ident)* : tactic
-macro_rules
-  | `(tactic| intro_distinct $[$ids]*) => do
-    `(tactic| (intro $[$ids]*;
-               repeat (first | (constructor) | (intro; intro; intro))))
-
-syntax "intros_distinct" : tactic
-macro_rules
-  | `(tactic| intros_distinct) =>
-    `(tactic| (intros;
-               repeat (first | (cases ‹List.Pairwise (· ≠ ·) _› with | _ h => ?_)
-                             | (obtain ⟨h1, h2⟩ := ‹_ ∧ _›))))
-
-syntax (name := unfoldDefs) "unfold_defs" (ppSpace ident)* : tactic
-macro_rules
-  | `(tactic| unfold_defs $ids*) =>
-    `(tactic| repeat (unfold $ids*))
 
 
 /--
@@ -273,12 +259,7 @@ sides of L, then A and C are on the same side of L."
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L splits A and B) ∧ (L splits B and C) -> (L guards A and C)
 
-/-
-/- Absurdities arise from the in which 'betweenness' is defined. It's implied, and stated as a _consequence_ -/
-@[simp] axiom B_absurdity_1 (A : Point) : A - A - A -> False
-@[simp] axiom B_absurdity_2 (A B : Point) : A - B - A -> False
-@[simp] axiom B_absurdity_3 (A B : Point) : A - A - B -> False
--/
+
 
 /-
 Ed. I declare by fiat this is what an intersection is. I should probably have lemmas that show all these things are achievable consequences of being
@@ -289,8 +270,7 @@ an intersection, I do not expect it to be controversial, it asserts:
 3. The setwise intersection is the singleton containing X.
 
 -/
-@[reducible] def Intersects (L M : Line) (X : Point) : Prop :=
-  X on L ∧ X on M ∧ (∀ P : Point, P on L ∧ P on M → P = X) ∧ L ∩ M = {X}
+@[reducible] def Intersects (L M : Line) (X : Point) : Prop := L ∩ M = {X}
 
 -- Syntax for "L intersects M at X"
 syntax (name := intersectsAt) term " intersects " term " at " term : term

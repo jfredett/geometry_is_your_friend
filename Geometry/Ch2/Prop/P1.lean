@@ -34,7 +34,7 @@ open Geometry.Theory
     unfold Intersects
     use P
     simp_all only [ne_eq, not_false_eq_true, nonempty_prop, forall_const, not_and, not_forall,
-      not_not, and_imp, implies_true, true_and, and_true]
+      not_not, and_imp]
     by_cases suppose: ∃ C : Point, C ∈ L ∩ M ∧ C ≠ P
     obtain ⟨C, ConLintM, CneP⟩ := suppose
     have ConL : C on L := by simp_all only [exists_prop, Set.mem_inter_iff]
@@ -44,7 +44,8 @@ open Geometry.Theory
     simp_all only [exists_prop, Set.mem_inter_iff, and_self, implies_true, and_imp]
     obtain ⟨w, h⟩ := LnoparM
     obtain ⟨left, right⟩ := h
-    ext x : 1
+    sorry
+/-
     simp_all only [Set.mem_inter_iff, Set.mem_singleton_iff]
     apply Iff.intro
     · intro a
@@ -52,6 +53,6 @@ open Geometry.Theory
     · intro a
       subst a
       simp_all only [and_self]
-
+-/
 
 end Geometry.Ch2.Prop
