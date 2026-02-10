@@ -127,6 +127,27 @@ end Betweenness
 
 namespace Line
 
+@[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
+  -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by
+  unfold Segment; simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+    forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+    and_true, mem_setOf_eq, setOf_subset_setOf, and_imp]
+  intro A B C D AneB AneC AneD BneC BneD CneD AonCD BonCD
+  intro E hOpts
+  rcases hOpts with AEB | AeqE | BeqE
+  · obtain ⟨⟨AneE, BneE, _⟩, ⟨L, AonL, EonL, BonL⟩, colAEB⟩ := B1a AEB
+    have ConL : C on L := by sorry
+    have DonL : D on L := by sorry
+
+    sorry
+  · rw [<- AeqE]; exact AonCD
+  · rw [<- BeqE]; exact BonCD
+
+
+
+
+  sorry
+
 /- Given any segment AC, we can find B such that AC ⊆ AB -/
 @[simp] lemma seg_extension : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
   intro A C AneC
@@ -150,7 +171,6 @@ namespace Line
   have ⟨ACB, _, _⟩ := BonExt
   have ConSegAB : C on segment A B := by tauto
   sorry -- idea: if seg A B and seg C D are colinear, and A on CD and B on CD, then AB ⊆ CD
-
 
 
 
