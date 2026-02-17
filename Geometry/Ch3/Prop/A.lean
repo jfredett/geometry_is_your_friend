@@ -290,7 +290,7 @@ namespace Intersection
 
 /- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable.
-@[simp] lemma lift_seg_ray {AneB : A ≠ B} {LneSegAB : L ≠ segment A B} {LneRayAB : L ≠ ray A B}:
+@[simp] lemma lift_seg_ray {AneB : A ≠ B} :
   (L intersects segment A B at X) -> (L intersects ray A B at X) := by
   intro LintABatX
   have XonSegAB : X on segment A B := inter_touch_right LintABatX
@@ -298,15 +298,22 @@ namespace Intersection
   have XonRayAB : X on ray A B := by
     unfold Ray; tauto
   have LneRayAB : L ≠ ray A B := by
-    apply Ch3.P1.L1 at LneSegmentAB
-
-
-
-
-
-    sorry
-  have LnparRayAB : L ∦ ray A B := by sorry
-
+    by_contra! hNeg
+    rw [hNeg] at LintABatX
+    unfold Intersects at LintABatX
+    have AonSegAB : A on segment A B := by tauto
+    have AonRayAB : A on ray A B := by unfold Ray; tauto
+    have AonIntRaySeg : A ∈ ray A B ∩ segment A B := by tauto
+    rw [LintABatX] at AonIntRaySeg
+    have AeqX : A = X := by tauto
+    have BonSegAB : B on segment A B := by tauto
+    have BonRayAB : B on ray A B := by unfold Ray; tauto
+    have BonIntRaySeg : B ∈ ray A B ∩ segment A B := by tauto
+    rw [LintABatX] at BonIntRaySeg
+    have BeqX : B = X := by tauto
+    have AeqB : A = B := by rw [BeqX, AeqX]
+    contradiction
+  have LnparRayAB : L ∦ ray A B := by tauto
   -- assume there is some point not X that intersects the ray.
   by_cases counter : ∃ P : Point, (L intersects ray A B at P) ∧ (P ≠ X)
   · obtain ⟨P, LintRayABatP, PneX⟩ := counter
@@ -325,54 +332,6 @@ namespace Intersection
     · intro P PinSingleX
       have PeqX : P = X := by tauto
       rw [PeqX]; trivial
-
-
-/-
-  apply Subset.antisymm
-  · intro P ⟨PonL, PonRay⟩
-    by_cases PeqX : P = X
-    · trivial
-    · exfalso
-      by_cases LintABatP : L intersects ray A B at P
-      · sorry
-      · sorry
-
-  · sorry
-
-
-  -- idea: if X on seg, then X on ray.
-  --
-  unfold Ray
-  unfold Intersects at *
-  apply Subset.antisymm
-  · intro P LintersectsRayABatP
-    rw [Set.inter_union_distrib_left] at LintersectsRayABatP
-    obtain ⟨PonL, PonSegment⟩ | ⟨PonL, PonExtension⟩:= LintersectsRayABatP
-    · rw [<- LintABatX]
-      tauto
-    · -- idea: since P is on the extension, it's not on the segment, since it's not on the segment,
-      -- it can't be X, because X is on the segment, thus contradiction
-      have PoffSegment : P off segment A B := ext_inter_seg_empty PonExtension
-      have XonSegment : X on segment A B := inter_touch_right LintABatX
-      rw [<- LintABatX]
-      -- FIXME: this branch doesn't matter because P cannot be on the extension,
-      -- but I have no idea how to prove that.
-      sorry
-  · intro P PinSingleX
-    have PeqX : P = X := by tauto
-    rw [PeqX]
-    rw [Set.inter_union_distrib_left]
-    rw [LintABatX]
-    tauto
-
-
--/
-
-
-
-
-
-
 
 /- If a line intersects a segment, then it _does not_ intersect the extension of that segment.
  FIXME: Statement is a little weird with the custom syntax. don't think I'll need this in the short term
