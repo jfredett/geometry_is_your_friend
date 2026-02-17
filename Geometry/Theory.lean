@@ -19,39 +19,6 @@ declare_syntax_cat distinct_binder
 syntax ident+ " : " term : distinct_binder
 
 
-/-
--- Existential
-syntax (name := existsDistinct) "∃ " "distinct " distinct_binder ", " term : term
-macro_rules (kind := existsDistinct)
-  | `(∃ distinct $x:ident : $ty, $body) => do
-    if isAccessible x then
-      `(∃ $x:ident : $ty, List.Pairwise (· ≠ ·) [$x] ∧ $body)
-    else
-      `(∃ $x:ident : $ty, $body)
-  | `(∃ distinct $x:ident $xs:ident* : $ty, $body) => do
-    let accessible := ((x :: xs.toList).filter isAccessible).toArray
-    if accessible.isEmpty then
-      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, $body)
-    else
-      `(∃ $x:ident, ∃ distinct $xs:ident* : $ty, List.Pairwise (· ≠ ·) [$[$accessible],*] ∧ $body)
-
--- Universal
-syntax (name := forallDistinct) "∀ " "distinct " distinct_binder ", " term : term
-macro_rules (kind := forallDistinct)
-  | `(∀ distinct $x:ident : $ty, $body) => do
-    if isAccessible x then
-      `(∀ $x:ident : $ty, List.Pairwise (· ≠ ·) [$x] → $body)
-    else
-      `(∀ $x:ident : $ty, $body)
-  | `(∀ distinct $x:ident $xs:ident* : $ty, $body) => do
-    let accessible := ((x :: xs.toList).filter isAccessible).toArray
-    if accessible.isEmpty then
-      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, $body)
-    else
-      `(∀ $x:ident : $ty, ∀ distinct $xs:ident* : $ty, List.Pairwise (· ≠ ·) [$[$accessible],*] → $body)
--/
-
-
 -- TODO: Maybe replace this with a non-recursive version that just generates `≠` conditions.
 syntax "distinct " ident+ : term
 macro_rules
@@ -100,7 +67,9 @@ macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
 -- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
+-- TODO: Refactor to use a list?
 @[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
+@[reducible] def CollinearL (Sₚ : List Point) : Prop := ∃ L : Line, ∀ A : Point, (A ∈ Sₚ) ↔ (A on L)
 
 @[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
 @[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}

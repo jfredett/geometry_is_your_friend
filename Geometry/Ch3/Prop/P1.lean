@@ -17,7 +17,7 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 
 "By the definition of segment and ray, `the segment A B ⊆ the ray A B`"
 -/
-@[simp] lemma P1.L1 : segment A B ⊆ ray A B := by simp_all
+@[simp] lemma P1.L1 : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
 /-
 It helps to be able to commute these around
 -/

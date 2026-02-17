@@ -176,6 +176,8 @@ lemma P2.Lint : (L intersects M at A) ∧ (L intersects M at B) -> A = B := by
   intro ⟨LMintA, LMintB⟩
   tauto
 
+
+-- TODO: Move this to interpendix A, it's there as seg_extension but I have a bad proof.
 lemma P2.Lext2 : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
   intro A C AneC
   -- IDEA: show A - C - X, then let B be any of the Xes, then we have A B with C in the middle, so AC ⊆ AB by def (C ∈ A - C - B)
@@ -192,6 +194,7 @@ lemma P2.Lext2 : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠
   right; left; exact Aeqe
   rw [<- Ceqe]; left; exact ACB
 
+-- TODO: Remove, this is in interpendix A as Line.ray_sub_line
 lemma P2.Lext6 : ∀ A B : Point, ray A B ⊆ line A B := by
   intro A B E EonRayAB
   unfold LineThrough; unfold Ray at EonRayAB
@@ -216,7 +219,7 @@ lemma P2.Lext5 : (L intersects segment A B at X) ↔ (L intersects ray A B at X)
       simp only [mem_setOf_eq]
       have ABPCol : Collinear A B P := by tauto
       -- rcases B3 A B P ⟨AneB, BneP, AneP, ABPCol⟩ with ⟨ABP, nBAP, nAPB⟩ | h1 | h2
-      
+
 
 
 
@@ -374,8 +377,8 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   have LintersectsAOatO : L intersects segment A O at O := by sorry
 
   -- FIXME: I think these get removed.
-  -- obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
-  -- have ⟨⟨BneO,OneA,BneA⟩, ⟨⟨AB, BonAB, OonAB, AonAB⟩, BOACol⟩⟩ := B1a bBOA -- Author omits this step, note that the line generated here is line AB
+  obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
+  have ⟨⟨BneO,OneA,BneA⟩, ⟨⟨AB, BonAB, OonAB, AonAB⟩, BOACol⟩⟩ := B1a bBOA -- Author omits this step, note that the line generated here is line AB
   -- FIXME: see above
 
   obtain ⟨B, BoffL, BonAB, LintABatO, ColAOB, AOB, LsplitsAB⟩ := P2.Lext AoffL ?LintersectsAO

@@ -97,6 +97,7 @@ namespace Collinear
   use L
   rw [<- LeqM] at BonM
   tauto
+  sorry
 
 end Collinear
 
@@ -127,6 +128,9 @@ end Betweenness
 
 namespace Line
 
+
+
+-- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 @[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
   -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by
   unfold Segment; simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
@@ -147,6 +151,8 @@ namespace Line
 
 
   sorry
+
+
 
 /- Given any segment AC, we can find B such that AC ⊆ AB -/
 @[simp] lemma seg_extension : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
@@ -216,11 +222,158 @@ namespace Intersection
   simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff]
   intro h; specialize h X; tauto
 
+/- If L intersects M at X, then forall P not equal to X, if P on L, then P off M.-/
+@[simp] lemma uniq_solitary : (L ≠ M) ∧ (L intersects M at X) -> (∀ P : Point, (P ≠ X) ∧ (P on L) -> (P off M)) := by
+  intro ⟨LneM, LintMatX⟩ P ⟨PneX, PonL⟩
+  unfold Intersects at LintMatX
+  by_contra! PonM
+  have PinLintM : P ∈ (L ∩ M) := by tauto
+  rw [LintMatX] at PinLintM
+  contradiction
+
+@[simp] lemma seg_inter_ext_empty : segment A B ∩ extension A B = ∅ := by
+  unfold Segment; unfold Extension
+  ext P
+  constructor
+  -- Forward case.
+  · simp only [ne_eq, mem_inter_iff, mem_setOf_eq, mem_empty_iff_false, imp_false, not_and,
+    not_not] ; intro opts ABP AneP
+    rcases opts with APB | AeqP | BeqP
+    · exfalso ; exact Betweenness.absurdity_abc_acb ⟨ABP, APB⟩
+    · contradiction
+    · exact BeqP
+  -- Reverse
+  · simp only [mem_empty_iff_false, ne_eq, mem_inter_iff, mem_setOf_eq, IsEmpty.forall_iff]
+
+@[simp] lemma seg_inter_ext_empty' : X on segment A B -> X off extension A B := by
+  intro XonAB
+  by_contra! hNeg
+  have interEmpty : segment A B ∩ extension A B = ∅ := seg_inter_ext_empty
+  have XinInter : X ∈ (segment A B ∩ extension A B) := by tauto
+  rw [interEmpty] at XinInter
+  contradiction
+
+@[simp] lemma ext_inter_seg_empty : X on extension A B -> X off segment A B := by
+  intro XonAB
+  by_contra! hNeg
+  have interEmpty : segment A B ∩ extension A B = ∅ := seg_inter_ext_empty
+  have XinInter : X ∈ (segment A B ∩ extension A B) := by tauto
+  rw [interEmpty] at XinInter
+  contradiction
+
+
+@[simp] lemma intersection_is_unique : ∀ L M : Line, L ≠ M -> (L ∦ M) -> X ∈ L ∩ M ∧ Y ∈ L ∩ M -> X = Y := by
+  intro L M LneM LnparM ⟨XonInt, YonInt⟩
+  have ⟨P, LinterMatP, Puniq⟩ : ∃! X : Point, L intersects M at X := Ch2.Prop.P1 LneM LnparM
+  specialize LinterMatP
+  rw [LinterMatP] at XonInt
+  rw [LinterMatP] at YonInt
+  have XeqP : X = P := by tauto
+  have YeqP : Y = P := by tauto
+  rw [XeqP, YeqP]
+
+@[simp] lemma parallel_intersection_is_empty : ∀ L M : Line, (L ≠ M) -> (L ∥ M) -> L ∩ M = ∅ := by
+  intro L M LneM LparM
+  unfold Parallel at LparM
+  specialize LparM LneM
+  apply Subset.antisymm
+  · trivial
+  · tauto
+
+
+-- Lines are never equal to segments, extensions, or rays
+-- These seem intuitive, but I have no idea how to prove them. Probably relates to the 'extension' theorems.
+--@[simp] lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, segment A B ≠ L := by sorry
+--@[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, extension A B ≠ L := by sorry
+--@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, ray A B ≠ L := by sorry
+
+
 /- If a line intersects a segment, then it intersects the ray containing that segment -/
-@[simp] lemma lift_seg_ray : (L intersects segment A B at X) -> (L intersects ray A B at X) := by
-  unfold Intersects
-  intro h
-  sorry
+-- TODO: I think some of the non-equality conditions are provable.
+@[simp] lemma lift_seg_ray {AneB : A ≠ B} {LneSegAB : L ≠ segment A B} {LneRayAB : L ≠ ray A B}:
+  (L intersects segment A B at X) -> (L intersects ray A B at X) := by
+  intro LintABatX
+  have XonSegAB : X on segment A B := inter_touch_right LintABatX
+  have XonL : X on L := inter_touch_left LintABatX
+  have XonRayAB : X on ray A B := by
+    unfold Ray; tauto
+  have LneRayAB : L ≠ ray A B := by
+    apply Ch3.P1.L1 at LneSegmentAB
+
+
+
+
+
+    sorry
+  have LnparRayAB : L ∦ ray A B := by sorry
+
+  -- assume there is some point not X that intersects the ray.
+  by_cases counter : ∃ P : Point, (L intersects ray A B at P) ∧ (P ≠ X)
+  · obtain ⟨P, LintRayABatP, PneX⟩ := counter
+    have XinInter : X ∈ L ∩ ray A B := by tauto
+    unfold Intersects at LintRayABatP
+    rw [LintRayABatP] at XinInter
+    have XeqP : P = X := by tauto
+    contradiction
+  · push_neg at counter
+    apply Subset.antisymm
+    · intro P PonLintRay
+      have XonLintRay : X ∈ L ∩ ray A B := by tauto
+      have PeqX : P = X := intersection_is_unique L (ray A B) LneRayAB LnparRayAB ⟨PonLintRay, XonLintRay⟩
+      rw [PeqX]
+      trivial
+    · intro P PinSingleX
+      have PeqX : P = X := by tauto
+      rw [PeqX]; trivial
+
+
+/-
+  apply Subset.antisymm
+  · intro P ⟨PonL, PonRay⟩
+    by_cases PeqX : P = X
+    · trivial
+    · exfalso
+      by_cases LintABatP : L intersects ray A B at P
+      · sorry
+      · sorry
+
+  · sorry
+
+
+  -- idea: if X on seg, then X on ray.
+  --
+  unfold Ray
+  unfold Intersects at *
+  apply Subset.antisymm
+  · intro P LintersectsRayABatP
+    rw [Set.inter_union_distrib_left] at LintersectsRayABatP
+    obtain ⟨PonL, PonSegment⟩ | ⟨PonL, PonExtension⟩:= LintersectsRayABatP
+    · rw [<- LintABatX]
+      tauto
+    · -- idea: since P is on the extension, it's not on the segment, since it's not on the segment,
+      -- it can't be X, because X is on the segment, thus contradiction
+      have PoffSegment : P off segment A B := ext_inter_seg_empty PonExtension
+      have XonSegment : X on segment A B := inter_touch_right LintABatX
+      rw [<- LintABatX]
+      -- FIXME: this branch doesn't matter because P cannot be on the extension,
+      -- but I have no idea how to prove that.
+      sorry
+  · intro P PinSingleX
+    have PeqX : P = X := by tauto
+    rw [PeqX]
+    rw [Set.inter_union_distrib_left]
+    rw [LintABatX]
+    tauto
+
+
+-/
+
+
+
+
+
+
+
 /- If a line intersects a segment, then it _does not_ intersect the extension of that segment.
  FIXME: Statement is a little weird with the custom syntax. don't think I'll need this in the short term
  so come back later. -/
