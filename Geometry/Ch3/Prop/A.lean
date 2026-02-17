@@ -44,7 +44,7 @@ open Geometry.Ch3.Prop
 
 namespace Line
 
-/- If two distinct points are found on two lines, those lines are equal.  -/
+/-- If two distinct points are found on two lines, those lines are equal.  -/
 @[simp] lemma equiv : ∀ L M : Line, ∀ A B : Point, A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
   intro L M A B AneB ⟨AonL, AonM, BonL, BonM⟩
   -- idea, assume L intersects M at X, then X on L and X on M; and X is unique, so X = A and X = B, but A ≠ B
@@ -103,7 +103,7 @@ end Collinear
 
 namespace Betweenness
 
-/- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
+/-- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
 one another -/
 @[simp] lemma absurdity_abc_bac : A - B - C ∧ B - A - C -> False := by
   intro ⟨ABC, BAC⟩
@@ -112,7 +112,8 @@ one another -/
   rcases B3 A B C ⟨AneB, BneC, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
   contradiction; contradiction; contradiction
 
-/- ibid -/
+/-- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
+one another -/
 @[simp] lemma absurdity_abc_acb : A - B - C ∧ A - C - B -> False := by
   intro ⟨ABC, ACB⟩
   obtain ⟨⟨AneB, BneC, AneC⟩, ⟨⟨L, AonL, BonL, ConL⟩, ABCCol⟩⟩ := B1a ABC
@@ -129,32 +130,23 @@ end Betweenness
 namespace Line
 
 
-
 -- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 @[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
   -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by
   unfold Segment; simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
     forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
     and_true, mem_setOf_eq, setOf_subset_setOf, and_imp]
-  intro A B C D AneB AneC AneD BneC BneD CneD AonCD BonCD
-  intro E hOpts
+  intro A B C D AneB AneC AneD BneC BneD CneD AonCD BonCD E hOpts
   rcases hOpts with AEB | AeqE | BeqE
   · obtain ⟨⟨AneE, BneE, _⟩, ⟨L, AonL, EonL, BonL⟩, colAEB⟩ := B1a AEB
     have ConL : C on L := by sorry
     have DonL : D on L := by sorry
-
     sorry
   · rw [<- AeqE]; exact AonCD
   · rw [<- BeqE]; exact BonCD
 
 
-
-
-  sorry
-
-
-
-/- Given any segment AC, we can find B such that AC ⊆ AB -/
+/-- Given any segment AC, we can find B such that AC ⊆ AB -/
 @[simp] lemma seg_extension : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
   intro A C AneC
   -- different IDEA: seg AC ⊆ ray AC, ray AC contains all points to the right of C, which includes B by assumption,
@@ -194,35 +186,31 @@ namespace Line
 end Line
 
 namespace Intersection
-/- Idea: Intersection is reduced _entirely_ to set intersection. All these facts should follow from that.
-   This will certainly break a lot of proofs that use intersection, but the upside should be much easier proving
-   later on. -/
 
-
-/- If two lines intersect, their intersection is unique. -/
+/-- If two lines intersect, their intersection is unique. -/
 @[simp] lemma uniq : (L intersects M at X) ∧ (L intersects M at Y) -> X = Y := by
   unfold Intersects
   intro ⟨LMatX, LMatY⟩
   rw [LMatX] at LMatY
   exact singleton_eq_singleton_iff.mp LMatY
 
-/- L intersects M is the same as M intersects L. -/
+/-- L intersects M is the same as M intersects L. -/
 @[simp] lemma symm : (L intersects M at X) ↔ (M intersects L at X) := by
   unfold Intersects
   refine Eq.congr ?_ rfl
   exact inter_comm L M
 
-/- If L intersects M at X, then X is on L -/
+/-- If L intersects M at X, then X is on L -/
 @[simp] lemma inter_touch_left : (L intersects M at X) -> (X on L) := by
   simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff]
   intro h; specialize h X; tauto
 
-/- If L intersects M at X, then X is on M -/
+/-- If L intersects M at X, then X is on M -/
 @[simp] lemma inter_touch_right : (L intersects M at X) -> (X on M) := by
   simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff]
   intro h; specialize h X; tauto
 
-/- If L intersects M at X, then forall P not equal to X, if P on L, then P off M.-/
+/-- If L intersects M at X, then forall P not equal to X, if P on L, then P off M. -/
 @[simp] lemma uniq_solitary : (L ≠ M) ∧ (L intersects M at X) -> (∀ P : Point, (P ≠ X) ∧ (P on L) -> (P off M)) := by
   intro ⟨LneM, LintMatX⟩ P ⟨PneX, PonL⟩
   unfold Intersects at LintMatX
@@ -288,7 +276,7 @@ namespace Intersection
 --@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, ray A B ≠ L := by sorry
 
 
-/- If a line intersects a segment, then it intersects the ray containing that segment -/
+/-- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable.
 @[simp] lemma lift_seg_ray {AneB : A ≠ B} :
   (L intersects segment A B at X) -> (L intersects ray A B at X) := by
@@ -333,14 +321,23 @@ namespace Intersection
       have PeqX : P = X := by tauto
       rw [PeqX]; trivial
 
-/- If a line intersects a segment, then it _does not_ intersect the extension of that segment.
- FIXME: Statement is a little weird with the custom syntax. don't think I'll need this in the short term
- so come back later. -/
--- lemma reject_seg_ext : (L intersects segment A B at X) -> ¬(L intersects extension A B) := by sorry
-/- If a line intersects a segment, then it intersects the line containing the segment -/
-@[simp] lemma lift_seg_line : (L intersects segment A B at X) -> (L intersects line A B at X) := by sorry
+/- If a line intersects a segment, then it _does not_ intersect the extension of that segment. -/
+lemma reject_seg_ext {AneB : A ≠ B} : (L intersects segment A B at X) -> ∀ X : Point, ¬(L intersects extension A B at X) := by sorry
+
 /- If a line intersects a ray, then it intersects the line containing the ray-/
-@[simp] lemma lift_ray_line : (L intersects ray A B at X) -> (L intersects line A B at X) := by sorry
+@[simp] lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
+  intro LintRay
+  sorry
+
+/- If a line intersects a segment, then it intersects the line containing the segment -/
+@[simp] lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
+  intro LintSeg
+  apply lift_seg_ray at LintSeg
+  apply lift_ray_line at LintSeg
+  exact LintSeg
+  repeat tauto
+
+
 
 
 
