@@ -228,17 +228,6 @@ sides of L, then A and C are on the same side of L."
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L splits A and B) ∧ (L splits B and C) -> (L guards A and C)
 
-
-
-/-
-Ed. I declare by fiat this is what an intersection is. I should probably have lemmas that show all these things are achievable consequences of being
-an intersection, I do not expect it to be controversial, it asserts:
-
-1. X is on L and M. j
-2. Any point that is on both L and M must be X (Xuniq)
-3. The setwise intersection is the singleton containing X.
-
--/
 @[reducible] def Intersects (L M : Line) (X : Point) : Prop := L ∩ M = {X}
 
 -- Syntax for "L intersects M at X"

@@ -249,7 +249,7 @@ namespace Intersection
   rw [interEmpty] at XinInter
   contradiction
 
-
+/- FIXME: Is this needed in addition to `uniq`? -/
 @[simp] lemma intersection_is_unique : ∀ L M : Line, L ≠ M -> (L ∦ M) -> X ∈ L ∩ M ∧ Y ∈ L ∩ M -> X = Y := by
   intro L M LneM LnparM ⟨XonInt, YonInt⟩
   have ⟨P, LinterMatP, Puniq⟩ : ∃! X : Point, L intersects M at X := Ch2.Prop.P1 LneM LnparM
@@ -268,13 +268,28 @@ namespace Intersection
   · trivial
   · tauto
 
+/-- Intersections of distinct, nonparallel lines contain exactly one point -/
+@[simp] lemma single_point_of_intersection : ∀ P : Point, ∀ L M : Line, L ≠ M ∧ (L ∦ M) -> (P ∈ L ∩ M ↔ L intersects M at P) := by
+  intro P L M ⟨LneM, LnparM⟩
+  constructor
+  · intro PinInter
+    unfold Intersects
+    apply Subset.antisymm
+    · intro Q QinInter
+      have h := intersection_is_unique L M LneM LnparM ⟨QinInter, PinInter⟩
+      trivial
+    · intro Q QisP
+      have QeqP : Q = P := by tauto
+      rw [QeqP]; exact PinInter
+  · intro LintMatP
+    rw [LintMatP]
+    trivial
 
 -- Lines are never equal to segments, extensions, or rays
 -- These seem intuitive, but I have no idea how to prove them. Probably relates to the 'extension' theorems.
---@[simp] lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, segment A B ≠ L := by sorry
---@[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, extension A B ≠ L := by sorry
---@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, ray A B ≠ L := by sorry
-
+@[simp] lemma line_is_bigger_than_segment {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, segment A B ≠ L := by sorry
+@[simp] lemma line_is_bigger_than_extension {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, extension A B ≠ L := by sorry
+@[simp] lemma line_is_bigger_than_ray {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, ray A B ≠ L := by sorry
 
 /-- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable.
@@ -321,13 +336,45 @@ namespace Intersection
       have PeqX : P = X := by tauto
       rw [PeqX]; trivial
 
-/- If a line intersects a segment, then it _does not_ intersect the extension of that segment. -/
+/-- If a line intersects a segment, then it _does not_ intersect the extension of that segment. -/
 lemma reject_seg_ext {AneB : A ≠ B} : (L intersects segment A B at X) -> ∀ X : Point, ¬(L intersects extension A B at X) := by sorry
 
-/- If a line intersects a ray, then it intersects the line containing the ray-/
+/-- If L intersects M anywhere, then L cannot be parallel to M -/
+lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by sorry
+
+lemma par_lift_seg_line : (L ∦ segment A B) ↔ (L ∦ line A B) := by sorry
+lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
+
+/-- If a line intersects a ray, then it intersects the line containing the ray -/
 @[simp] lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
-  sorry
+  have XonRayAB : X on ray A B := inter_touch_right LintRay
+  have XonL : X on L := inter_touch_left LintRay
+  have XABCol := P1.L5.ray AneB X XonRayAB
+  have XonLineAB : X on line A B := by tauto
+  have XonRayAB : X on ray A B := by tauto
+  have XinInter : X ∈ L ∩ line A B := by tauto
+  -- FIXME: I think this is false -- imagine a a point off L, pass a perpendicular through it, and start the ray and follow the perp, zero intersection of
+  -- ray and line, but not parallel? I suppose 'parallel' here is more like 'non-intersecting'
+  have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
+  have LnparLineAB : L ∦ line A B := par_lift_ray_line.mp LnparRayAB
+  have LneRayAB : L ≠ ray A B := by sorry
+  have LneLineAB : L ≠ line A B := by sorry
+  by_cases counter : ∃ P : Point, (L intersects line A B at P) ∧ (P ≠ X)
+  · obtain ⟨P, LintABatP, PneX⟩ := counter
+    have PinInter : P ∈ L ∩ line A B := by
+      rw [LintABatP]
+      trivial
+    have PeqX : P = X := intersection_is_unique L (line A B) LneLineAB LnparLineAB ⟨PinInter, XinInter⟩
+    contradiction
+  · push_neg at counter
+    apply Subset.antisymm
+    · intro P PinInter
+      exact counter P ((single_point_of_intersection P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
+    · intro P PisX
+      have PeqX : P = X := by tauto
+      rw [PeqX]
+      trivial
 
 /- If a line intersects a segment, then it intersects the line containing the segment -/
 @[simp] lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
@@ -335,7 +382,7 @@ lemma reject_seg_ext {AneB : A ≠ B} : (L intersects segment A B at X) -> ∀ X
   apply lift_seg_ray at LintSeg
   apply lift_ray_line at LintSeg
   exact LintSeg
-  repeat tauto
+  repeat exact AneB
 
 
 
