@@ -81,7 +81,9 @@ end Distinct
 
 namespace Collinear
 
-/- FIXME: Naming. -/
+/-- If for A B C X points, if are A C X is collinear, and  A X B are collinear, then A C B is collinear
+  TODO: Variable naming sucks
+ -/
 @[simp] lemma inclusion : distinct A C X B -> Collinear A C X ∧ Collinear A X B -> Collinear A C B := by
   unfold Collinear
   intro distinctACBX ⟨ColACX, ColAXB⟩
@@ -97,7 +99,23 @@ namespace Collinear
   use L
   rw [<- LeqM] at BonM
   tauto
-  sorry
+
+
+/-- There is a line between any two points, so by definition any two points are collinear -/
+@[simp] lemma any_two_points_are_collinear_ABA : ∀ A B : Point, A ≠ B -> Collinear A B A := by
+  intro A B AneB
+  unfold Collinear
+  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
+  simp at hIncidence
+  use L; tauto
+
+/-- There is a line between any two points, so by definition any two points are collinear -/
+@[simp] lemma any_two_points_are_collinear_ABB : ∀ A B : Point, A ≠ B -> Collinear A B B := by
+  intro A B AneB
+  unfold Collinear
+  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
+  simp at hIncidence
+  use L; tauto
 
 end Collinear
 
@@ -121,14 +139,69 @@ one another -/
   rcases B3 A B C ⟨AneB, BneC, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
   contradiction; contradiction; contradiction
 
-
-
-
 end Betweenness
 
 
 namespace Line
 
+/-- A segment contains the points that define it -/
+@[simp] lemma seg_has_endpoints.left : A on segment A B := by tauto
+/-- A segment contains the points that define it -/
+@[simp] lemma seg_has_endpoints.right : B on segment A B := by tauto
+
+/-- A ray contains the points that define it -/
+@[simp] lemma ray_has_endpoints.left : A on ray A B := by
+  simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false]
+/-- A ray contains the points that define it -/
+@[simp] lemma ray_has_endpoints.right : B on ray A B := by
+  simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false]
+
+/-
+/-- A extension excludes the points that define it -/
+@[simp] lemma extension_has_endpoints.left : A off extension A B := by sorry
+/-- A extension excludes the points that define it -/
+@[simp] lemma extension_excludes_endpoints.right : B off extension A B := by sorry
+-/
+
+/-- A line contains the points that define it -/
+@[simp] lemma line_has_definition_points.left : A ≠ B -> A on line A B := by
+  intro AneB
+  simp only [mem_setOf_eq]
+  exact Collinear.any_two_points_are_collinear_ABA A B AneB
+
+/-- A line contains the points that define it -/
+@[simp] lemma line_has_definition_points.right : A ≠ B -> B on line A B := by
+  intro AneB
+  simp only [mem_setOf_eq]
+  exact Collinear.any_two_points_are_collinear_ABB A B AneB
+
+/-- All points on a segment are collinear -/
+@[simp] lemma all_points_in_a_segment_are_collinear : P on segment A B -> Collinear A B P := by
+  intro PonSeg
+  have AonSeg : A on segment A B := seg_has_endpoints.left
+  have BonSeg : B on segment A B := seg_has_endpoints.right
+  tauto
+
+/-- All points on a ray are collinear -/
+@[simp] lemma all_points_in_a_ray_are_collinear : P on ray A B -> Collinear A B P := by
+  intro PonRay
+  use ray A B
+  have AonRay : A on ray A B := ray_has_endpoints.left
+  have BonRay : B on ray A B := ray_has_endpoints.right
+  tauto
+
+/-- All points on a line are collinear -/
+@[simp] lemma all_points_in_a_line_are_collinear : P on line A B -> Collinear A B P := by tauto
+
+/-- A segment A B is a subset of the ray A B -/
+@[simp] lemma seg_sub_ray : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
+
+/-- A ray A B is a subset of the line A B -/
+@[simp] lemma ray_sub_line : ray A B ⊆ line A B := by
+  intro P PonRay
+  unfold LineThrough
+  simp only [mem_setOf_eq]
+  exact all_points_in_a_ray_are_collinear PonRay
 
 -- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 @[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
@@ -354,11 +427,10 @@ lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
   have XonLineAB : X on line A B := by tauto
   have XonRayAB : X on ray A B := by tauto
   have XinInter : X ∈ L ∩ line A B := by tauto
-  -- FIXME: I think this is false -- imagine a a point off L, pass a perpendicular through it, and start the ray and follow the perp, zero intersection of
-  -- ray and line, but not parallel? I suppose 'parallel' here is more like 'non-intersecting'
   have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
   have LnparLineAB : L ∦ line A B := par_lift_ray_line.mp LnparRayAB
-  have LneRayAB : L ≠ ray A B := by sorry
+  have LneRayAB : L ≠ ray A B := by
+    sorry
   have LneLineAB : L ≠ line A B := by sorry
   by_cases counter : ∃ P : Point, (L intersects line A B at P) ∧ (P ≠ X)
   · obtain ⟨P, LintABatP, PneX⟩ := counter
