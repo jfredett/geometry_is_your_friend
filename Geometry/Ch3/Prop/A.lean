@@ -411,17 +411,22 @@ namespace Intersection
 /-- A line is bigger than an extension in the same way that a line is bigger than a segment -/
 @[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, A ≠ B -> extension A B ≠ L := by
   intro L A B AneB
-  -- idea: use the Betweeness 3 to construct a point to the right of A and B, which is off segment but collinear, meaning it's on L but off AB
   sorry
 
 /-- A line is bigger than a ray in the same way that a line is bigger than a segment -/
 @[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
   intro L A B AneB
-  -- idea: use the Betweeness 3 to construct a point to the right of A and B, which is off segment but collinear, meaning it's on L but off AB
+  have AonSegAB : A on segment A B := by tauto
+  have AonRayAB : A on ray A B := by unfold Ray; tauto
+  have BonSegAB : B on segment A B := by tauto
+  have BonRayAB : B on ray A B := by unfold Ray; tauto
+  by_contra! hNeg
+
+
   sorry
 
 /-- If a line intersects a segment, then it intersects the ray containing that segment -/
--- TODO: I think some of the non-equality conditions are provable.
+-- TODO: I think some of the non-equality conditions are provable in general.
 @[simp] lemma lift_seg_ray {AneB : A ≠ B} :
   (L intersects segment A B at X) -> (L intersects ray A B at X) := by
   intro LintABatX
@@ -485,9 +490,20 @@ lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
   have XinInter : X ∈ L ∩ line A B := by tauto
   have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
   have LnparLineAB : L ∦ line A B := par_lift_ray_line.mp LnparRayAB
-  have LneRayAB : L ≠ ray A B := by
-    sorry
-  have LneLineAB : L ≠ line A B := by sorry
+  have LneRayAB := Ne.symm (line_is_bigger_than_ray L A B AneB)
+  have LneLineAB : L ≠ line A B := by
+    by_contra! hNeg
+    have AonAB : A on line A B := by tauto
+    have AonL : A on L := by tauto
+    have BonAB : B on line A B := by tauto
+    have BonL : B on L := by tauto
+    have LintABatA : L intersects ray A B at A := by tauto
+    have LintABatB : L intersects ray A B at A := by tauto
+    unfold Intersects at *
+    rw [LintRay] at LintABatA
+    rw [LintRay] at LintABatB
+    have AeqB : A = B := by tauto
+    contradiction
   by_cases counter : ∃ P : Point, (L intersects line A B at P) ∧ (P ≠ X)
   · obtain ⟨P, LintABatP, PneX⟩ := counter
     have PinInter : P ∈ L ∩ line A B := by
