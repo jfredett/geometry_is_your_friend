@@ -84,25 +84,22 @@ end Distinct
 
 namespace Collinear
 
-/-- If for A B C X points, if are A C X is collinear, and  A X B are collinear, then A C B is collinear
-  TODO: Variable naming sucks
- -/
-@[simp] lemma inclusion : distinct A C X B -> Collinear A C X ∧ Collinear A X B -> Collinear A C B := by
+/-- If for A B C X points, if are A C X is collinear, and  A X B are collinear, then A C B is collinear -/
+@[simp] lemma inclusion : distinct A B C D -> Collinear A B C ∧ Collinear A C D -> Collinear A B D := by
   unfold Collinear
-  intro distinctACBX ⟨ColACX, ColAXB⟩
-  -- FIXME: Given the above `Distinct.conclude` or whatever I come up with, refactor this.
-  have AneX : A ≠ X := by
+  intro distinctABCD ⟨colABC, colACD⟩
+  -- FICME: Given the above `Distinct.conclude` or whatever I come up with, refactor this.
+  have AneC : A ≠ C := by
     simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
-      and_true] at distinctACBX
+      and_true] at distinctABCD
     tauto
-  obtain ⟨L, AonL, ConL, XonL⟩ := ColACX
-  obtain ⟨M, AonM, XonM, BonM⟩ := ColAXB
-  have LeqM : L = M := Line.equiv L M A X AneX ⟨AonL, AonM, XonL, XonM⟩
+  obtain ⟨L, AonL, BonL, ConL⟩ := colABC
+  obtain ⟨M, AonM, ConM, DonM⟩ := colACD
+  have LeqM : L = M := Line.equiv L M A C AneC ⟨AonL, AonM, ConL, ConM⟩
   use L
-  rw [<- LeqM] at BonM
+  rw [<- LeqM] at DonM
   tauto
-
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
 @[simp] lemma any_two_points_are_collinear_ABA : ∀ A B : Point, A ≠ B -> Collinear A B A := by
@@ -114,6 +111,14 @@ namespace Collinear
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
 @[simp] lemma any_two_points_are_collinear_ABB : ∀ A B : Point, A ≠ B -> Collinear A B B := by
+  intro A B AneB
+  unfold Collinear
+  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
+  simp at hIncidence
+  use L; tauto
+
+/-- There is a line between any two points, so by definition any two points are collinear -/
+@[simp] lemma any_two_points_are_collinear_AAB : ∀ A B : Point, A ≠ B -> Collinear A A B := by
   intro A B AneB
   unfold Collinear
   have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
@@ -206,7 +211,6 @@ namespace Line
   simp only [mem_setOf_eq]
   exact all_points_in_a_ray_are_collinear PonRay
 
-
 -- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 @[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
   -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by
@@ -269,6 +273,54 @@ namespace Line
   have ConSegAB : C on segment A B := by tauto
   sorry -- idea: if seg A B and seg C D are colinear, and A on CD and B on CD, then AB ⊆ CD
 
+/-- A line is 'bigger' than a segment in the sense that, even if the segment is coincident with a line, it
+ is possible to find a point on L that is off the segment -/
+@[simp] lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> segment A B ≠ L := by
+  intro L A B AneB
+  by_cases suppose : (A off L) ∨ (B off L)
+  · -- one of the points is not collinear with L,
+    by_contra! hNeg
+    rw [<- hNeg] at suppose
+    simp only [mem_setOf_eq, true_or, or_true, not_true_eq_false, or_self] at suppose
+  · -- AB is collinear with L, so we must use B2 to construct a point outside of AB, but on L
+    -- have ⟨D, ABD⟩
+    -- have h : ∃ D : Point, A - B - D
+    push_neg at suppose
+    have ⟨AonL, BonL⟩ := suppose
+    have ⟨_, _, D, L', ⟨_, AonL', _, BonL', DonL'⟩, distinctABD, _, _, ABD⟩ := B2 A B AneB
+    -- need to prove L' and L are the same, we can use the Line.equiv
+    have L'eqL := Line.equiv L L' A B AneB ⟨AonL, AonL', BonL, BonL'⟩
+    -- FIXME: This is very bad.
+    simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+      and_true] at distinctABD
+    have ⟨_, ⟨_, AneB, AneD⟩, _, BneD⟩ := distinctABD
+    have colABD : Collinear A B D := by tauto
+    have DoffAB : D off segment A B := by
+      unfold Segment
+      simp only [mem_setOf_eq, not_or]
+      rcases B3 A B D ⟨AneB, BneD, AneD, colABD⟩ with l | c | r
+      repeat tauto
+    by_contra! hNeg
+    rw [L'eqL] at hNeg
+    rw [hNeg] at DoffAB
+    contradiction
+
+/-- A line is 'bigger' than an extension in the same way that a line is bigger than a segment -/
+@[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, A ≠ B -> extension A B ≠ L := by
+  intro L A B AneB
+  sorry
+
+/-- A line is 'bigger' than a ray in the same way that a line is bigger than a segment -/
+@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
+  intro L A B AneB
+  have AonSegAB : A on segment A B := by tauto
+  have AonRayAB : A on ray A B := by unfold Ray; tauto
+  have BonSegAB : B on segment A B := by tauto
+  have BonRayAB : B on ray A B := by unfold Ray; tauto
+  by_contra! hNeg
+  sorry
+
 end Line
 
 namespace Intersection
@@ -305,6 +357,7 @@ namespace Intersection
   rw [LintMatX] at PinLintM
   contradiction
 
+/-- No points are contained on the intersection of a segment and it's related extension -/
 @[simp] lemma seg_inter_ext_empty : segment A B ∩ extension A B = ∅ := by
   unfold Segment; unfold Extension
   ext P
@@ -319,6 +372,7 @@ namespace Intersection
   -- Reverse
   · simp only [mem_empty_iff_false, ne_eq, mem_inter_iff, mem_setOf_eq, IsEmpty.forall_iff]
 
+/-- Points on a segment are not included in the related extension -/
 @[simp] lemma seg_inter_ext_empty' : X on segment A B -> X off extension A B := by
   intro XonAB
   by_contra! hNeg
@@ -327,6 +381,7 @@ namespace Intersection
   rw [interEmpty] at XinInter
   contradiction
 
+/-- Points on an extension are off the related segment -/
 @[simp] lemma ext_inter_seg_empty : X on extension A B -> X off segment A B := by
   intro XonAB
   by_contra! hNeg
@@ -335,7 +390,7 @@ namespace Intersection
   rw [interEmpty] at XinInter
   contradiction
 
-/- FIXME: Is this needed in addition to `uniq`? -/
+/-- If L and M are distinct, nonparallel lines, and X and Y are found in their intersection, X and Y are equal -/
 @[simp] lemma intersection_is_unique : ∀ L M : Line, L ≠ M -> (L ∦ M) -> X ∈ L ∩ M ∧ Y ∈ L ∩ M -> X = Y := by
   intro L M LneM LnparM ⟨XonInt, YonInt⟩
   have ⟨P, LinterMatP, Puniq⟩ : ∃! X : Point, L intersects M at X := Ch2.Prop.P1 LneM LnparM
@@ -346,6 +401,7 @@ namespace Intersection
   have YeqP : Y = P := by tauto
   rw [XeqP, YeqP]
 
+/-- If L and M are distinct, parallel lines, their intersection is empty -/
 @[simp] lemma parallel_intersection_is_empty : ∀ L M : Line, (L ≠ M) -> (L ∥ M) -> L ∩ M = ∅ := by
   intro L M LneM LparM
   unfold Parallel at LparM
@@ -353,8 +409,6 @@ namespace Intersection
   apply Subset.antisymm
   · trivial
   · tauto
-
-
 
 /-- Intersections of distinct, nonparallel lines contain exactly one point -/
 @[simp] lemma single_point_of_intersection : ∀ P : Point, ∀ L M : Line, L ≠ M ∧ (L ∦ M) -> (P ∈ L ∩ M ↔ L intersects M at P) := by
@@ -373,58 +427,6 @@ namespace Intersection
     rw [LintMatP]
     trivial
 
--- Lines are never equal to segments, extensions, or rays
--- These seem intuitive, but I have no idea how to prove them. Probably relates to the 'extension' theorems.
-/-- A line is 'bigger' than a segment in the sense that, even if the segment is coincident with a line, it
- is possible to find a point on L that is off the segment -/
-@[simp] lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> segment A B ≠ L := by
-  intro L A B AneB
-  by_cases suppose : (A off L) ∨ (B off L)
-  · -- one of the points is not collinear with L,
-    by_contra! hNeg
-    rw [<- hNeg] at suppose
-    simp only [mem_setOf_eq, true_or, or_true, not_true_eq_false, or_self] at suppose
-  · -- AB is collinear with L, so we must use B2 to construct a point outside of AB, but on L
-    -- have ⟨D, ABD⟩
-    -- have h : ∃ D : Point, A - B - D
-    push_neg at suppose
-    have ⟨AonL, BonL⟩ := suppose
-    have ⟨_, _, D, L', ⟨_, AonL', _, BonL', DonL'⟩, distinctABD, _, _, ABD⟩ := B2 A B AneB
-    -- need to prove L' and L are the same, we can use the Line.equiv
-    have L'eqL := Line.equiv L L' A B AneB ⟨AonL, AonL', BonL, BonL'⟩
-    -- FIXME: This is very bad.
-    simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-      forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
-      and_true] at distinctABD
-    have ⟨_, ⟨_, AneB, AneD⟩, _, BneD⟩ := distinctABD
-    have colABD : Collinear A B D := by tauto
-    have DoffAB : D off segment A B := by
-      unfold Segment
-      simp only [mem_setOf_eq, not_or]
-      rcases B3 A B D ⟨AneB, BneD, AneD, colABD⟩ with l | c | r
-      repeat tauto
-    by_contra! hNeg
-    rw [L'eqL] at hNeg
-    rw [hNeg] at DoffAB
-    contradiction
-
-/-- A line is bigger than an extension in the same way that a line is bigger than a segment -/
-@[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, A ≠ B -> extension A B ≠ L := by
-  intro L A B AneB
-  sorry
-
-/-- A line is bigger than a ray in the same way that a line is bigger than a segment -/
-@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
-  intro L A B AneB
-  have AonSegAB : A on segment A B := by tauto
-  have AonRayAB : A on ray A B := by unfold Ray; tauto
-  have BonSegAB : B on segment A B := by tauto
-  have BonRayAB : B on ray A B := by unfold Ray; tauto
-  by_contra! hNeg
-
-
-  sorry
-
 /-- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable in general.
 @[simp] lemma lift_seg_ray {AneB : A ≠ B} :
@@ -432,8 +434,7 @@ namespace Intersection
   intro LintABatX
   have XonSegAB : X on segment A B := inter_touch_right LintABatX
   have XonL : X on L := inter_touch_left LintABatX
-  have XonRayAB : X on ray A B := by
-    unfold Ray; tauto
+  have XonRayAB : X on ray A B := by unfold Ray; tauto
   have LneRayAB : L ≠ ray A B := by
     by_contra! hNeg
     rw [hNeg] at LintABatX
@@ -479,6 +480,26 @@ lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by 
 lemma par_lift_seg_line : (L ∦ segment A B) ↔ (L ∦ line A B) := by sorry
 lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
 
+/-- If two lines intersect, they are distinct. -/
+lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B at X) -> L ≠ line A B := by
+  intro LintABatX
+  have colABX : Collinear A B X := by tauto
+  have AonAB : A on line A B := Line.line_has_definition_points.left AneB
+  have BonAB : B on line A B := Line.line_has_definition_points.right AneB
+  have XonL : X on L := inter_touch_left LintABatX
+  have XonAB : X on line A B := inter_touch_right LintABatX
+  by_contra! hNeg
+  rw [hNeg] at LintABatX
+  unfold Intersects at LintABatX
+  simp only [inter_self, P5.L2, mem_setOf_eq, mem_singleton_iff] at LintABatX
+  have AeqX : A = X := (LintABatX A).mp (Collinear.any_two_points_are_collinear_ABA A B AneB)
+  have BeqX : B = X := (LintABatX B).mp (Collinear.any_two_points_are_collinear_ABB A B AneB)
+  rw [AeqX, BeqX] at AneB
+  contradiction
+
+lemma intersecting_rays_are_not_equal {AneB : A ≠ B} : (L intersects ray A B at X) -> L ≠ ray A B := by
+  sorry
+
 /-- If a line intersects a ray, then it intersects the line containing the ray -/
 @[simp] lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
@@ -490,7 +511,7 @@ lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
   have XinInter : X ∈ L ∩ line A B := by tauto
   have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
   have LnparLineAB : L ∦ line A B := par_lift_ray_line.mp LnparRayAB
-  have LneRayAB := Ne.symm (line_is_bigger_than_ray L A B AneB)
+  have LneRayAB := Ne.symm (Line.line_is_bigger_than_ray L A B AneB)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
     have AonAB : A on line A B := by tauto
@@ -527,12 +548,6 @@ lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
   apply lift_ray_line at LintSeg
   exact LintSeg
   repeat exact AneB
-
-
-
-
-
-
 
 end Intersection
 
