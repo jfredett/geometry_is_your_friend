@@ -104,18 +104,18 @@ macro_rules
 
 -- p. 69-70, Ed. The author provides these as very terse statements, I've tried to give informal
 -- respellings as documentation.
-/-
+/--
 For any two distinct points P and Q, there exists a unique line L which has P and Q
 -/
 @[simp] axiom I1 : ∀ P Q : Point, P ≠ Q -> ∃! L : Line, (P on L) ∧ (Q on L)
-/- For any line, there are at least two distinct points on it -/
+/-- For any line, there are at least two distinct points on it -/
 @[simp] axiom I2 : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ (A on L) ∧ (B on L)
-/- There exists three distinct points not on any single line ("There exists
+/-- There exists three distinct points not on any single line ("There exists
 three non-collinear points", but without mentioning the undefined notion of
 collinearity) -/
 @[simp] axiom I3 : ∃ A B C : Point, (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧ (∀ (L : Line), (A on L) → (B on L) → (C off L))
 
-/-
+/--
 p.70 "Three ... lines ... are _concurrent_ if there exists a point incident with all of them"
 
 Ed. Author technically makes this apply to any number of lines, if it ever comes up maybe it's worth
@@ -124,7 +124,7 @@ a refactor to any finite set of lines?
 @[reducible] def Concurrent (L M N : Line) : Prop :=
     ∃ P : Point, (P on L) ∧ (P on M) ∧ (P on N)
 
-/-
+/--
 p. 20, "Two lines `l` and `m` are parallel if they do not intersect, i.e., if no point lies on both
 of them. We denote this by `l ‖ m`"
 
@@ -141,7 +141,7 @@ notation:20 L " ∦ " M => ¬(Parallel L M)
 -- -- -- BETWEENNESS GEOMETRY
 
 
-/-
+/--
 p.108a "If A - B - C, then A,B,C are distinct points on the same line...
 -/
 @[simp] axiom B1a {A B C : Point} :
@@ -150,7 +150,7 @@ p.108a "If A - B - C, then A,B,C are distinct points on the same line...
       (∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)) ∧
       Collinear A B C
 
-/-
+/--
 p.108b ... and [A - B - C iff] C - B - A.""
 
 Ed. Note, I separated these parts of the axiom to make rewriting
@@ -161,7 +161,7 @@ I won't have to dig it out of the pile of parts that is 1a.
 @[simp] axiom B1b : ∀ A B C : Point, A - B - C ↔ C - B - A
 
 
-/-
+/--
 p.108 "Given any two distinct points B and D, there exist points A, C, and E lying on →ₗBD such that
 A * B * D, B * C * D, and B * D * E".
 
@@ -178,7 +178,8 @@ line, there is always a point between them.
   ((A on seg) ∧ (B on seg) ∧ (C on seg) ∧ (D on seg) ∧ (E on seg)) ∧
   distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
-/-
+
+/--
  p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
@@ -187,7 +188,7 @@ line, there is always a point between them.
   (¬(A - B - C) ∧  (B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧ ¬(B - A - C) ∧  (A - C - B))
 
-/-
+/--
 p.110 "Definition. Let L be any line, and A and B points that do not lie on L. If A = B or if the segment A B
 contains no points that lie on L, we say that A and B are _on the same side_ of L; whereas, if A ≠ B and segment A B
 does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3.6). The law of the excluded middle
@@ -197,7 +198,7 @@ does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3
   := (A off L) ∧ (B off L)
   -> ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
 
-/-
+/--
 "Splits" and "Guards", L "splits" A and B if A and B are on opposite sides of the 'wall' L, it 'guards'
 them if they are both on the same side of the wall (we presume all points are allied with other points
 on their side of the line).
@@ -205,14 +206,14 @@ on their side of the line).
 notation:20 L " splits " A " and " B => ¬(SameSide A B L)
 notation:20 L " guards " A " and " B => SameSide A B L
 
-/-
+/--
 Ed. The author refers to the law of the excluded middle, Lean does not include it by default and
 generally I want to avoid including it everywhere, this is a limited application of it which
 should help our purpose.
 -/
 @[simp] axiom LotEMGuards : (L splits A and B) ∨ (L guards A and B)
 
-/-
+/--
 p.110 "Betweenness Axiom 4 (Plane Separation). For every line L and for any
 three points A, B, and C not on L: (i) If A and B are on the same side of L and
 if B and C are on the same side of L, the A and C are on the same side of L..."
@@ -220,7 +221,7 @@ if B and C are on the same side of L, the A and C are on the same side of L..."
 @[simp] axiom B4i {A B C : Point} {L : Line} :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L guards A and B) ∧ (L guards B and C) -> (L guards A and C)
-/-
+/--
 "... (ii) If A and B are on opposite sides of L and if B and C are opposite
 sides of L, then A and C are on the same side of L."
 -/

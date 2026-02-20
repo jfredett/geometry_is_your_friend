@@ -1,3 +1,6 @@
+-- TODO: This should probably be a couple files, there's a lot of theory in here, also things are all mixed together.
+
+
 /- Interpendix 3-A
 
 On Intersections, Extensions, and other simple Line Properties.
@@ -203,6 +206,7 @@ namespace Line
   simp only [mem_setOf_eq]
   exact all_points_in_a_ray_are_collinear PonRay
 
+
 -- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 @[simp] lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D)
   -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by
@@ -218,6 +222,28 @@ namespace Line
   · rw [<- AeqE]; exact AonCD
   · rw [<- BeqE]; exact BonCD
 
+/-- Every `line A B` is a whole line `L` -/
+@[simp] lemma linethrough_lift_line : ∀ L : Line, ∃ A B : Point, A ≠ B -> L = line A B := by
+  intro L
+  have ⟨A, B, AneB, AonL, BonL⟩ := I2 L
+  use A
+  use B
+  intro _
+  unfold LineThrough
+  apply Subset.antisymm
+  · intro P PonL
+    have colABP : Collinear A B P := by tauto
+    exact mem_setOf.mpr colABP
+  · intro P PinAB
+    have colABP : Collinear A B P := by tauto
+    unfold Collinear at colABP
+    have ⟨L', AonL', BonL', ConL'⟩ := colABP
+    have ⟨M, _, Muniq⟩ := I1 A B AneB
+    have MeqL := Muniq L ⟨AonL, BonL⟩
+    have MeqL' := Muniq L' ⟨AonL', BonL'⟩
+    rw [<- MeqL] at MeqL'
+    rw [<- MeqL']
+    exact ConL'
 
 /-- Given any segment AC, we can find B such that AC ⊆ AB -/
 @[simp] lemma seg_extension : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by
@@ -242,19 +268,6 @@ namespace Line
   have ⟨ACB, _, _⟩ := BonExt
   have ConSegAB : C on segment A B := by tauto
   sorry -- idea: if seg A B and seg C D are colinear, and A on CD and B on CD, then AB ⊆ CD
-
-
-
-
-@[simp] lemma ray_sub_line : ∀ A B : Point, ray A B ⊆ line A B := by
-  intro A B E EonRayAB
-  unfold LineThrough; unfold Ray at EonRayAB
-  simp_all only [mem_union, mem_setOf_eq, ne_eq]
-  rcases EonRayAB with (h1 | h2 | h3) | ⟨h4, h5, h6⟩
-  obtain ⟨_, _, hCol⟩ := B1a h1;
-  repeat tauto
-
-
 
 end Line
 
@@ -341,6 +354,8 @@ namespace Intersection
   · trivial
   · tauto
 
+
+
 /-- Intersections of distinct, nonparallel lines contain exactly one point -/
 @[simp] lemma single_point_of_intersection : ∀ P : Point, ∀ L M : Line, L ≠ M ∧ (L ∦ M) -> (P ∈ L ∩ M ↔ L intersects M at P) := by
   intro P L M ⟨LneM, LnparM⟩
@@ -360,9 +375,50 @@ namespace Intersection
 
 -- Lines are never equal to segments, extensions, or rays
 -- These seem intuitive, but I have no idea how to prove them. Probably relates to the 'extension' theorems.
-@[simp] lemma line_is_bigger_than_segment {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, segment A B ≠ L := by sorry
-@[simp] lemma line_is_bigger_than_extension {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, extension A B ≠ L := by sorry
-@[simp] lemma line_is_bigger_than_ray {AneB : A ≠ B} : ∀ L : Line, ∀ A B : Point, ray A B ≠ L := by sorry
+/-- A line is 'bigger' than a segment in the sense that, even if the segment is coincident with a line, it
+ is possible to find a point on L that is off the segment -/
+@[simp] lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> segment A B ≠ L := by
+  intro L A B AneB
+  by_cases suppose : (A off L) ∨ (B off L)
+  · -- one of the points is not collinear with L,
+    by_contra! hNeg
+    rw [<- hNeg] at suppose
+    simp only [mem_setOf_eq, true_or, or_true, not_true_eq_false, or_self] at suppose
+  · -- AB is collinear with L, so we must use B2 to construct a point outside of AB, but on L
+    -- have ⟨D, ABD⟩
+    -- have h : ∃ D : Point, A - B - D
+    push_neg at suppose
+    have ⟨AonL, BonL⟩ := suppose
+    have ⟨_, _, D, L', ⟨_, AonL', _, BonL', DonL'⟩, distinctABD, _, _, ABD⟩ := B2 A B AneB
+    -- need to prove L' and L are the same, we can use the Line.equiv
+    have L'eqL := Line.equiv L L' A B AneB ⟨AonL, AonL', BonL, BonL'⟩
+    -- FIXME: This is very bad.
+    simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+      and_true] at distinctABD
+    have ⟨_, ⟨_, AneB, AneD⟩, _, BneD⟩ := distinctABD
+    have colABD : Collinear A B D := by tauto
+    have DoffAB : D off segment A B := by
+      unfold Segment
+      simp only [mem_setOf_eq, not_or]
+      rcases B3 A B D ⟨AneB, BneD, AneD, colABD⟩ with l | c | r
+      repeat tauto
+    by_contra! hNeg
+    rw [L'eqL] at hNeg
+    rw [hNeg] at DoffAB
+    contradiction
+
+/-- A line is bigger than an extension in the same way that a line is bigger than a segment -/
+@[simp] lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, A ≠ B -> extension A B ≠ L := by
+  intro L A B AneB
+  -- idea: use the Betweeness 3 to construct a point to the right of A and B, which is off segment but collinear, meaning it's on L but off AB
+  sorry
+
+/-- A line is bigger than a ray in the same way that a line is bigger than a segment -/
+@[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
+  intro L A B AneB
+  -- idea: use the Betweeness 3 to construct a point to the right of A and B, which is off segment but collinear, meaning it's on L but off AB
+  sorry
 
 /-- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable.

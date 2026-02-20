@@ -32,7 +32,6 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 Useful for dealing with the trivial cases.
 -/
 @[simp] lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by
-  constructor
   sorry
 
 /-
