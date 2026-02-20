@@ -147,6 +147,12 @@ one another -/
   rcases B3 A B C ⟨AneB, BneC, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
   contradiction; contradiction; contradiction
 
+/-- betweeness implies distinctness -/
+@[simp] lemma abc_imp_anec : A - B - C -> A ≠ C := by
+  intro ABC
+  have ⟨⟨_, _, AneC⟩, _⟩ := (B1a ABC)
+  exact AneC
+
 end Betweenness
 
 
