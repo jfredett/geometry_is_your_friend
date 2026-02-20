@@ -374,78 +374,12 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   /- "(3) There is a point B such that B * O * A (Betweenness Axiom 2 [B2])"-/
   have AneO : A ≠ O := by -- author omits this step
     by_contra!; rw [this] at AoffL; tauto
-  have LintersectsAOatO : L intersects segment A O at O := by sorry
-
-  -- FIXME: I think these get removed.
   obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
   have ⟨⟨BneO,OneA,BneA⟩, ⟨⟨AB, BonAB, OonAB, AonAB⟩, BOACol⟩⟩ := B1a bBOA -- Author omits this step, note that the line generated here is line AB
-  -- FIXME: see above
 
   obtain ⟨B, BoffL, BonAB, LintABatO, ColAOB, AOB, LsplitsAB⟩ := P2.Lext AoffL ?LintersectsAO
   /- "(4) Then A and B are on opposite sides of l (by definition), ..."-/
-  -- Author Omits proving B isn't on L, it is intuitive, but unjustified, Lean accepts nothing without proof
-  have LneAB : L ≠ AB := by
-    by_contra! hNeg;
-    rw [hNeg] at AoffL; contradiction
-  have LnoparAB : L ∦ AB := by
-    by_contra! hNeg
-    unfold Parallel at hNeg
-    tauto
-  have BoffL : B off L := by
-    -- idea: if B is on L, then B = O (since AB passes through O), contradiction
-    -- FIXME: This is an insane amount of work for a basic fact, I am almost certainly missing something.
-    by_contra! hNeg
-    -- B is on L and AB, so B must be the intersection of L and AB
-    have LintABatB : L intersects AB at B := by
-      unfold Intersects;
-      constructor
-      · exact hNeg
-      · constructor
-        · tauto
-        · constructor
-          · intro P ⟨PonL, PonAB⟩; sorry
-          · sorry
-
-
-    sorry
-    /-
-    have BonAB : B on segment A B := by tauto
-    have OonAB : O on segment A B := by
-      unfold Segment at *
-      simp_all only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-        forall_eq_or_imp, not_false_eq_true, forall_eq, true_and, IsEmpty.forall_iff, implies_true,
-        List.Pairwise.nil, and_self, and_true, B1b, B1a, mem_setOf_eq, or_true, or_self]
-    have OintersectsLandABatX : L intersects segment A B at O := by
-      unfold Intersects
-      constructor
-      · exact OonL
-      · constructor
-        · exact OonAB
-        · constructor;
-          · intro P ⟨PonL, PonAB⟩; sorry -- follows from unique intersection
-          · simp only [P5.L2, mem_inter_iff, mem_setOf_eq, mem_singleton_iff]; intro P; constructor
-            · intro ⟨PonL, PonAB⟩; sorry -- similar to above case
-            · intro PeqO; rw [PeqO]; tauto;
-    have BintersectsLandABatX : L intersects segment A B at B := by
-      unfold Intersects
-      constructor
-      · exact hNeg
-      · constructor
-        · exact BonAB
-        · constructor;
-          · intro P ⟨PonL, PonAB⟩; sorry -- follows from unique intersection
-          · simp only [P5.L2, mem_inter_iff, mem_setOf_eq, mem_singleton_iff]; intro P; constructor
-            · intro ⟨PonL, PonAB⟩; sorry -- similar to above case
-            · intro PeqO; rw [PeqO]; tauto;
-    tauto
-    -/
-  have LsplitsAB : L splits A and B := by
-    push_neg;
-    constructor; exact Classical.not_imp.mp fun a ↦ BoffL (a AoffL)
-    constructor; exact Ne.intro (id (Ne.symm BneA))
-    use O;
-    constructor; unfold Segment; simp_all only [ne_eq, B1b, B1a, mem_setOf_eq, or_self, or_false]
-    exact OonL
+  have LsplitsAB : L splits A and B := by tauto
   /- "so L has at least two sides." -/
   /- "(5) Let C be any point distinct from A and B not lying on l..."
 
@@ -455,14 +389,27 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   2. Examine segment A X with B2, we want C with A - C - X
   3. Use C.
   -/
-  have LnoparAB : L ∦ segment A B := by sorry
-  have LneAB : L ≠ segment A B := by sorry
+  have LneAB : L ≠ segment A B := by
+    by_contra! hNeg;
+    rw [hNeg] at AoffL;
+    have AonAB : A on segment A B := by tauto
+    contradiction
+  have LnoparAB : L ∦ segment A B := by
+    by_contra! hNeg
+    unfold Parallel at hNeg
+    specialize hNeg LneAB O
+    push_neg at hNeg
+    specialize hNeg OonL
+    
+
+
+    tauto
   obtain ⟨X, XintersectsABandL, Xuniq⟩ : ∃! X : Point, L intersects segment A B at X := Ch2.Prop.P1 LneAB LnoparAB
   have XneA : X ≠ A := by
     by_contra! ;
     rw [<- this] at AoffL
     unfold Intersects at XintersectsABandL
-    tauto
+    sorry
   have XneB : X ≠ B := by
     by_contra! ;
     rw [<- this] at BoffL
