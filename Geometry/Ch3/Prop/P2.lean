@@ -71,7 +71,10 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
     specialize hNeg LneAB O
     push_neg at hNeg
     specialize hNeg OonL
-    sorry
+    unfold Segment at hNeg; simp only [mem_setOf_eq, not_or] at hNeg
+    obtain ⟨nAOB, _, _⟩ := hNeg
+    have AOB := (B1b B O A).mp bBOA
+    contradiction
   have LintersectsABatO : L intersects segment A B at O := by sorry
   have ⟨C, CoffL, AneC, BneC, ACO⟩ : ∃ C : Point, (C off L) ∧ A ≠ C ∧ B ≠ C ∧ A - C - O := by sorry
 
@@ -97,6 +100,6 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
   constructor
   · exact claim2
   · sorry
-
+  sorry
 
 end Geometry.Ch3.Prop

@@ -179,8 +179,7 @@ line, there is always a point between them.
   distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 
-/--
- p.108 "If A, B, and C are three distinct points lying on the same line, then
+/-- p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
 @[simp] axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ Collinear A B C ->
