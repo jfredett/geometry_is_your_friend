@@ -22,7 +22,7 @@ open Geometry.Ch3.Prop
 B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
 I've chosen to notate the halfplanes in the theorem as 'Hl' and 'Hr' for 'left' and 'right' half-plane, respectively.
 -/
-theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
+theorem P2.i (L : Line) : ∃ Hl Hr : Set Point,
   ∀ P : Point, (P on L) -> (P ∉ Hl) ∧ (P ∉ Hr)
 := by
   /- p.112 "(1) There is a point A not lying on l, (Proposition 2.3 [Ch2.Prop.P3])." -/
@@ -75,31 +75,42 @@ theorem P2 (L : Line) : ∃ Hl Hr : Set Point, Hl ∩ Hr = ∅ ∧
     obtain ⟨nAOB, _, _⟩ := hNeg
     have AOB := (B1b B O A).mp bBOA
     contradiction
-  have LintersectsABatO : L intersects segment A B at O := by sorry
-  have ⟨C, CoffL, AneC, BneC, ACO⟩ : ∃ C : Point, (C off L) ∧ A ≠ C ∧ B ≠ C ∧ A - C - O := by sorry
+  /- Define these here for use below. -/
+  let Hl : Set Point := {P | L guards A and P}
+  let Hr : Set Point := {P | L guards B and P}
+  let PsoffL : Set Point := {P | P off L}
 
-  /- "If C and B are not on the same side of L, then C and A are on the same
-  side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
-  by_cases LsplitsBC : L splits B and C
-  have LguardsAC : L guards A and C := by
-    by_contra LsplitsAC
-    have LguardsAB := B4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, B4iii.L1.splits L B C LsplitsBC⟩
-    contradiction
-  /- "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B." -/
-  have Hl := {P | L guards A and P}
-  have Hr := {P | L guards B and P}
-  have claim1 : ∀ P : Point, P ∈ L -> P ∉ Hl ∪ Hr := by sorry
-  /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
-  same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
-  disjoint." -/
-  have claim2 : Hl ∩ Hr = ∅ := by
-    simp only [P5.L2, mem_inter_iff, mem_empty_iff_false, iff_false, not_and]
-    intro P PinHl
-    sorry
-  use Hl, Hr
-  constructor
-  · exact claim2
-  · sorry
+  use Hl
+  use Hr
+
+  /- "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B."
+      Ed. Note, to formalize this, we need to state the claim first. -/
+  have claim1 : PsoffL = Hl ∪ Hr := by
+    apply Subset.antisymm
+    · intro C CinPsoffL
+      have CoffL : C off L := by tauto
+      simp only [mem_union]
+      /- "If C and B are not on the same side of L, -/
+      have AseparatefromB : (L splits B and C) -> (L guards A and C) := by
+        intro LsplitsBC
+        /- then C and A are on the same side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
+        by_contra LsplitsAC
+        have LguardsAB := B4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, B4iii.L1.splits L B C LsplitsBC⟩
+        contradiction
+      by_cases suppose: L splits B and C
+      · specialize AseparatefromB suppose
+        have CinHl : C ∈ Hl := by tauto
+        tauto
+      · tauto
+    /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
+    same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
+    disjoint." -/
+    · sorry
+
+
+
+
+
   sorry
 
 end Geometry.Ch3.Prop

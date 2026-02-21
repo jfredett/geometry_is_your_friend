@@ -193,6 +193,8 @@ contains no points that lie on L, we say that A and B are _on the same side_ of 
 does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3.6). The law of the excluded middle
 (Logic Rule 10) tells us that A and B are either on the same side or on opposite sides of L"
 -/
+-- FIXME: I think this might be incorrect; we should assume A and B are off L by definition, not ask for it
+-- in implication
 @[reducible] def SameSide (A B : Point) (L : Line)
   := (A off L) ∧ (B off L)
   -> ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
