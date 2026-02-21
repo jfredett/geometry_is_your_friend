@@ -435,9 +435,9 @@ namespace Intersection
 
 /-- If a line intersects a segment, then it intersects the ray containing that segment -/
 -- TODO: I think some of the non-equality conditions are provable in general.
-@[simp] lemma lift_seg_ray {AneB : A ≠ B} :
-  (L intersects segment A B at X) -> (L intersects ray A B at X) := by
-  intro LintABatX
+@[simp] lemma lift_seg_ray :
+  (A ≠ B) -> (L intersects segment A B at X) -> (L intersects ray A B at X) := by
+  intro AneB LintABatX
   have XonSegAB : X on segment A B := inter_touch_right LintABatX
   have XonL : X on L := inter_touch_left LintABatX
   have XonRayAB : X on ray A B := by unfold Ray; tauto

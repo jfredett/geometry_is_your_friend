@@ -35,22 +35,52 @@ theorem P2.i (L : Line) : ∃ Hl Hr : Set Point,
   obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
   /- author omits these, but they are necessary for the 'by definition' below. -/
   have AneB : A ≠ B := Ne.symm (Betweenness.abc_imp_anec bBOA)
+  have LneAO : L ≠ segment A O := by
+    by_contra! hNeg;
+    rw [hNeg] at AoffL;
+    have AonAO : A on segment A O := by tauto
+    contradiction
+  have LnoparAO : L ∦ segment A O := by
+    by_contra! hNeg
+    unfold Parallel at hNeg
+    specialize hNeg LneAO O
+    push_neg at hNeg
+    specialize hNeg OonL
+    unfold Segment at hNeg; simp only [mem_setOf_eq, not_or] at hNeg
+    obtain ⟨nAOB, _, _⟩ := hNeg
+    have AOB := (B1b B O A).mp bBOA
+    contradiction
   have BoffL : B off L := by
     -- idea: since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension.
-    sorry
+    have ⟨⟨BneO, OneA, _⟩, _, _⟩ := B1a bBOA
+    have LintAOatO : L intersects segment A O at O := by
+      unfold Intersects
+      have OonAO : O on segment A O := by tauto
+      have OonInt : O on L ∩ segment A O := by tauto
+      exact (Intersection.single_point_of_intersection O L (segment A O) ⟨LneAO, LnoparAO⟩).mp OonInt
+    have h := Intersection.lift_seg_ray AneO LintAOatO
+    unfold Ray at h
+    have BonExtAO : B on extension A O := by
+      unfold Extension; simp only [ne_eq, mem_setOf_eq]
+      refine ⟨((B1b B O A).mp bBOA), AneB, ?_⟩
+      exact Ne.symm BneO
+    have BonRayAO : B on ray A O := by tauto
+    unfold Intersects at h
+    by_contra! BonL
+    have BonInt : B ∈ (L ∩ ray A O) := by tauto
+    rw [h] at BonInt
+    have BeqO : B = O := by tauto
+    contradiction
   /- "(4) Then A and B are on opposite sides of l (by definition), ..." -/
   have LsplitsAB : L splits A and B := by
     unfold SameSide
     push_neg
-    constructor
-    · exact ⟨AoffL, BoffL⟩
-    · constructor
-      · exact AneB
-      · use O;
-        constructor
-        · unfold Segment; simp only [mem_setOf_eq];
-          left; exact (B1b B O A).mp bBOA
-        · exact OonL
+    intro AoffL BoffL
+    refine ⟨AneB, O, ?_, OonL⟩
+    unfold Segment
+    simp only [mem_setOf_eq]
+    left
+    exact (B1b B O A).mp bBOA
   /- "so L has at least two sides." -/
   /- "(5) Let C be any point distinct from A and B not lying on l..."
 
@@ -60,32 +90,16 @@ theorem P2.i (L : Line) : ∃ Hl Hr : Set Point,
   2. Examine segment A O with B2, we want C with A - C - O
   3. Use C.
   -/
-  have LneAB : L ≠ segment A B := by
-    by_contra! hNeg;
-    rw [hNeg] at AoffL;
-    have AonAB : A on segment A B := by tauto
-    contradiction
-  have LnoparAB : L ∦ segment A B := by
-    by_contra! hNeg
-    unfold Parallel at hNeg
-    specialize hNeg LneAB O
-    push_neg at hNeg
-    specialize hNeg OonL
-    unfold Segment at hNeg; simp only [mem_setOf_eq, not_or] at hNeg
-    obtain ⟨nAOB, _, _⟩ := hNeg
-    have AOB := (B1b B O A).mp bBOA
-    contradiction
-  /- Define these here for use below. -/
+  /- Here are the sets we require -/
   let Hl : Set Point := {P | L guards A and P}
   let Hr : Set Point := {P | L guards B and P}
   let PsoffL : Set Point := {P | P off L}
-
+  /- Use our sets -/
   use Hl
   use Hr
-
   /- "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B."
       Ed. Note, to formalize this, we need to state the claim first. -/
-  have claim1 : PsoffL = Hl ∪ Hr := by
+  have claim : PsoffL = Hl ∪ Hr := by
     apply Subset.antisymm
     · intro C CinPsoffL
       have CoffL : C off L := by tauto
@@ -101,16 +115,26 @@ theorem P2.i (L : Line) : ∃ Hl Hr : Set Point,
       · specialize AseparatefromB suppose
         have CinHl : C ∈ Hl := by tauto
         tauto
-      · tauto
-    /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
-    same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
-    disjoint." -/
-    · sorry
-
-
-
-
-
+      · push_neg at suppose
+        have CinHr : C ∈ Hr := by tauto
+        tauto
+    · intro C CinUnion
+      rcases CinUnion with CinHl | CinHr
+      rw [Set.mem_setOf_eq] at *;
+      · obtain ⟨_, CoffL, hOpts⟩ := CinHl
+        rcases hOpts with AeqC | hCond
+        · exact CoffL
+        · by_contra! hNeg
+          contradiction
+      · obtain ⟨BoffL, CoffL, hOpts⟩ := CinHr
+        tauto
+  /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
+  same side (Axiom 4(i) [B4i]), contradicting step 4; hence the two sides are
+  disjoint." -/
+  
   sorry
+
+
+
 
 end Geometry.Ch3.Prop
