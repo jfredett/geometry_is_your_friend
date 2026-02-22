@@ -133,7 +133,7 @@ of them."
 
 Ed. This gets defined twice, the definitions are equivalent
 -/
-@[reducible] def Parallel (L M : Line) : Prop := L ≠ M -> ∀ P : Point, ¬((P on L) ∧ (P on M))
+@[reducible] def Parallel (L M : Line) : Prop := L ≠ M ∧ ∀ P : Point, ¬((P on L) ∧ (P on M))
 
 notation:20 L " ∥ " M => Parallel L M
 notation:20 L " ∦ " M => ¬(Parallel L M)

@@ -13,7 +13,8 @@ open Geometry.Theory
 := by
     intro hDistinctLines
     unfold Parallel; push_neg
-    rintro ⟨_, ⟨P, hPonLM⟩⟩
+    intro hypP; specialize hypP hDistinctLines
+    obtain ⟨P, hPonLM⟩ := hypP
     refine ⟨P, ?cEx, ?cUniq⟩
     -- existence
     exact hPonLM
@@ -33,7 +34,7 @@ open Geometry.Theory
     obtain ⟨P, ⟨PonL, PonM⟩, Puniq⟩ := P1.direct L M LneM LnoparM
     unfold Intersects
     use P
-    simp_all only [ne_eq, not_false_eq_true, nonempty_prop, forall_const, not_and, not_forall,
+    simp_all only [ne_eq, not_false_eq_true, forall_const, not_and, not_forall,
       not_not, and_imp]
     by_cases suppose: ∃ C : Point, C ∈ L ∩ M ∧ C ≠ P
     obtain ⟨C, ConLintM, CneP⟩ := suppose
@@ -42,17 +43,7 @@ open Geometry.Theory
     specialize Puniq C ConL ConM; contradiction
     push_neg at suppose
     simp_all only [exists_prop, Set.mem_inter_iff, and_self, implies_true, and_imp]
-    obtain ⟨w, h⟩ := LnoparM
-    obtain ⟨left, right⟩ := h
+    have PinLMint : P ∈ L ∩ M := by tauto
     sorry
-/-
-    simp_all only [Set.mem_inter_iff, Set.mem_singleton_iff]
-    apply Iff.intro
-    · intro a
-      simp_all only
-    · intro a
-      subst a
-      simp_all only [and_self]
--/
 
 end Geometry.Ch2.Prop

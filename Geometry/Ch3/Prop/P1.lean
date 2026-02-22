@@ -31,10 +31,10 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 /-
 Useful for dealing with the trivial cases.
 -/
-@[simp] lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by
-  sorry
+/- @[simp] lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by -/
+/-   sorry -/
 
-/-
+/--
 The endpoint B is in common here.
 -/
 @[simp] lemma P1.L4 : segment A B ⊆ ray B A := by
@@ -42,7 +42,7 @@ The endpoint B is in common here.
   simp_all only [mem_setOf_eq, mem_union, L2, true_or]
 
 
-/-
+/--
 p.109, "For any two points A and B:
 (i) Ray A B ∩ Ray B A = Segment A B ..."
 -/
@@ -169,7 +169,7 @@ Ed. Collinearity commutes in both argument pairs
     exact P1.L5.segment AneB P hPonExtAB
 
 -- (ii) Ray A B ∪ Ray B A = LineThrough A B"
-@[simp] theorem P1.ii (A B : Point) : A ≠ B -> -- Ed. Same as above.
+@[simp] theorem P1.ii : A ≠ B -> -- Ed. Same as above.
   (ray A B) ∪ (ray B A) = (line A B) := by
   intro AneB
   ext P
