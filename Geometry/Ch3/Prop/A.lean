@@ -352,9 +352,40 @@ namespace Line
 
 lemma segment_int_extension_is_empty : segment A B ∩ extension A B = ∅ := by
   unfold Segment; unfold Extension
-  simp?
-  sorry
+  apply Subset.antisymm
+  · simp only [ne_eq, subset_empty_iff, P5.L2, mem_inter_iff, mem_setOf_eq, mem_empty_iff_false, iff_false, not_and, not_not]
+    intro P opts ABP AneP
+    rcases opts with  APB | AeqP | BeqP
+    · exfalso; exact Betweenness.absurdity_abc_acb ⟨ABP, APB⟩
+    · contradiction
+    · exact BeqP
+  · intro _ absurdity; exfalso; contradiction
 
+
+-- TODO: move this to the Set namespace
+/-- If S is disjoint from T and V, then S ∪ T ⊆ S ∪ V implies T ⊆ V -/
+@[simp] lemma subtract_disjoint_union_subset : ∀ S T V : Set α, S ∪ T ⊆ S ∪ V ∧ S ∩ T = ∅ ∧ S ∩ V = ∅ -> T ⊆ V := by
+  intro S T V ⟨SuTsubSuV, SintTempty, SintVempty⟩ e eInT
+  have eInSuT : e ∈ S ∪ T := by tauto
+  have eInSuV : e ∈ S ∪ V := (mem_union e S V).mpr (SuTsubSuV eInSuT)
+  rcases eInSuV with eInS | eInV
+  · exact absurd ⟨eInS, eInT⟩ (Set.eq_empty_iff_forall_notMem.mp SintTempty e)
+  · exact eInV
+
+-- TODO: move this to the Set namespace
+/-- If S is disjoint from T and V, then S ∪ T = S ∪ V implies T = V (TODO: may be iff) -/
+lemma subtract_disjoint_union : ∀ S T V : Set α,  S ∪ T = S ∪ V ∧ S ∩ T = ∅ ∧ S ∩ V = ∅ -> T = V := by
+  intro S T V ⟨SuTeqSuV, SintTempty, SintVempty⟩
+  -- This is a cool technique, similar to the 'by symmetry' or 'up to variable naming'.
+  suffices h : ∀ A B : Set α, S ∪ A = S ∪ B → S ∩ A = ∅ → A ⊆ B by
+    exact Subset.antisymm (h T V SuTeqSuV SintTempty) (h V T SuTeqSuV.symm SintVempty)
+  -- TODO: use the above to prove this, instead of recreating the argument.
+  intro A B SuAeqSuB SintAempty e eInA
+  have eInSuA : e ∈ S ∪ A := by tauto
+  have eInSuB : e ∈ S ∪ B := by rw [SuAeqSuB] at eInSuA; exact eInSuA
+  rcases eInSuB with eInS | eInB
+  · exact absurd ⟨eInS, eInA⟩ (Set.eq_empty_iff_forall_notMem.mp SintAempty e)
+  · exact eInB
 
 /-- A line is 'bigger' than a ray in the same way that a line is bigger than a segment -/
 @[simp] lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
@@ -380,20 +411,41 @@ lemma segment_int_extension_is_empty : segment A B ∩ extension A B = ∅ := by
       have BinInt : B ∈ L ∩ ray A B := by tauto
       rw [LintABatX] at *
       have AeqB : A = B := by
-        sorry
+        have AeqX : A = X := by tauto
+        have BeqX : B = X := by tauto
+        rw [<- BeqX] at AeqX
+        exact AeqX
+      contradiction
     by_contra! hNeg
     rw [<- hNeg] at AorBoffL
     tauto
-  · by_contra! RayABeqLineAB
-    rw [LextendsRay, <- (P1.ii AneB)] at *
-    rw [eq_comm, Set.union_eq_left] at RayABeqLineAB
-    unfold Ray at RayABeqLineAB
-    rw [P1.L2] at RayABeqLineAB
+  · rw [LextendsRay, <- (P1.ii AneB)] at *
+    unfold Ray
+    rw [P1.L2]
+    have precondA : segment A B ∩ extension A B = ∅ := segment_int_extension_is_empty
+    have precondB : segment A B ∩ extension B A = ∅ := by
+      -- TODO: This should be a oneliner, I think
+      have h : segment B A ∩ extension B A = ∅ := segment_int_extension_is_empty
+      rw [P1.L2] at h
+      exact h
+    simp only [P1.L2, ne_eq, P5.L2, mem_union, mem_setOf_eq, iff_self_or, not_forall, not_or, not_and, not_not]
+    
+  
+    -- have extBAsubextAB := subtract_disjoint_union_subset (segment A B) (extension B A) (extension A B) ⟨RayABeqLineAB, precondB, precondA⟩
+    -- unfold Extension at extBAsubextAB
+    -- simp only [ne_eq, setOf_subset_setOf, and_imp] at extBAsubextAB
+    -- have ⟨C, ConExtBA⟩ : ∃ C : Point, C on extension B A := by sorry
+    -- specialize extBAsubextAB C
+  
+  
+    
     sorry
+     
   · push_neg at suppose
     obtain ⟨LnoparAB, noIntersection, LnotLine⟩ := suppose
-    -- there are two contradictions to choose from, non-parallel lines intersect, but there is no intersection, but
-    -- even simpler, 
+    unfold Intersects at noIntersection
+    push_neg at noIntersection
+    
     
     sorry
     
@@ -520,7 +572,7 @@ namespace Intersection
 /- If a line intersects a segment, then it _does not_ intersect the extension of that segment. -/
 /-lemma reject_seg_ext {AneB : A ≠ B} : (L intersects segment A B at X) -> ∀ X : Point, ¬(L intersects extension A B at X) := by sorry -/
 
-/1-- If L intersects M anywhere, then L cannot be parallel to M -1/ -/
+/-- If L intersects M anywhere, then L cannot be parallel to M -/
 lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by sorry
 
 /-lemma par_lift_seg_line : (L ∦ segment A B) ↔ (L ∦ line A B) := by sorry -/
