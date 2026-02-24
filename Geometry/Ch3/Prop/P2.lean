@@ -16,8 +16,7 @@ open Geometry.Theory
 open Geometry.Ch2.Prop
 open Geometry.Ch3.Prop
 
-
-/- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
+/-- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
 
 B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
 I've chosen to notate the halfplanes in the theorem as 'Hl' and 'Hr' for 'left' and 'right' half-plane, respectively.
@@ -44,12 +43,10 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
   have LnoparAO : L ∦ segment A O := by
     by_contra! hNeg
     unfold Parallel at hNeg
-    specialize hNeg LneAO O
-    push_neg at hNeg
-    specialize hNeg OonL
-    unfold Segment at hNeg; simp only [mem_setOf_eq, not_or] at hNeg
-    obtain ⟨nAOB, _, _⟩ := hNeg
-    have AOB := (B1b B O A).mp bBOA
+    have ⟨LneAO, parCondition⟩ := hNeg
+    push_neg at parCondition
+    have OonAO : O on segment A O := Line.seg_has_endpoints.right
+    specialize parCondition O OonL
     contradiction
   have BoffL : B off L := by
     -- idea: since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension.

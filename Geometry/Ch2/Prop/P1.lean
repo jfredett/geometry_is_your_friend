@@ -3,6 +3,7 @@ import Geometry.Theory
 
 namespace Geometry.Ch2.Prop
 
+open Set
 open Geometry.Theory
 
 /-- pp. 71: If `l` and `m` are distinct lines that are not parallel, then `l` and
@@ -32,19 +33,24 @@ open Geometry.Theory
 /-- A corrolary of the main theorem that is more useful since it uses the syntax directly. -/
 @[simp] theorem P1 (LneM : L ≠ M) (LnoparM : L ∦ M) : ∃! X : Point, L intersects M at X := by
     obtain ⟨P, ⟨PonL, PonM⟩, Puniq⟩ := P1.direct LneM LnoparM
-    unfold Intersects
     use P
-    simp_all only [ne_eq, not_false_eq_true, forall_const, not_and, not_forall,
-      not_not, and_imp]
-    by_cases suppose: ∃ C : Point, C ∈ L ∩ M ∧ C ≠ P
-    obtain ⟨C, ConLintM, CneP⟩ := suppose
-    have ConL : C on L := by simp_all only [exists_prop, Set.mem_inter_iff]
-    have ConM : C on M := by simp_all only [exists_prop, Set.mem_inter_iff]
-    specialize Puniq C ConL ConM; contradiction
-    push_neg at suppose
-    simp_all only [exists_prop, Set.mem_inter_iff, and_self, implies_true, and_imp]
-    have PinLMint : P ∈ L ∩ M := by tauto
-    
-    sorry
+    simp only
+    constructor
+    · unfold Intersects
+      apply Subset.antisymm
+      · intro Q QinInt
+        have ⟨QonL, QonM⟩ := QinInt
+        specialize Puniq Q ⟨QonL, QonM⟩
+        rw [Puniq]
+        tauto
+      · intro Q QinSingle
+        have QeqP : Q = P := by tauto
+        rw [QeqP]
+        tauto
+    · intro Q LintMatQ
+      unfold Intersects at LintMatQ
+      specialize Puniq Q
+      have QinLintM : Q ∈ L ∩ M := by rw [LintMatQ]; tauto
+      tauto
 
 end Geometry.Ch2.Prop

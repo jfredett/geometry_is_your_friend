@@ -46,7 +46,7 @@ open Geometry.Ch3.Prop
 
 namespace Line
 
-/-- If two distinct points are found on two lines, those lines are equal.  -/
+/-- If two distinct points are found on two lines, those lines are equal. -/
 lemma equiv : ∀ L M : Line, ∀ A B : Point, A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
   intro L M A B AneB ⟨AonL, AonM, BonL, BonM⟩
   -- idea, assume L intersects M at X, then X on L and X on M; and X is unique, so X = A and X = B, but A ≠ B
@@ -627,14 +627,15 @@ lemma lift_seg_ray :
       have PeqX : P = X := by tauto
       rw [PeqX]; trivial
 
-/- If a line intersects a segment, then it _does not_ intersect the extension of that segment. -/
-/-lemma reject_seg_ext {AneB : A ≠ B} : (L intersects segment A B at X) -> ∀ X : Point, ¬(L intersects extension A B at X) := by sorry -/
-
 /-- If L intersects M anywhere, then L cannot be parallel to M -/
-lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by sorry
-
-/-lemma par_lift_seg_line : (L ∦ segment A B) ↔ (L ∦ line A B) := by sorry -/
-lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
+lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by 
+  intro LintMatP
+  unfold Parallel
+  push_neg
+  intro LneM
+  use P
+  unfold Intersects at LintMatP
+  simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff, ne_eq, not_forall]
 
 /-- If two lines intersect, they are distinct. -/
 lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B at X) -> L ≠ line A B := by
@@ -653,9 +654,6 @@ lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B
   rw [AeqX, BeqX] at AneB
   contradiction
 
-/- lemma intersecting_rays_are_not_equal {AneB : A ≠ B} : (L intersects ray A B at X) -> L ≠ ray A B := by -/
-/-   sorry -/
-
 /-- If a line intersects a ray, then it intersects the line containing the ray -/
 lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
@@ -666,7 +664,11 @@ lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L interse
   have XonRayAB : X on ray A B := by tauto
   have XinInter : X ∈ L ∩ line A B := by tauto
   have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
-  have LnparLineAB : L ∦ line A B := par_lift_ray_line.mp LnparRayAB
+  have LnparLineAB : L ∦ line A B := by
+    unfold Parallel
+    push_neg
+    intro LneLineAB
+    use X
   have LneRayAB := Ne.symm (Line.line_is_bigger_than_ray L A B AneB)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
