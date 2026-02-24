@@ -34,13 +34,10 @@ lemma P2.L1 (L M N : Line) :
 -- Editor's Lemma: We need to be able to establish that two intersecting lines are never
 -- parallel
 lemma P2.L2 :
-    L ≠ M -> ∀ P : Point, (P on L) -> (P on M) -> (L ∦ M) := by
-      intros hLMDistinct P hPonM hPonL
+    ∀ P : Point, (P on L) -> (P on M) -> (L ∦ M) := by
+      intros P hPonM hPonL
       unfold Parallel; push_neg
-      -- L ≠ M by assumption
-      constructor
-      exact hLMDistinct
-      -- incidence
+      intro hLMDistinct
       use P
 
 -- p71, "There exist three distinct lines that are not concurrent."
@@ -79,15 +76,16 @@ lemma P2.L2 :
     -- This lemma was not suggested by the author, but is handy. The proof is not long and simply establishes the
     -- 'Parallel' fact for each pair of lines. We need the unique point and the negative condition to build
     -- these
-    have hABnotparBC : (AB ∦ BC) := P2.L2 hABneBC P hPonAB hPonBC
-    have hABnotparAC : (AB ∦ AC) := P2.L2 hABneAC P hPonAB hPonAC
-    have hBCnotparAC : (BC ∦ AC) := P2.L2 hBCneAC P hPonBC hPonAC
+    have hABnotparBC : (AB ∦ BC) := P2.L2 P hPonAB hPonBC
+    have hABnotparAC : (AB ∦ AC) := P2.L2 P hPonAB hPonAC
+    have hBCnotparAC : (BC ∦ AC) := P2.L2 P hPonBC hPonAC
     -- Idea: If P is on AB and BC, then P must be the intersection of those two lines, we already know B is on
     -- both AB and BC, and by P1, we know the intersection is unique, so P = B, but that means B is on AC, which
     -- which is false.
     -- We can use 2.1 to find the unique intersection, we mostly care about the uniqueness condition, not the
     -- incidence on.
-    obtain ⟨X, _, hXUniq⟩ := Geometry.Ch2.Prop.P1 AB BC hABneBC hABnotparBC
+    -- Note: FIXME: Using the direct proof version of prop 2.1 since this predates the `.. intersects .. at ..` notation
+    obtain ⟨X, _, hXUniq⟩ := Geometry.Ch2.Prop.P1.direct hABneBC hABnotparBC
     -- This condition makes proving this a matter of plug and chug
     have hPeqB : P = B := by
       have BeqX := hXUniq B ⟨hBonAB, hBonBC⟩

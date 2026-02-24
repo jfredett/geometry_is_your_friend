@@ -1,10 +1,31 @@
 import Geometry.Tactics
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
+import Mathlib.Data.List.Basic
 
 namespace Geometry.Theory
 
 open Set
+
+-- Helper to check if an identifier is accessible
+-- FIXME: doesn't really do what I want, which is to hide all the generated conditions that have daggers or underscores.
+open Lean in
+def isAccessible (id : TSyntax `ident) : Bool :=
+  let name := id.getId.toString
+  !name.startsWith "_" && !name.contains "✝"
+
+-- Custom syntax category for the distinct binder
+declare_syntax_cat distinct_binder
+syntax ident+ " : " term : distinct_binder
+
+
+-- TODO: Maybe replace this with a non-recursive version that just generates `≠` conditions.
+syntax "distinct " ident+ : term
+macro_rules
+  | `(distinct $[$xs]*) => do
+    let accessible := (xs.toList.filter isAccessible).toArray
+    `(List.Pairwise (· ≠ ·) [$[$accessible],*])
+
 
 /--
 The core geometric theory presented in the text is contained here as simple structures/axia taken as needed into proofs.
@@ -46,7 +67,9 @@ macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
 -- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
-def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
+-- TODO: Refactor to use a list?
+@[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
+@[reducible] def CollinearL (Sₚ : List Point) : Prop := ∃ L : Line, ∀ A : Point, (A ∈ Sₚ) ↔ (A on L)
 
 @[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
 @[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
@@ -73,24 +96,26 @@ macro_rules
   | `(the line $A $B) => `(LineThrough $A $B)
 
 
+
+
 -- -- GEOMETRIC AXIOMS
 
 -- -- -- INCIDENCE GEOMETRY
 
 -- p. 69-70, Ed. The author provides these as very terse statements, I've tried to give informal
 -- respellings as documentation.
-/-
+/--
 For any two distinct points P and Q, there exists a unique line L which has P and Q
 -/
 @[simp] axiom I1 : ∀ P Q : Point, P ≠ Q -> ∃! L : Line, (P on L) ∧ (Q on L)
-/- For any line, there are at least two distinct points on it -/
+/-- For any line, there are at least two distinct points on it -/
 @[simp] axiom I2 : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ (A on L) ∧ (B on L)
-/- There exists three distinct points not on any single line ("There exists
+/-- There exists three distinct points not on any single line ("There exists
 three non-collinear points", but without mentioning the undefined notion of
 collinearity) -/
 @[simp] axiom I3 : ∃ A B C : Point, (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧ (∀ (L : Line), (A on L) → (B on L) → (C off L))
 
-/-
+/--
 p.70 "Three ... lines ... are _concurrent_ if there exists a point incident with all of them"
 
 Ed. Author technically makes this apply to any number of lines, if it ever comes up maybe it's worth
@@ -99,7 +124,7 @@ a refactor to any finite set of lines?
 @[reducible] def Concurrent (L M N : Line) : Prop :=
     ∃ P : Point, (P on L) ∧ (P on M) ∧ (P on N)
 
-/-
+/--
 p. 20, "Two lines `l` and `m` are parallel if they do not intersect, i.e., if no point lies on both
 of them. We denote this by `l ‖ m`"
 
@@ -108,7 +133,7 @@ of them."
 
 Ed. This gets defined twice, the definitions are equivalent
 -/
-@[reducible] def Parallel (L M : Line) : Prop := L ≠ M -> ∀ P : Point, ¬((P on L) ∧ (P on M))
+@[reducible] def Parallel (L M : Line) : Prop := L ≠ M ∧ ∀ P : Point, ¬((P on L) ∧ (P on M))
 
 notation:20 L " ∥ " M => Parallel L M
 notation:20 L " ∦ " M => ¬(Parallel L M)
@@ -116,7 +141,7 @@ notation:20 L " ∦ " M => ¬(Parallel L M)
 -- -- -- BETWEENNESS GEOMETRY
 
 
-/-
+/--
 p.108a "If A - B - C, then A,B,C are distinct points on the same line...
 -/
 @[simp] axiom B1a {A B C : Point} :
@@ -125,7 +150,7 @@ p.108a "If A - B - C, then A,B,C are distinct points on the same line...
       (∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)) ∧
       Collinear A B C
 
-/-
+/--
 p.108b ... and [A - B - C iff] C - B - A.""
 
 Ed. Note, I separated these parts of the axiom to make rewriting
@@ -136,7 +161,7 @@ I won't have to dig it out of the pile of parts that is 1a.
 @[simp] axiom B1b : ∀ A B C : Point, A - B - C ↔ C - B - A
 
 
-/-
+/--
 p.108 "Given any two distinct points B and D, there exist points A, C, and E lying on →ₗBD such that
 A * B * D, B * C * D, and B * D * E".
 
@@ -149,11 +174,48 @@ something like the density of rationals -- for any two distinct points on a
 line, there is always a point between them.
 -/
 @[simp] axiom B2 : ∀ B D : Point, B ≠ D ->
-  ∃ A C E : Point, ∃ BD : Line,
-  ((A on BD) ∧ (B on BD) ∧ (C on BD) ∧ (D on BD) ∧ (E on BD)) ∧
+  ∃ A C E : Point, ∃ seg : Line,
+  ((A on seg) ∧ (B on seg) ∧ (C on seg) ∧ (D on seg) ∧ (E on seg)) ∧
+  distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
-/-
- p.108 "If A, B, and C are three distinct points lying on the same line, then
+
+
+/-- Construct a point 'to the left' of points BD on the induced line B D -/
+lemma B2.left : ∀ B D : Point, B ≠ D -> ∃ A : Point, ∃ seg : Line,
+    A on seg ∧ B on seg ∧ D on seg ∧ A ≠ B ∧ A ≠ D ∧ A - B - D := by 
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      tauto
+
+/-- Construct a point 'in between' points BD on the induced line B D -/
+lemma B2.center : ∀ B D : Point, B ≠ D -> ∃ C : Point, ∃ seg : Line,
+    C on seg ∧ B on seg ∧ D on seg ∧ C ≠ B ∧ C ≠ D ∧  B - C - D := by
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      use C, L
+      tauto
+
+/-- Construct a point 'to the right' points BD on the induced line B D -/
+lemma B2.right : ∀ B D : Point, B ≠ D -> ∃ E : Point, ∃ seg : Line,
+    E on seg ∧ B on seg ∧ D on seg ∧ E ≠ B ∧ E ≠ D ∧  B - D - E := by 
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      use E, L
+      tauto
+      
+-- lemma B2.center
+-- lemma B2.right
+
+/-- p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
 @[simp] axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ Collinear A B C ->
@@ -161,16 +223,16 @@ line, there is always a point between them.
   (¬(A - B - C) ∧  (B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧ ¬(B - A - C) ∧  (A - C - B))
 
-/-
+/--
 p.110 "Definition. Let L be any line, and A and B points that do not lie on L. If A = B or if the segment A B
 contains no points that lie on L, we say that A and B are _on the same side_ of L; whereas, if A ≠ B and segment A B
-does intersect L, we say that A and B are _on opposit sides_ of L (see Figure 3.6). The law of the excluded middle
+does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3.6). The law of the excluded middle
 (Logic Rule 10) tells us that A and B are either on the same side or on opposite sides of L"
 -/
-@[reducible] def SameSide (A B : Point) (L : Line) := A = B ∨ (∀ P : Point, P on segment A B -> L avoids P)
+@[reducible] def SameSide (A B : Point) (L : Line)
+  := (A off L) ∧ (B off L) ∧ ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
 
--- Notation for opposite sides and same side
-/-
+/--
 "Splits" and "Guards", L "splits" A and B if A and B are on opposite sides of the 'wall' L, it 'guards'
 them if they are both on the same side of the wall (we presume all points are allied with other points
 on their side of the line).
@@ -178,14 +240,14 @@ on their side of the line).
 notation:20 L " splits " A " and " B => ¬(SameSide A B L)
 notation:20 L " guards " A " and " B => SameSide A B L
 
-/-
+/--
 Ed. The author refers to the law of the excluded middle, Lean does not include it by default and
 generally I want to avoid including it everywhere, this is a limited application of it which
 should help our purpose.
 -/
 @[simp] axiom LotEMGuards : (L splits A and B) ∨ (L guards A and B)
 
-/-
+/--
 p.110 "Betweenness Axiom 4 (Plane Separation). For every line L and for any
 three points A, B, and C not on L: (i) If A and B are on the same side of L and
 if B and C are on the same side of L, the A and C are on the same side of L..."
@@ -193,7 +255,7 @@ if B and C are on the same side of L, the A and C are on the same side of L..."
 @[simp] axiom B4i {A B C : Point} {L : Line} :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L guards A and B) ∧ (L guards B and C) -> (L guards A and C)
-/-
+/--
 "... (ii) If A and B are on opposite sides of L and if B and C are opposite
 sides of L, then A and C are on the same side of L."
 -/
@@ -201,14 +263,13 @@ sides of L, then A and C are on the same side of L."
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L splits A and B) ∧ (L splits B and C) -> (L guards A and C)
 
-/-
-/- Absurdities arise from the in which 'betweenness' is defined. It's implied, and stated as a _consequence_ -/
-@[simp] axiom B_absurdity_1 (A : Point) : A - A - A -> False
-@[simp] axiom B_absurdity_2 (A B : Point) : A - B - A -> False
-@[simp] axiom B_absurdity_3 (A B : Point) : A - A - B -> False
--/
+@[reducible] def Intersects (L M : Line) (X : Point) : Prop := L ∩ M = {X}
 
+-- Syntax for "L intersects M at X"
+syntax (name := intersectsAt) term " intersects " term " at " term : term
 
+macro_rules (kind := intersectsAt)
+  | `($L intersects $M at $X) => `(Intersects $L $M $X)
 
 
 

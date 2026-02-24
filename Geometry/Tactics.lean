@@ -1,20 +1,14 @@
-module
+import Aesop
+import Mathlib.Logic.ExistsUnique
 
-public import Aesop
-public import Mathlib.Logic.ExistsUnique
+import Mathlib.Tactic.Basic
+import Mathlib.Tactic.ByCases
+import Mathlib.Tactic.ByContra
+import Mathlib.Tactic.Ext
+import Mathlib.Tactic.Tauto
+import Mathlib.Tactic.Use
+import Mathlib.Tactic.WLOG
+import Mathlib.Tactic.Contrapose
 
-public import Mathlib.Tactic.Basic
-public import Mathlib.Tactic.ByCases
-public import Mathlib.Tactic.ByContra
-public import Mathlib.Tactic.Ext
-public import Mathlib.Tactic.Tauto
-public import Mathlib.Tactic.Use
-public import Mathlib.Tactic.WLOG
-public import Mathlib.Tactic.Contrapose
+import Mathlib.Data.Set.Pairwise.Basic
 
-
-syntax (name := unfoldDefs) "unfold_defs" (ppSpace ident)* : tactic
-
-macro_rules
-  | `(tactic| unfold_defs $ids*) =>
-    `(tactic| repeat (unfold $ids*))
