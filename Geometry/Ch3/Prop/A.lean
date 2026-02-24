@@ -87,7 +87,7 @@ namespace Collinear
 lemma inclusion : distinct A B C D -> Collinear A B C ∧ Collinear A C D -> Collinear A B D := by
   unfold Collinear
   intro distinctABCD ⟨colABC, colACD⟩
-  -- FICME: Given the above `Distinct.conclude` or whatever I come up with, refactor this.
+  -- FIXME: Given the above `Distinct.conclude` or whatever I come up with, refactor this.
   have AneC : A ≠ C := by
     simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
@@ -99,6 +99,12 @@ lemma inclusion : distinct A B C D -> Collinear A B C ∧ Collinear A C D -> Col
   use L
   rw [<- LeqM] at DonM
   tauto
+
+/-- A point is collinear with itself -/
+lemma any_point_is_self_collinear : ∀ A : Point, Collinear A A A := by
+  intro A
+  have ⟨L, _, _, AonL, _⟩ := Ch2.Prop.P5 A -- FIXME: This could probably be an incidence axiom or something lower.
+  use L
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
 lemma any_two_points_are_collinear_ABA : ∀ A B : Point, A ≠ B -> Collinear A B A := by
@@ -146,11 +152,20 @@ lemma absurdity_abc_acb : A - B - C ∧ A - C - B -> False := by
   rcases B3 A B C ⟨AneB, BneC, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
   contradiction; contradiction; contradiction
 
+/-- With respect to a pair of fixed points, another point is either 'to the left' or 'to the right' of the pair -/
+lemma absurdity_abc_cab : A - B - C ∧ C - A - B -> False := by
+  intro ⟨ABC, CAB⟩
+  obtain ⟨⟨AneB, BneC, AneC⟩, ⟨⟨L, AonL, BonL, ConL⟩, ABCCol⟩⟩ := B1a ABC
+  obtain ⟨⟨CneA, CneB, BneC⟩, ⟨⟨M, ConM, AonM, BonM⟩, CABCol⟩⟩ := B1a CAB
+  rcases B3 A B C ⟨AneB, BneC.symm, AneC, ABCCol⟩ with ⟨ABC, nBAC, nACB⟩ | ⟨nABC,BAC,nACB⟩ | ⟨nABC,nBAC,ACB⟩
+  rw [B1b] at nBAC; contradiction; contradiction; contradiction
+
 /-- betweeness implies distinctness -/
 lemma abc_imp_anec : A - B - C -> A ≠ C := by
   intro ABC
   have ⟨⟨_, _, AneC⟩, _⟩ := (B1a ABC)
   exact AneC
+
 
 end Betweenness
 
@@ -212,16 +227,23 @@ lemma extension_excludes_endpoints.right : B off extension A B := by sorry
 -/
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points.left : A ≠ B -> A on line A B := by
-  intro AneB
+lemma line_has_definition_points.left : A on line A B := by
   simp only [mem_setOf_eq]
-  exact Collinear.any_two_points_are_collinear_ABA A B AneB
+  by_cases AneB : A ≠ B
+  · exact Collinear.any_two_points_are_collinear_ABA A B AneB
+  · push_neg at AneB ; rw [<- AneB]
+    exact Collinear.any_point_is_self_collinear A
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points.right : A ≠ B -> B on line A B := by
-  intro AneB
+lemma line_has_definition_points.right : B on line A B := by
   simp only [mem_setOf_eq]
-  exact Collinear.any_two_points_are_collinear_ABB A B AneB
+  by_cases AneB : A ≠ B
+  · exact Collinear.any_two_points_are_collinear_ABB A B AneB
+  · push_neg at AneB ; rw [<- AneB]
+    exact Collinear.any_point_is_self_collinear A
+
+/-- A line contains the points that define it -/
+lemma line_has_definition_points : A on line A B ∧ B on line A B := ⟨line_has_definition_points.left, line_has_definition_points.right⟩
 
 /-- All points on a segment are collinear -/
 lemma all_points_in_a_segment_are_collinear : P on segment A B -> Collinear A B P := by
@@ -393,6 +415,13 @@ lemma subtract_disjoint_union_subset : ∀ S T V : Set α, S ∪ T ⊆ S ∪ V �
   · exact absurd ⟨eInS, eInT⟩ (Set.eq_empty_iff_forall_notMem.mp SintTempty e)
   · exact eInV
 
+/-- A line is the set of all points on it -/
+lemma line_by_definition : ∀ L : Line, L = {P : Point | P on L} := by
+  intro L
+  apply Subset.antisymm
+  repeat tauto
+
+
 -- TODO: move this to the Set namespace
 /-- If S is disjoint from T and V, then S ∪ T = S ∪ V implies T = V (TODO: may be iff) -/
 lemma subtract_disjoint_union : ∀ S T V : Set α,  S ∪ T = S ∪ V ∧ S ∩ T = ∅ ∧ S ∩ V = ∅ -> T = V := by
@@ -423,8 +452,9 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
   have ⟨C, D, CneD, lineCD⟩ := (linethrough_lift_line L)
   rcases line_trichotomy.weak L (ray A B) with LparRay | LintRay | LextendsRay
   · by_contra! hNeg
-    have AoffL : A off L := by sorry
-    rw [<- hNeg] at AoffL
+    rw [<- hNeg] at LparRay
+    simp only [inter_self] at LparRay
+    rw [LparRay] at AonRayAB
     contradiction
   · obtain ⟨X, LintABatX, Xuniq⟩ := LintRay
     have AorBoffL : (A off L) ∨ (B off L) := by
@@ -442,21 +472,42 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
     rw [<- hNeg] at AorBoffL
     tauto
   · exfalso
-    -- First prove line A B = line C D by making a collinearity argument under the fact that L = ray A B
-    rw lineCDeqrayAB : line C D = ray A B := by tauto
-    have ⟨ConRay, DonRay⟩ : C on ray A B ∧ D on ray A B := by 
-       
-      sorry
-    have collinearABCD : Collinear A B C ∧ Collinear A B D := by sorry
-    have ⟨AonL, BonL⟩ : A on L ∧  B on L := by sorry
-    have lABeqlCD : line A B = line C D := by sorry
-    -- Because line A B = ray A B, all we need to do is construct a point X off ray A B, but collinear to A and B
-    -- if it's collinear, it's on line A B, which means it's on L by the above
-    have ⟨X, XAB, XonL⟩ : ∃ X : Point, X - A - B ∧ X on L := by sorry
+    have LisPsonL : L = { P | P on L } := line_by_definition L
+    rw [<- LextendsRay] at AonRayAB BonRayAB
+    have LeqLineAB : L = line A B := (Line.equiv L (line A B) A B AneB
+      ⟨AonRayAB, line_has_definition_points.left, BonRayAB, line_has_definition_points.right⟩)
+    have lABeqlCD : line A B = line C D := by
+      rwa [LeqLineAB] at lineCD
+    rw [LeqLineAB] at LextendsRay
+    have ⟨X, L', XonL', AonL', BonL', XneA, XneB, XAB⟩ := B2.left A B AneB
+    have L'eqL : L' = line A B := Line.equiv L' (line A B) A B AneB
+      ⟨AonL', line_has_definition_points.left, BonL', line_has_definition_points.right⟩
+    have XonL : X on L := by rwa [LeqLineAB, <- L'eqL]
     -- by construction, X is off the ray
-    have XoffRayAB : X off ray A B := by sorry
+    have XoffRayAB : X off ray A B := by
+      unfold Ray;
+      -- TODO: This could be done under the rcases below, probably cleaner
+      have XoffSegmentAB : X off segment A B := by 
+        unfold Segment
+        simp only [mem_setOf_eq]
+        by_contra! hNeg
+        rcases hNeg with AXB | AeqX | BeqX
+        · exact Betweenness.absurdity_abc_bac ⟨AXB, XAB⟩
+        · tauto
+        · tauto
+      have XoffExtensionAB : X off extension A B := by
+        unfold Extension
+        simp only [mem_setOf_eq]
+        push_neg
+        intro ABX
+        exfalso;
+        exact Betweenness.absurdity_abc_cab ⟨ABX, XAB⟩
+      by_contra! hNeg
+      rcases hNeg with XinSeg | XinExt
+      repeat contradiction
     -- so X is off the ray but on the line, which can't be if the two things are equal.
     rw [<- LextendsRay] at XoffRayAB
+    rw [L'eqL] at XonL'
     contradiction
 
 end Line
@@ -589,8 +640,8 @@ lemma par_lift_ray_line : (L ∦ ray A B) ↔ (L ∦ line A B) := by sorry
 lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B at X) -> L ≠ line A B := by
   intro LintABatX
   have colABX : Collinear A B X := by tauto
-  have AonAB : A on line A B := Line.line_has_definition_points.left AneB
-  have BonAB : B on line A B := Line.line_has_definition_points.right AneB
+  have AonAB : A on line A B := Line.line_has_definition_points.left
+  have BonAB : B on line A B := Line.line_has_definition_points.right
   have XonL : X on L := inter_touch_left LintABatX
   have XonAB : X on line A B := inter_touch_right LintABatX
   by_contra! hNeg
@@ -619,10 +670,10 @@ lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L interse
   have LneRayAB := Ne.symm (Line.line_is_bigger_than_ray L A B AneB)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
-    have AonLineAB : A on line A B := Line.line_has_definition_points.left AneB
+    have AonLineAB : A on line A B := Line.line_has_definition_points.left
     have AonRayAB : A on ray A B := Line.ray_has_endpoints.left
     have AonL : A on L := by rw [<- hNeg] at AonLineAB; tauto
-    have BonLineAB : B on line A B := Line.line_has_definition_points.right AneB
+    have BonLineAB : B on line A B := Line.line_has_definition_points.right
     have BonRayAB : B on ray A B := Line.ray_has_endpoints.right
     have BonL : B on L := by rw [<- hNeg] at BonLineAB; tauto
     have AinIntLine : A ∈ L ∩ line A B := by tauto

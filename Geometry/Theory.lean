@@ -179,6 +179,42 @@ line, there is always a point between them.
   distinct A B C D E ∧
   (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 
+
+/-- Construct a point 'to the left' of points BD on the induced line B D -/
+lemma B2.left : ∀ B D : Point, B ≠ D -> ∃ A : Point, ∃ seg : Line,
+    A on seg ∧ B on seg ∧ D on seg ∧ A ≠ B ∧ A ≠ D ∧ A - B - D := by 
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      tauto
+
+/-- Construct a point 'in between' points BD on the induced line B D -/
+lemma B2.center : ∀ B D : Point, B ≠ D -> ∃ C : Point, ∃ seg : Line,
+    C on seg ∧ B on seg ∧ D on seg ∧ C ≠ B ∧ C ≠ D ∧  B - C - D := by
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      use C, L
+      tauto
+
+/-- Construct a point 'to the right' points BD on the induced line B D -/
+lemma B2.right : ∀ B D : Point, B ≠ D -> ∃ E : Point, ∃ seg : Line,
+    E on seg ∧ B on seg ∧ D on seg ∧ E ≠ B ∧ E ≠ D ∧  B - D - E := by 
+      intro B D BneD
+      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
+      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+        and_true] at distinctABCDE
+      use E, L
+      tauto
+      
+-- lemma B2.center
+-- lemma B2.right
+
 /-- p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
