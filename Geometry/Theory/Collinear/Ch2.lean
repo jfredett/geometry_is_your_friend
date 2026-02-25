@@ -6,12 +6,13 @@ import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
 import Geometry.Theory
 import Geometry.Tactics
-
+import Geometry.Ch2.Prop
 
 namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Geometry.Ch2.Prop
 
 namespace Collinear
 

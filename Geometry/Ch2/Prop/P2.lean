@@ -1,11 +1,15 @@
 import Geometry.Tactics
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+
 import Geometry.Ch2.Prop.P1
 
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
 
+-- TODO: Move to... somewhere in `Theory`
 -- Author suggests a lemma, "... to prove it, I could first prove a lemma that if three lines
 -- are concurrent, the point at which they meet is unique." p.71
 lemma P2.L1 (L M N : Line) :
@@ -31,6 +35,7 @@ lemma P2.L1 (L M N : Line) :
     have hLneqM : L ≠ M := hDistinct.left
     contradiction
 
+-- TODO: Move to somewhere in theory
 -- Editor's Lemma: We need to be able to establish that two intersecting lines are never
 -- parallel
 lemma P2.L2 :
@@ -40,7 +45,7 @@ lemma P2.L2 :
       intro hLMDistinct
       use P
 
--- p71, "There exist three distinct lines that are not concurrent."
+/-- p71, "There exist three distinct lines that are not concurrent." -/
 @[simp] theorem P2 : ∃ L M N : Line, (L ≠ M ∧ M ≠ N ∧ L ≠ N) ∧ ¬Concurrent L M N := by
     -- Idea: Use the 3 non-collinear points to build three lines, we can prove they're distinct with
     -- some RAA, and then use the lemma to do the rest.

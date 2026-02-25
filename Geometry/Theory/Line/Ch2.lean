@@ -1,4 +1,18 @@
+
 /- General Theory about lines and line-parts using facts from Ch1 and Ch2 of the text -/
+
+import Mathlib.Data.Set.Basic
+import Mathlib.Data.Set.Defs
+import Mathlib.Data.Set.Insert
+import Geometry.Theory.Axioms
+import Geometry.Tactics
+import Geometry.Ch2.Prop
+
+namespace Geometry.Theory
+
+open Set
+open Geometry.Theory
+open Geometry.Ch2.Prop
 
 namespace Line
 
@@ -307,3 +321,5 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
     contradiction
 
 end Line
+
+end Geometry.Theory

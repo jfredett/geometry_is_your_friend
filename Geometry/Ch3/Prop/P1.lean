@@ -9,8 +9,6 @@ namespace Geometry.Ch3.Prop
 open Set
 open Geometry.Theory
 
-
---
 /--
 p109. the author refers to the definition of these things, but the definitions are pretty loose and assume
 undergrad set theory is a familiar topic. These are some of the formalizations of those basic facts.

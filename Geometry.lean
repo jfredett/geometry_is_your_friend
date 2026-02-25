@@ -4,14 +4,14 @@
 -- -- Propositions
 import Geometry.Ch2.Prop.P1
 import Geometry.Ch2.Prop.P2
-/- import Geometry.Ch2.Prop.P3 -/
-/- import Geometry.Ch2.Prop.P4 -/
-/- import Geometry.Ch2.Prop.P5 -/
+import Geometry.Ch2.Prop.P3
+import Geometry.Ch2.Prop.P4
+import Geometry.Ch2.Prop.P5
 /- -- -- Exercises -/
 /- -- public import Geometry.Ch2.Ex.E1 -/
 
 /- -- Chapter 3 -/
 /- -- -- Propositions -/
 /- import Geometry.Ch3.Prop.P1 -/
-/- import Geometry.Ch3.Prop.B4iii -- A corrolary of B4, nothing without proof. -/
+/- import Geometry.Ch3.Prop.B4iii -- A corrolary of B4, nothing without proof. -1/ -/
 /- import Geometry.Ch3.Prop.P2 -/

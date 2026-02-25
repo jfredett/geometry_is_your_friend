@@ -1,4 +1,18 @@
 
+import Mathlib.Data.Set.Basic
+import Mathlib.Data.Set.Defs
+import Mathlib.Data.Set.Insert
+import Geometry.Theory.Axioms
+import Geometry.Tactics
+import Geometry.Ch2.Prop
+
+
+namespace Geometry.Theory
+
+open Set
+open Geometry.Theory
+open Geometry.Ch2.Prop
+
 namespace Intersection
 
 /-- No points are contained on the intersection of a segment and it's related extension -/
@@ -202,3 +216,5 @@ lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L int
   repeat exact AneB
 
 end Intersection
+
+end Geometry.Theory

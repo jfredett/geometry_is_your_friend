@@ -1,11 +1,12 @@
 
 import Geometry.Tactics
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
 
 open Geometry.Theory
 
-
--- p71, "For every line, there is at least one point not lying on it."
+/-- p71, "For every line, there is at least one point not lying on it." -/
 @[simp] theorem Geometry.Ch2.Prop.P3 :
     ∀ L : Line, ∃ P : Point, (P off L) := by
       intro L

@@ -1,5 +1,8 @@
 import Geometry.Tactics
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+
 import Geometry.Ch2.Prop.P2
 import Geometry.Ch2.Prop.P3
 
@@ -7,8 +10,9 @@ namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
 
--- Ed. Lemma "For every Point, there is at least one point that isn't that point."
-@[simp] lemma P5.L1 : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
+-- TODO: Move to Theory.Point?
+/-- Ed. Lemma "For every Point, there is at least one point that isn't that point." -/
+lemma P5.L1 : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
     intro P
     obtain ⟨A, B, C, hDistinct, _⟩ := I3
     -- Idea: There is a configuration of 3 non-colinear points. Either P is one of those points, or it's none of
@@ -20,8 +24,9 @@ open Geometry.Theory
     exact hDistinct.left
     use A
 
--- Ed. Lemma "Two lines are coincident iff every point on one is on the other."
-@[simp] lemma P5.L2 : ∀ L M : Line,
+-- TODO: Move to Theory.Line
+/-- Ed. Lemma "Two lines are coincident iff every point on one is on the other." -/
+lemma P5.L2 : ∀ L M : Line,
      L = M ↔ ∀ P : Point, (P on L) ↔ (P on M) := by
      intros L M
      constructor
@@ -43,8 +48,9 @@ open Geometry.Theory
      have ABeqM := ABuniq M ABonM
      rw [ABeqL, ABeqM]
 
--- Ed. Corollary "Two lines are distinct iff they have at least one point not in common"
-@[simp] lemma P5.L2.C1 : ∀ L M : Line,
+-- TODO: Move to Theory.Line
+/-- Ed. Corollary "Two lines are distinct iff they have at least one point not in common" -/
+lemma P5.L2.C1 : ∀ L M : Line,
     L ≠ M ↔ ∃ P, ((P on L) ∧ (P off M)) ∨ ((P off L) ∧ (P on M)) := by
     -- TODO: This is ugly, and it's essentially just !P5.L2, but I couldn't cajole it into place.
     intros L M
@@ -65,8 +71,8 @@ open Geometry.Theory
     have hR := h.right
     tauto
 
--- p71. "For every point P, there are at least two distinct lines through P"
-@[simp] theorem P5 :
+/-- p71. "For every point P, there are at least two distinct lines through P" -/
+theorem P5 :
     ∀ P : Point, ∃ L M : Line,
     L ≠ M ∧ (P on L) ∧ (P on M) := by
         intro P
