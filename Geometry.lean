@@ -1,9 +1,3 @@
-
--- General stuff
--- public import Geometry.Syntax
--- public import Geometry.Tactics
--- public import Geometry.Theory
-
 -- Chapter 2
 -- -- Propositions
 import Geometry.Ch2.Prop.P1

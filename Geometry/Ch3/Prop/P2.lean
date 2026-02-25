@@ -7,7 +7,6 @@ import Geometry.Tactics
 import Geometry.Ch2.Prop
 import Geometry.Ch3.Prop.P1
 import Geometry.Ch3.Prop.B4iii
-import Geometry.Ch3.Prop.A
 
 namespace Geometry.Ch3.Prop
 
