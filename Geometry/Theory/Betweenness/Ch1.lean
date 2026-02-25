@@ -1,6 +1,6 @@
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory
+import Geometry.Theory.Axioms
 import Geometry.Tactics
 
 
@@ -8,6 +8,7 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+
 namespace Betweenness
 
 /-- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of

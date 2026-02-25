@@ -15,6 +15,12 @@ open Geometry.Theory
 
 namespace Collinear
 
+/-- A point is collinear with itself -/
+lemma any_point_is_self_collinear : ∀ A : Point, Collinear A A A := by
+  intro A
+  have ⟨L, _, _, AonL, _⟩ := Ch2.Prop.P5 A -- FIXME: This could probably be an incidence axiom or something lower.
+  use L
+
 /-- If for A B C X points, if are A C X is collinear, and  A X B are collinear, then A C B is collinear -/
 lemma inclusion : distinct A B C D -> Collinear A B C ∧ Collinear A C D -> Collinear A B D := by
   unfold Collinear

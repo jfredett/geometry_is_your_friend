@@ -1,65 +1,26 @@
+/- The core geometric theory presented in the text is contained here as simple structures/axia taken as needed into
+proofs. -/
+
 import Geometry.Tactics
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.List.Basic
 
+import Geometry.Theory.Distinct
+
 namespace Geometry.Theory
 
-open Set
-
--- Helper to check if an identifier is accessible
--- FIXME: doesn't really do what I want, which is to hide all the generated conditions that have daggers or underscores.
-open Lean in
-def isAccessible (id : TSyntax `ident) : Bool :=
-  let name := id.getId.toString
-  !name.startsWith "_" && !name.contains "✝"
-
--- Custom syntax category for the distinct binder
-declare_syntax_cat distinct_binder
-syntax ident+ " : " term : distinct_binder
-
-
--- TODO: Maybe replace this with a non-recursive version that just generates `≠` conditions.
-syntax "distinct " ident+ : term
-macro_rules
-  | `(distinct $[$xs]*) => do
-    let accessible := (xs.toList.filter isAccessible).toArray
-    `(List.Pairwise (· ≠ ·) [$[$accessible],*])
-
-
-/--
-The core geometric theory presented in the text is contained here as simple structures/axia taken as needed into proofs.
--/
+/-- A point is the fundamental, opaque type we're working with. -/
 axiom Point : Type
--- Ed: In the text, the author ends up using the 'Line is a Set of points' to define segments, rays, and implicitly
--- uses the intuitive idea ("A line is the set of collinear points that contain at least two known points"). However,
--- Ch2 uses an opaque 'Line' type and reasons only about it's properties without definition. I try to replicate this in
--- my implementation of Ch2, but do define it as a set 'up front'
-@[reducible] def Line := Set Point
-axiom Between : Point -> Point -> Point -> Prop
--- Ed: In the text, the author uses `*`, but Lean reserves that, so I've chosen `-`. `∗` is available, but I don't want
--- to type `\ast` every time.
-notation:65 A:66 " - " B:66 " - " C:65 => Between A B C
--- Segment, Ray, Extension, LineThrough
 
+/-- Ed: In the text, the author ends up using the 'Line is a Set of points' to define segments, rays, and implicitly
+uses the intuitive idea ("A line is the set of collinear points that contain at least two known points"). However, Ch2
+uses an opaque 'Line' type and reasons only about it's properties without definition. I try to replicate this in my
+implementation of Ch2, but do define it as a set 'up front' -/
+@[reducible] def Line := Set Point
 
 -- TODO: Review binding values for all this notation
 syntax:50 (name := onNotation) term:51 " on " term:50 : term
--- Keep segment/ray/etc as separate term syntax
-syntax:max "segment " term:max term:max : term
-syntax:max "ray " term:max term:max : term
-syntax:max "extension " term:max term:max : term
-syntax:max "line " term:max term:max : term
-
--- Even higher for "the" forms
-syntax:1000 "the " "segment " term:max term:max : term
-syntax:1000 "the " "ray " term:max term:max : term
-syntax:1000 "the " "extension " term:max term:max : term
-syntax:1000 "the " "line " term:max term:max : term
-
-notation:80 P " off " L => P ∉ L
-notation:80 L " has " P => P ∈ L
-notation:80 L " avoids " P => P ∉ L
 
 -- Macro rules for "on" notation - we need to specify these rules incrementally, so that
 -- I can introduce collinear as a definition.
@@ -71,32 +32,11 @@ macro_rules (kind := onNotation)
 @[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
 @[reducible] def CollinearL (Sₚ : List Point) : Prop := ∃ L : Line, ∀ A : Point, (A ∈ Sₚ) ↔ (A on L)
 
-@[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
-@[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
-@[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
-@[reducible] def LineThrough (A B : Point) := {C | Collinear A B C}
-
--- Re-running
-macro_rules (kind := onNotation)
-  | `($P on segment $A $B) => `($P ∈ Segment $A $B)
-  | `($P on ray $A $B) => `($P ∈ Ray $A $B)
-  | `($P on extension $A $B) => `($P ∈ Extension $A $B)
-  | `($P on line $A $B) => `($P ∈ LineThrough $A $B)
-  | `($P on $L) => `($P ∈ $L)
-
--- Macro rules for standalone geometric objects (without "the")
-macro_rules
-  | `(segment $A $B) => `(Segment $A $B)
-  | `(ray $A $B) => `(Ray $A $B)
-  | `(extension $A $B) => `(Extension $A $B)
-  | `(line $A $B) => `(LineThrough $A $B)
-  | `(the segment $A $B) => `(Segment $A $B)
-  | `(the ray $A $B) => `(Ray $A $B)
-  | `(the extension $A $B) => `(Extension $A $B)
-  | `(the line $A $B) => `(LineThrough $A $B)
 
 
-
+notation:80 P " off " L => P ∉ L
+notation:80 L " has " P => P ∈ L
+notation:80 L " avoids " P => P ∉ L
 
 -- -- GEOMETRIC AXIOMS
 
@@ -138,7 +78,52 @@ Ed. This gets defined twice, the definitions are equivalent
 notation:20 L " ∥ " M => Parallel L M
 notation:20 L " ∦ " M => ¬(Parallel L M)
 
--- -- -- BETWEENNESS GEOMETRY
+
+/- BETWEENNESS GEOMETRY -/
+
+axiom Between : Point -> Point -> Point -> Prop
+-- Ed: In the text, the author uses `*`, but Lean reserves that, so I've chosen `-`. `∗` is available, but I don't want
+-- to type `\ast` every time.
+notation:65 A:66 " - " B:66 " - " C:65 => Between A B C
+-- Segment, Ray, Extension, LineThrough
+
+/- Betweenness lets us define line-parts -/
+@[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
+@[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
+@[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
+@[reducible] def LineThrough (A B : Point) := {C | Collinear A B C}
+
+-- Keep segment/ray/etc as separate term syntax
+syntax:max "segment " term:max term:max : term
+syntax:max "ray " term:max term:max : term
+syntax:max "extension " term:max term:max : term
+syntax:max "line " term:max term:max : term
+
+-- Even higher for "the" forms
+syntax:1000 "the " "segment " term:max term:max : term
+syntax:1000 "the " "ray " term:max term:max : term
+syntax:1000 "the " "extension " term:max term:max : term
+syntax:1000 "the " "line " term:max term:max : term
+
+-- Re-running
+macro_rules (kind := onNotation)
+  | `($P on segment $A $B) => `($P ∈ Segment $A $B)
+  | `($P on ray $A $B) => `($P ∈ Ray $A $B)
+  | `($P on extension $A $B) => `($P ∈ Extension $A $B)
+  | `($P on line $A $B) => `($P ∈ LineThrough $A $B)
+  | `($P on $L) => `($P ∈ $L)
+
+-- Macro rules for standalone geometric objects (without "the")
+macro_rules
+  | `(segment $A $B) => `(Segment $A $B)
+  | `(ray $A $B) => `(Ray $A $B)
+  | `(extension $A $B) => `(Extension $A $B)
+  | `(line $A $B) => `(LineThrough $A $B)
+  | `(the segment $A $B) => `(Segment $A $B)
+  | `(the ray $A $B) => `(Ray $A $B)
+  | `(the extension $A $B) => `(Extension $A $B)
+  | `(the line $A $B) => `(LineThrough $A $B)
+
 
 
 /--

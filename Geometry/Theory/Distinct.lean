@@ -1,4 +1,5 @@
-/-- Lemmas relating to the `distinct` condition -/
+/- Lemmas relating to the `distinct` condition -/
+
 import Geometry.Tactics
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs

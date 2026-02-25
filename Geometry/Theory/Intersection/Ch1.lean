@@ -4,7 +4,7 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory
+import Geometry.Theory.Axioms
 import Geometry.Tactics
 
 
@@ -30,13 +30,17 @@ lemma symm : (L intersects M at X) ↔ (M intersects L at X) := by
 
 /-- If L intersects M at X, then X is on L -/
 lemma inter_touch_left : (L intersects M at X) -> (X on L) := by
-  simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff]
-  intro h; specialize h X; tauto
+  unfold Intersects
+  intro LMintX
+  have XinLintM : X ∈ L ∩ M := by simp_all only [mem_singleton_iff]
+  exact mem_of_mem_inter_left XinLintM
 
 /-- If L intersects M at X, then X is on M -/
 lemma inter_touch_right : (L intersects M at X) -> (X on M) := by
-  simp_all only [P5.L2, mem_inter_iff, mem_singleton_iff]
-  intro h; specialize h X; tauto
+  unfold Intersects
+  intro LMintX
+  have XinLintM : X ∈ L ∩ M := by simp_all only [mem_singleton_iff]
+  exact mem_of_mem_inter_right XinLintM
 
 /-- If L intersects M at X, then forall P not equal to X, if P on L, then P off M. -/
 lemma uniq_solitary : (L ≠ M) ∧ (L intersects M at X) -> (∀ P : Point, (P ≠ X) ∧ (P on L) -> (P off M)) := by
