@@ -2,10 +2,14 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory.Axioms
-import Geometry.Tactics
-import Geometry.Ch2.Prop
 
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Line.Ch2
+
+import Geometry.Tactics
+
+import Geometry.Ch2.Prop
 
 namespace Geometry.Theory
 
@@ -154,12 +158,36 @@ lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B
   rw [AeqX, BeqX] at AneB
   contradiction
 
+/- If C is on a segment A B, then A B C are collinear -/
+lemma points_on_segment_are_collinear {A B : Point} : A ≠ B ->
+  ∀ C : Point, C on segment A B -> Collinear A B C := by
+  intro AneB C ConSeg; unfold Collinear
+  tauto
+
+/- If C is on a ray A B, then A B C are collinear -/
+lemma points_on_ray_are_collinear {A B : Point} : A ≠ B ->
+  ∀ C : Point, C on ray A B -> Collinear A B C := by
+  intro AneB C ConRay; unfold Collinear
+  unfold Ray at ConRay
+  tauto
+
+/- If C is on a extension A B, then A B C are collinear -/
+lemma points_on_extension_are_collinear {A B : Point} : A ≠ B ->
+  ∀ C : Point, C on extension A B -> Collinear A B C := by
+  intro AneB C ConExt; unfold Collinear
+  simp_all;
+
+/- If C is on a line A B, then A B C are collinear -/
+lemma points_on_defined_line_are_collinear {A B : Point} : A ≠ B ->
+  ∀ C : Point, C on line A B -> Collinear A B C := by
+  simp only [ne_eq, mem_setOf_eq, imp_self, implies_true]
+
 /-- If a line intersects a ray, then it intersects the line containing the ray -/
 lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
   have XonRayAB : X on ray A B := inter_touch_right LintRay
   have XonL : X on L := inter_touch_left LintRay
-  have XABCol := P1.L5.ray AneB X XonRayAB
+  have XABCol := points_on_ray_are_collinear AneB X XonRayAB
   have XonLineAB : X on line A B := by tauto
   have XonRayAB : X on ray A B := by tauto
   have XinInter : X ∈ L ∩ line A B := by tauto

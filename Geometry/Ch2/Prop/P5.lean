@@ -2,6 +2,7 @@ import Geometry.Tactics
 
 import Geometry.Theory.Axioms
 import Geometry.Theory.Ch1
+import Geometry.Theory.Point.Ch1
 
 import Geometry.Ch2.Prop.P2
 import Geometry.Ch2.Prop.P3
@@ -9,20 +10,6 @@ import Geometry.Ch2.Prop.P3
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
-
--- TODO: Move to Theory.Point?
-/-- Ed. Lemma "For every Point, there is at least one point that isn't that point." -/
-lemma P5.L1 : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
-    intro P
-    obtain ⟨A, B, C, hDistinct, _⟩ := I3
-    -- Idea: There is a configuration of 3 non-colinear points. Either P is one of those points, or it's none of
-    -- them. If it's one of them, there are two other points distinct from P; if it's not one of them, then
-    -- there are three distinct points.
-    by_cases hSupposePeqA : P = A -- ∨ P = B ∨ P = C
-    rw [<- hSupposePeqA] at hDistinct
-    use B
-    exact hDistinct.left
-    use A
 
 -- TODO: Move to Theory.Line
 /-- Ed. Lemma "Two lines are coincident iff every point on one is on the other." -/
@@ -76,8 +63,8 @@ theorem P5 :
     ∀ P : Point, ∃ L M : Line,
     L ≠ M ∧ (P on L) ∧ (P on M) := by
         intro P
-        obtain ⟨Q, PneQ⟩ := P5.L1 P
-        obtain ⟨PQ, ⟨PonPQ, QonPQ⟩, PQuniq⟩ := I1 P Q PneQ
+        have ⟨Q, PneQ⟩ := Point.distinct_points_exist P
+        have ⟨PQ, _⟩ := I1 P Q PneQ
         -- So we have an arbitrary ray PQ, by P2.3 there is a point R not on it.
         obtain ⟨R, RoffPQ⟩ := Geometry.Ch2.Prop.P3 PQ
         -- Since PQ avoids R, P ≠ R

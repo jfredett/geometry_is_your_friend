@@ -2,7 +2,6 @@
 import Geometry.Tactics
 
 import Geometry.Theory.Axioms
-import Geometry.Theory.Ch1
 
 open Geometry.Theory
 

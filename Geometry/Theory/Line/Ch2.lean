@@ -5,6 +5,8 @@ import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
 import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Collinear.Ch1
 import Geometry.Tactics
 import Geometry.Ch2.Prop
 
@@ -65,6 +67,7 @@ lemma line_has_definition_points.left : A on line A B := by
   by_cases AneB : A ≠ B
   · exact Collinear.any_two_points_are_collinear_ABA A B AneB
   · push_neg at AneB ; rw [<- AneB]
+    unfold Collinear
     exact Collinear.any_point_is_self_collinear A
 
 /-- A line contains the points that define it -/

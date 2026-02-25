@@ -1,7 +1,6 @@
 import Geometry.Tactics
 
 import Geometry.Theory.Axioms
-import Geometry.Theory.Ch1
 import Geometry.Ch2.Prop.P2
 
 namespace Geometry.Ch2.Prop

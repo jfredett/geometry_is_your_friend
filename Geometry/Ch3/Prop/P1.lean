@@ -1,7 +1,13 @@
+/- FIXME: almost every lemma here should live somewhere in Theory -/
+
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Ch2
+
 import Geometry.Tactics
 
 namespace Geometry.Ch3.Prop
@@ -15,9 +21,9 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 
 "By the definition of segment and ray, `the segment A B ⊆ the ray A B`"
 -/
-@[simp] lemma P1.L1 : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
+lemma P1.L1 : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
 /-- It helps to be able to commute these around, when we get to congruence this will make part of it trivial -/
-@[simp] lemma P1.L2 : segment A B = segment B A := by
+lemma P1.L2 : segment A B = segment B A := by
   unfold Segment
   ext P
   rw [@mem_setOf]; simp_all only [mem_setOf_eq]
@@ -29,13 +35,13 @@ undergrad set theory is a familiar topic. These are some of the formalizations o
 /-
 Useful for dealing with the trivial cases.
 -/
-/- @[simp] lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by -/
+/- lemma P1.L3 : (A on ray A B) ∧ (B on ray A B) := by -/
 /-   sorry -/
 
 /--
 The endpoint B is in common here.
 -/
-@[simp] lemma P1.L4 : segment A B ⊆ ray B A := by
+lemma P1.L4 : segment A B ⊆ ray B A := by
   intro P hPinSegAB
   simp_all only [mem_setOf_eq, mem_union, L2, true_or]
 
@@ -44,7 +50,6 @@ The endpoint B is in common here.
 p.109, "For any two points A and B:
 (i) Ray A B ∩ Ray B A = Segment A B ..."
 -/
-@[simp]
 theorem P1.i : A ≠ B ->
   -- Ed. I'm inserting this `A ≠ B` condition because the author never clearly
   -- states, but definitely implies, that `the ray A A` is degenerate because `A
@@ -102,30 +107,11 @@ theorem P1.i : A ≠ B ->
   tauto
 
 
-@[simp] lemma P1.L5.segment {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on segment A B -> Collinear A B C := by
-  intro AneB C ConSeg; unfold Collinear
-  tauto
-
-@[simp] lemma P1.L5.ray {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on ray A B -> Collinear A B C := by
-  intro AneB C ConRay; unfold Collinear
-  unfold Ray at ConRay
-  tauto
-
-@[simp] lemma P1.L5.extension {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on extension A B -> Collinear A B C := by
-  intro AneB C ConExt; unfold Collinear
-  simp_all;
-
-@[simp] lemma P1.L5.line {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on line A B -> Collinear A B C := by
-  simp only [ne_eq, mem_setOf_eq, imp_self, implies_true]
 
 /-
 Ed. Collinearity commutes
 -/
-@[simp] lemma P1.L6.i : (Collinear A B C) ↔ (Collinear B A C) := by
+lemma P1.L6.i : (Collinear A B C) ↔ (Collinear B A C) := by
   unfold Collinear;
   constructor
   intro hL
@@ -141,25 +127,25 @@ Ed. Collinearity commutes
 /-
 Ed. Collinearity commutes in both argument pairs
 -/
-@[simp] lemma P1.L6.ii : (Collinear A B C) ↔ (Collinear A C B) := by tauto
+lemma P1.L6.ii : (Collinear A B C) ↔ (Collinear A C B) := by tauto
 
-@[simp] lemma P1.L7.segment {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
+lemma P1.L7.segment {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
   A - P - B -> P on the segment A B := by intro h; unfold Segment; simp; tauto;
 
-@[simp] lemma P1.L7.ray {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
+lemma P1.L7.ray {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
   A - P - B -> P on the ray A B := by intro h; unfold Ray; simp; tauto;
 
-@[simp] lemma P1.L7.extension {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
+lemma P1.L7.extension {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
   A - B - P -> P on the extension A B := by intro h; unfold Extension; simp; tauto
 
-@[simp] lemma P1.L7.line.i {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) (AneB : A ≠ B) :
+lemma P1.L7.line.i {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) (AneB : A ≠ B) :
   A - B - P -> P on the line A B := by
     intro hABP;
     have hPonExtAB : P on extension A B := P1.L7.extension PneAB hABP
     unfold LineThrough; simp only [mem_setOf_eq]
     exact P1.L5.extension AneB P hPonExtAB
 
-@[simp] lemma P1.L7.line.ii {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) (AneB : A ≠ B) :
+lemma P1.L7.line.ii {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) (AneB : A ≠ B) :
   A - P - B -> P on the line A B := by
     intro hABP;
     have hPonExtAB : P on segment A B := P1.L7.segment PneAB hABP
@@ -167,7 +153,7 @@ Ed. Collinearity commutes in both argument pairs
     exact P1.L5.segment AneB P hPonExtAB
 
 -- (ii) Ray A B ∪ Ray B A = LineThrough A B"
-@[simp] theorem P1.ii : A ≠ B -> -- Ed. Same as above.
+theorem P1.ii : A ≠ B -> -- Ed. Same as above.
   (ray A B) ∪ (ray B A) = (line A B) := by
   intro AneB
   ext P

@@ -3,7 +3,6 @@ import Mathlib.Data.Set.Insert
 import Geometry.Theory.Axioms
 import Geometry.Tactics
 
-
 namespace Geometry.Theory
 
 open Set
