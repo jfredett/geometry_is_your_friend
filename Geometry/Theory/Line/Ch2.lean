@@ -79,27 +79,26 @@ lemma line_has_definition_points.right : B on line A B := by
     exact Collinear.any_point_is_self_collinear A
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points : A on line A B ∧ B on line A B := ⟨line_has_definition_points.left, line_has_definition_points.right⟩
+lemma line_has_definition_points : A on line A B ∧ B on line A B :=
+  ⟨line_has_definition_points.left, line_has_definition_points.right⟩
+
+/-- All points on a extension are collinear -/
+lemma all_points_on_an_extension_are_collinear {A B : Point} : P on extension A B -> Collinear A B P := by tauto
 
 /-- All points on a segment are collinear -/
-lemma all_points_in_a_segment_are_collinear : P on segment A B -> Collinear A B P := by
-  intro PonSeg
-  have AonSeg : A on segment A B := seg_has_endpoints.left
-  have BonSeg : B on segment A B := seg_has_endpoints.right
-  tauto
+lemma all_points_on_a_segment_are_collinear : P on segment A B -> Collinear A B P := by tauto
 
 /-- All points on a ray are collinear -/
-lemma all_points_in_a_ray_are_collinear : P on ray A B -> Collinear A B P := by
-  intro PonRay
-  use ray A B
-  have AonRay : A on ray A B := ray_has_endpoints.left
-  have BonRay : B on ray A B := ray_has_endpoints.right
-  tauto
+lemma all_points_on_a_ray_are_collinear : P on ray A B -> Collinear A B P := by tauto
 
 /-- All points on a line are collinear -/
-lemma all_points_in_a_line_are_collinear : P on line A B -> Collinear A B P := by tauto
+lemma all_points_on_a_line_are_collinear : P on line A B -> Collinear A B P := by tauto
 
-/-- A segment A B is a subset of the ray A B -/
+/--
+p109. the author refers to the definition of these things, but the definitions are pretty loose and assume
+undergrad set theory is a familiar topic. These are some of the formalizations of those basic facts.
+
+"By the definition of segment and ray, `the segment A B ⊆ the ray A B`" -/
 lemma seg_sub_ray : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
 
 /-- A ray A B is a subset of the line A B -/
@@ -107,7 +106,7 @@ lemma ray_sub_line : ray A B ⊆ line A B := by
   intro P PonRay
   unfold LineThrough
   simp only [mem_setOf_eq]
-  exact all_points_in_a_ray_are_collinear PonRay
+  exact all_points_on_a_ray_are_collinear PonRay
 
 -- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
 /- lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D) -/
@@ -248,8 +247,6 @@ lemma line_by_definition : ∀ L : Line, L = {P : Point | P on L} := by
   apply Subset.antisymm
   repeat tauto
 
-
-
 /-- A line is 'bigger' than a ray in the same way that a line is bigger than a segment -/
 lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
   intro L A B AneB
@@ -257,12 +254,9 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
   -- 1. L ∥ ray A B, in which case they are not equal because A and B aren't on L.
   -- 2. L intersects ray A B, in which case at least one of A or B aren't on L
   -- 3. L is line A B, which is not equal to ray A B because it contains points on extension B A
-  have AonSegAB : A on segment A B := by tauto
-  have AonRayAB : A on ray A B := by unfold Ray; tauto
-  have BonSegAB : B on segment A B := by tauto
-  have BonRayAB : B on ray A B := by unfold Ray; tauto
-  -- by_cases suppose : (L ∥ ray A B) ∨ (∃ X : Point, L intersects ray A B at X) ∨ (L = line A B)
-  have ⟨C, D, CneD, lineCD⟩ := (linethrough_lift_line L)
+  have AonRayAB : A on ray A B := Line.ray_has_endpoints.left
+  have BonRayAB : B on ray A B := Line.ray_has_endpoints.right
+  have ⟨C, D, _, lineCD⟩ := (linethrough_lift_line L)
   rcases line_trichotomy.weak L (ray A B) with LparRay | LintRay | LextendsRay
   · by_contra! hNeg
     rw [<- hNeg] at LparRay
@@ -322,6 +316,22 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
     rw [<- LextendsRay] at XoffRayAB
     rw [L'eqL] at XonL'
     contradiction
+
+/- It helps to be able to commute these around, when we get to congruence this will make part of it trivial -/
+lemma segment_AB_eq_segment_BA : segment A B = segment B A := by
+  unfold Segment
+  ext P
+  rw [@mem_setOf]; simp_all only [mem_setOf_eq]
+  constructor
+  intro h; rcases h with h0 | h1 | h2; rw [B1b];
+  repeat tauto
+  intro h; rcases h with h0 | h1 | h2; rw [B1b]
+  repeat tauto
+
+/-- The endpoint B is in common here. -/
+lemma segment_AB_sub_ray_BA : segment A B ⊆ ray B A := by
+  intro P hPinSegAB
+  simp_all only [mem_setOf_eq, mem_union, segment_AB_eq_segment_BA, true_or]
 
 end Line
 

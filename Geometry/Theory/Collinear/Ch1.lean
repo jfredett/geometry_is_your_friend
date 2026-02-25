@@ -10,7 +10,6 @@ import Geometry.Theory.Axioms
 -- There is no overlap here, so it's fine to import
 import Geometry.Theory.Point.Ch1
 
-
 namespace Geometry.Theory
 
 open Set
@@ -18,6 +17,24 @@ open Geometry.Theory
 
 namespace Collinear
 
+/-- Collinearity commutes -/
+lemma commutes.left : (Collinear A B C) ↔ (Collinear B A C) := by
+  unfold Collinear;
+  constructor
+  · intro hL
+    have ⟨L, hInc, hUniq⟩ := hL
+    use L
+    tauto
+  · intro hL
+    have ⟨L, hInc, hUniq⟩ := hL
+    use L
+    tauto
+
+/- Collinearity commutes -/
+lemma commutes.right : (Collinear A B C) ↔ (Collinear A C B) := by tauto
+
+/- Collinearity commutes -/
+lemma commutes.outer : (Collinear A B C) ↔ (Collinear C B A) := by tauto
 
 /-- A point is collinear with itself -/
 lemma any_point_is_self_collinear : ∀ A : Point, Collinear A A A := by
