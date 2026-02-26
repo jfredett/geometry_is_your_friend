@@ -56,29 +56,6 @@ theorem P1.i : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
           cases)." -/
         tauto
 
-lemma P1.L7.segment {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
-  A - P - B -> P on the segment A B := by intro h; unfold Segment; simp; tauto;
-
-lemma P1.L7.ray {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
-  A - P - B -> P on the ray A B := by intro h; unfold Ray; simp; tauto;
-
-lemma P1.L7.extension {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
-  A - B - P -> P on the extension A B := by intro h; unfold Extension; simp; tauto
-
-lemma P1.L7.line.i {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
-  A - B - P -> P on the line A B := by
-    intro hABP;
-    have hPonExtAB : P on extension A B := P1.L7.extension PneAB hABP
-    unfold LineThrough; simp only [mem_setOf_eq]
-    exact Line.all_points_on_an_extension_are_collinear hPonExtAB
-
-lemma P1.L7.line.ii {A B P : Point} (PneAB : P ≠ A ∧ P ≠ B) :
-  A - P - B -> P on the line A B := by
-    intro hABP;
-    have hPonSegAB : P on segment A B := P1.L7.segment PneAB hABP
-    unfold LineThrough; simp only [mem_setOf_eq]
-    exact Line.all_points_on_a_segment_are_collinear hPonSegAB
-
 -- (ii) Ray A B ∪ Ray B A = LineThrough A B"
 -- TODO: This is ugly.
 theorem P1.ii : A ≠ B -> -- Ed. Same as above.
@@ -110,19 +87,19 @@ theorem P1.ii : A ≠ B -> -- Ed. Same as above.
   -- Assuming P distinct, B3 + Collinearity means only one betweenness is possible:
   obtain (⟨bABP, nBAP, nAPB⟩ | ⟨nABP, bBAP, nAPB⟩ | ⟨nABP, nBAP, bAPB⟩) := B3 A B P ⟨AneB, hABPdistinct.right.symm, hABPdistinct.left.symm, hPonLine⟩
   -- the first assumption here is that P is on the extension
-  obtain hPonExtAB : P on the extension A B := L7.extension hABPdistinct bABP
+  obtain hPonExtAB : P on the extension A B := Line.ABP_imp_P_on_ext_AB hABPdistinct bABP
   -- so it's easy to fulfill the definition and do the set algebra
   unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
   -- then we just have to dig a little.
   constructor; left; exact hPonExtAB
   --
   -- B - A - P is the same argument in the other direction.
-  obtain hPonExtBA : P on the extension B A := L7.extension (id (And.symm hABPdistinct)) bBAP
+  obtain hPonExtBA : P on the extension B A := Line.ABP_imp_P_on_ext_AB (id (And.symm hABPdistinct)) bBAP
   unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
   constructor; right; exact hPonExtBA
   --
   -- APB means we're on the segment, not the extension, otherwise a similar argument
-  obtain hPonsegAB : P on the segment A B := L7.segment hABPdistinct bAPB
+  obtain hPonsegAB : P on the segment A B := Line.APB_imp_P_on_segment_AB hABPdistinct bAPB
   unfold Ray; tauto
 
 end Geometry.Ch3.Prop

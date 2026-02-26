@@ -18,29 +18,46 @@ open Geometry.Ch2.Prop
 
 namespace Line
 
+/-- An intersection is either empty, a singleton, or the lines are equal. -/
+lemma line_trichotomy : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ M = {X}) ∨ L = M := by
+  intro L M
+  by_cases suppose : (L ≠ M) ∧ (L ∦ M)
+  · right; left
+    exact Ch2.Prop.P1 suppose.left suppose.right
+  · simp only [not_and_or, not_not] at suppose
+    rcases suppose with LeqM | other
+    · right; right; exact LeqM
+    · left; push_neg at *
+      obtain ⟨_, LparM⟩ := other
+      apply Subset.antisymm
+      · intro e eInInt
+        specialize LparM e
+        obtain ⟨eInL, eInM⟩ := by
+          rw [Set.mem_inter_iff] at eInInt
+          exact eInInt
+        tauto
+      · tauto
 
 /-- If two distinct points are found on two lines, those lines are equal. -/
 lemma equiv : ∀ L M : Line, ∀ A B : Point, A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
   intro L M A B AneB ⟨AonL, AonM, BonL, BonM⟩
-  -- idea, assume L intersects M at X, then X on L and X on M; and X is unique, so X = A and X = B, but A ≠ B
-  by_contra! hNeg
-  by_cases LnoparM : L ∦ M
-  have ⟨X, Xexists, Xuniq⟩ := P1 hNeg LnoparM
-  -- Little clean up to make these more useful
-  simp only [P5.L2, mem_inter_iff, mem_singleton_iff] at Xexists
-  simp only [P5.L2, mem_inter_iff, mem_singleton_iff] at Xuniq
-  have AeqX : A = X := (Xexists A).mp ⟨AonL, AonM⟩
-  have BeqX : B = X := (Xexists B).mp ⟨BonL, BonM⟩
-  rw [AeqX, BeqX] at AneB
-  contradiction
-  -- if L and M are parallel, then A cannot be on both L and M, because Parallel lines share no points in common.
-  push_neg at LnoparM
-  obtain ⟨_, LnoparM⟩ := LnoparM
-  specialize LnoparM A
-  push_neg at LnoparM
-  specialize LnoparM AonL
-  contradiction
-
+  have Aexists : A ∈ L ∩ M := by tauto
+  have Bexists : B ∈ L ∩ M := by tauto
+  -- Ed. This is a _sweet_ use of trichotomy. This proof was much longer prior to this.
+  rcases line_trichotomy L M with LparM | LintMatX | LeqM
+  · -- the intersection is nonempty by assumption
+    exfalso
+    rw [LparM] at Aexists
+    contradiction
+  · obtain ⟨X, Xinter, Xuniq⟩ := LintMatX
+    exfalso
+    -- A and B are both in the intersection by hypothesis
+    rw [Xinter] at Aexists Bexists
+    have AeqX : A = X := by tauto
+    have BeqX : B = X := by tauto
+    rw [AeqX, BeqX] at AneB
+    contradiction
+  · exact LeqM
 
 /-- A segment contains the points that define it -/
 lemma seg_has_endpoints.left : A on segment A B := by tauto
@@ -209,37 +226,14 @@ lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> se
 /-   sorry -/
 
 lemma segment_int_extension_is_empty : segment A B ∩ extension A B = ∅ := by
-  unfold Segment; unfold Extension
   apply Subset.antisymm
-  · simp only [ne_eq, subset_empty_iff, P5.L2, mem_inter_iff, mem_setOf_eq, mem_empty_iff_false, iff_false, not_and, not_not]
-    intro P opts ABP AneP
-    rcases opts with  APB | AeqP | BeqP
+  · intro P ⟨PonSeg, PonExt⟩
+    have ⟨ABP, AneP, BneP⟩ := PonExt
+    rcases PonSeg with APB | AeqP | BeqP
     · exfalso; exact Betweenness.absurdity_abc_acb ⟨ABP, APB⟩
     · contradiction
-    · exact BeqP
+    · contradiction
   · intro _ absurdity; exfalso; contradiction
-
-/-- An intersection is either empty, a singleton, or the lines are equal.
-This version does not grant the negative of the other conditions in the branches, use `.strong` for that. -/
-lemma line_trichotomy.weak : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ M = {X}) ∨ L = M := by
-  intro L M
-  by_cases suppose : (L ≠ M) ∧ (L ∦ M)
-  · right; left
-    exact Ch2.Prop.P1 suppose.left suppose.right
-  · simp only [not_and_or, not_not] at suppose
-    rcases suppose with LeqM | other
-    · right; right; exact LeqM
-    · left; push_neg at *
-      obtain ⟨_, LparM⟩ := other
-      apply Subset.antisymm
-      · intro e eInInt
-        specialize LparM e
-        obtain ⟨eInL, eInM⟩ := by
-          rw [Set.mem_inter_iff] at eInInt
-          exact eInInt
-        tauto
-      · tauto
-
 
 /-- A line is the set of all points on it -/
 lemma line_by_definition : ∀ L : Line, L = {P : Point | P on L} := by
@@ -257,7 +251,7 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
   have AonRayAB : A on ray A B := Line.ray_has_endpoints.left
   have BonRayAB : B on ray A B := Line.ray_has_endpoints.right
   have ⟨C, D, _, lineCD⟩ := (linethrough_lift_line L)
-  rcases line_trichotomy.weak L (ray A B) with LparRay | LintRay | LextendsRay
+  rcases line_trichotomy L (ray A B) with LparRay | LintRay | LextendsRay
   · by_contra! hNeg
     rw [<- hNeg] at LparRay
     simp only [inter_self] at LparRay
@@ -332,6 +326,32 @@ lemma segment_AB_eq_segment_BA : segment A B = segment B A := by
 lemma segment_AB_sub_ray_BA : segment A B ⊆ ray B A := by
   intro P hPinSegAB
   simp_all only [mem_setOf_eq, mem_union, segment_AB_eq_segment_BA, true_or]
+
+lemma APB_imp_P_on_segment_AB (PneAB : P ≠ A ∧ P ≠ B) :
+  A - P - B -> P on the segment A B := by intro h; unfold Segment; simp; tauto;
+
+lemma APB_imp_P_on_ray_AB (PneAB : P ≠ A ∧ P ≠ B) :
+  A - P - B -> P on the ray A B := by intro h; unfold Ray; simp; tauto;
+
+lemma ABP_imp_P_on_ext_AB (PneAB : P ≠ A ∧ P ≠ B) :
+  A - B - P -> P on the extension A B := by 
+  intro h; unfold Extension; simp only [ne_eq, mem_setOf_eq, B1b];
+  rw [B1b] at h
+  tauto
+
+lemma ABP_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) :
+  A - B - P -> P on the line A B := by
+    intro hABP;
+    have hPonExtAB : P on extension A B := ABP_imp_P_on_ext_AB PneAB hABP
+    unfold LineThrough; simp only [mem_setOf_eq]
+    exact Line.all_points_on_an_extension_are_collinear hPonExtAB
+
+lemma APB_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) :
+  A - P - B -> P on the line A B := by
+    intro hABP;
+    have hPonSegAB : P on segment A B := APB_imp_P_on_segment_AB PneAB hABP
+    unfold LineThrough; simp only [mem_setOf_eq]
+    exact Line.all_points_on_a_segment_are_collinear hPonSegAB
 
 end Line
 

@@ -6,7 +6,7 @@ import Geometry.Theory.Axioms
 open Geometry.Theory
 
 /-- p71, "For every line, there is at least one point not lying on it." -/
-@[simp] theorem Geometry.Ch2.Prop.P3 :
+theorem Geometry.Ch2.Prop.P3 :
     ∀ L : Line, ∃ P : Point, (P off L) := by
       intro L
       by_contra! hNeg
