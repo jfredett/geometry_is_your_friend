@@ -31,24 +31,45 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
   have ⟨colABC, colBCD⟩ := Ex1.b ⟨ABC, ACD⟩
   /- (2) There exists a point E not on the line through A,B,C,D (Proposition 2.3) -/
   -- NOTE: WLOG, we can pick any two points because all these points are collinear
-  let L := line A D
+  let L := line A C
   have ⟨E, EoffL⟩ := Ch2.Prop.P3 L
   /- (3) Consider line EC. Since (by hypothesis) AD meets this line in point C,... -/
   let EC := line E C
+  -- <Ed> Missing these simple conditions
+  have ConEC : C on EC := Line.line_has_definition_points.right
+  have ConL : C on L := Line.line_has_definition_points.right
+  have LneEC : L ≠ EC := by
+    have EonEC : E on EC := Line.line_has_definition_points.left
+    by_contra! hNeg; rw [hNeg] at EoffL; contradiction
+  have ConLintEC : C on L ∩ EC := by tauto
+  -- </Ed>
   have LintECatC : L intersects EC at C := by
-    sorry
+    refine (Intersection.single_point_of_intersection C L EC ⟨LneEC, ?LnparEC⟩).mp ConLintEC
+    unfold Parallel; push_neg; intro LneEC; use C
   /- ... points A and D are on opposite sides of EC -/
-  have ECsplitsAandD : EC splits A and D := by
-    sorry
+  have ECsplitsAandD : EC splits A and C := by
+    unfold SameSide; push_neg
+    intro AoffEC DoffEC
+    constructor
+    -- FIXME: I truly hate this.
+    · simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+      forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
+      and_true] at distinctABCD; tauto
+    · use C
+      tauto
   /- (4) We claim A and B are on the same side of EC. Assume on the contrary that A and B are on opposite sides of EC
      (RAA Hypothesis) -/
   by_cases raa : EC splits A and B
   · /- p113. (5) Then EC meets AB in a point between A and B (definition of "opposite sides" [ed. "splits" in our parlance]). -/
-    have ⟨X, ECintABatX, AXB⟩ : ∃ X : Point, (EC intersects (segment A B) at X) ∧ (A - X - B) := by sorry
+    let ⟨X, ECintABatX, AXB⟩ : ∃ X : Point, (EC intersects (line A B) at X) ∧ (A - X - B) := by
+      sorry
+    -- <Ed> we need this obvious fact </Ed>
+    have LeqAB : L = line A B := by sorry
+    have LintECatX := by rw [<- LeqAB, Intersection.symm] at ECintABatX; exact ECintABatX
     /- (6) That point must be C (Proposition 2.1) -/
-    have XeqC : X = C := by sorry -- intersection is uniq 
+    have CeqX : C = X := Intersection.uniq ⟨LintECatC, LintECatX⟩
     /- (7) Thus A - B - C and A - C - B, which contradicts Betweenness Axiom 3. -/
-    have ACB : A - C - B := by sorry
+    have ACB : A - C - B := by rwa [<- CeqX] at AXB
     exfalso
     exact Betweenness.absurdity_abc_acb ⟨ABC, ACB⟩
   · /- (8) Hence, A and B are on the same side of EC (RAA conclusion)
