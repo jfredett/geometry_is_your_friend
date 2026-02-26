@@ -1,8 +1,6 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    #    devshell.url = "github:numtide/devshell";
-    # process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     nixpkgs-python = {
@@ -42,15 +40,24 @@
               bc
               cloc
               curl
+              coreutils
               eplot
               gnuplot
+              graphviz
               jq
               just
               pandoc
               ripgrep
               timg
+              texlivePackages.pdfcrop
+              texlivePackages.dvisvgm
+              texlivePackages.latexmk
               watch
               yq-go
+              texlive.combined.scheme-full
+              pdf2svg
+              ghostscript
+              poppler-utils
             ];
             ci = [];
           };
@@ -93,9 +100,6 @@
 
             postShellHook = /* bash */ ''
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}"
-              # NOTE: Suppresses warnings about future deprecations in az-cli, these are outside our control generally.
-              # not an ideal solution to this.
-              export PYTHONWARNINGS="ignore::FutureWarning"
             '';
           };
         };

@@ -1,2 +1,7 @@
 /.lake
 Greenberg.pdf
+blueprint/web
+blueprint/print
+*.paux
+blueprint/lean_decls
+.venv/

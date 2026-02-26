@@ -23,7 +23,6 @@ abbrev opts : Array LeanOption := #[
 -- Main package
 package "geometry-is-your-friend" where
   version := v!"0.2.0"
-
   -- Global lean options for pretty-printing, synthesis, etc.
   leanOptions := opts
   -- any additional package configuration here
@@ -33,3 +32,9 @@ lean_lib «Geometry» where
   srcDir := "."    -- points to main src folder
   -- You can also specify includeDirs if needed, e.g., for diagrams
   -- includeDirs := #[ "geometry/**/diagrams" ]
+
+require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
+
+meta if get_config? env = some "dev" then
+require «doc-gen4» from git
+  "https://github.com/leanprover/doc-gen4" @ "main"
