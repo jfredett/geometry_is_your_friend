@@ -13,3 +13,6 @@ import Geometry.Ch2.Prop.P5
 import Geometry.Ch3.Prop.P1
 import Geometry.Ch3.Prop.B4iii -- A corrolary of B4, nothing without proof.
 import Geometry.Ch3.Prop.P2
+import Geometry.Ch3.Prop.P3
+-- Exercises
+import Geometry.Ch3.Ex.Ex1

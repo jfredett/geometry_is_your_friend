@@ -37,11 +37,31 @@ lemma absurdity_abc_cab : A - B - C ∧ C - A - B -> False := by
   rw [B1b] at nBAC; contradiction; contradiction; contradiction
 
 /-- betweeness implies distinctness -/
+lemma abc_imp_distinct : A - B - C -> A ≠ B ∧ B ≠ C ∧ A ≠ C := by
+  intro ABC
+  have ⟨h,  _⟩ := (B1a ABC)
+  exact h
+
+/-- betweeness implies distinctness -/
 lemma abc_imp_distinct.anec : A - B - C -> A ≠ C := by
   intro ABC
   have ⟨⟨_, _, AneC⟩, _⟩ := (B1a ABC)
   exact AneC
 
+/-- betweeness implies distinctness -/
+lemma abc_imp_distinct.aneb : A - B - C -> A ≠ B := by
+  intro ABC
+  have ⟨⟨AneB, _, _⟩, _⟩ := (B1a ABC)
+  exact AneB
+
+/-- betweeness implies distinctness -/
+lemma abc_imp_distinct.bnec : A - B - C -> B ≠ C := by
+  intro ABC
+  have ⟨⟨_, BneC, _⟩, _⟩ := (B1a ABC)
+  exact BneC 
+
+/-- betweeness implies collinearity -/
+lemma abc_imp_collinear : A - B - C -> Collinear A B C := by tauto
 
 end Betweenness
 
