@@ -49,8 +49,15 @@
               pandoc
               ripgrep
               timg
+              texlivePackages.pdfcrop
+              texlivePackages.dvisvgm
+              texlivePackages.latexmk
               watch
               yq-go
+              texlive.combined.scheme-full
+              pdf2svg
+              ghostscript
+              poppler-utils
             ];
             ci = [];
           };

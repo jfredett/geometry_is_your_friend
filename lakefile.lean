@@ -23,7 +23,6 @@ abbrev opts : Array LeanOption := #[
 -- Main package
 package "geometry-is-your-friend" where
   version := v!"0.2.0"
-
   -- Global lean options for pretty-printing, synthesis, etc.
   leanOptions := opts
   -- any additional package configuration here
