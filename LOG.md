@@ -48,3 +48,22 @@ Unrelated, it'd be very cool to build some kind of geogebra/lean connection (may
 not on vscode which I suspect is required, but haven't found an explicit statement thereof).
 
 
+# 25-FEB-2026
+
+## 2235
+
+I got pretty much everything reorganized, it wasn't _too_ painful. I also rewrote a bunch of proofs in a much nicer way;
+in particular `Line.line_trichotomy` is a really handy tool.
+
+The debate now is whether I'm going to automate generating the Geometry.lean and Theory.lean files; and more generally
+it'd be nice to have some scaffolding scripts for creating new chapters/etc in the correct structure. I had a `ChX`
+chapter-template, but I wasn't sure what I was doing when I originally made it. The things I'd like some kind of
+template/script for are:
+
+1. Constructing the Geometry.lean, which includes all the actual chapters
+2. Constructing the Theory.lean, which is where all the general theory and lemmas go
+3. Constructing the `web` and `print` blueprint files via some introspection over all the theorems/lemmas in the
+   codebase
+4. Creating a new chapter/theory section according to whatever strictures I need.
+
+I don't think I'm going to do this now, I'd like to get back to proving, but something to think on.
