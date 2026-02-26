@@ -1,13 +1,14 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Ch2
 import Geometry.Tactics
 
 import Geometry.Ch2.Prop
 import Geometry.Ch3.Prop.P1
 import Geometry.Ch3.Prop.B4iii
-import Geometry.Ch3.Prop.A
 
 namespace Geometry.Ch3.Prop
 
@@ -34,7 +35,7 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
     by_contra!; rw [this] at AoffL; tauto
   obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
   /- author omits these, but they are necessary for the 'by definition' below. -/
-  have AneB : A ≠ B := Ne.symm (Betweenness.abc_imp_anec bBOA)
+  have AneB : A ≠ B := Ne.symm (Betweenness.abc_imp_distinct.anec bBOA)
   have LneAO : L ≠ segment A O := by
     by_contra! hNeg;
     rw [hNeg] at AoffL;
@@ -107,7 +108,7 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
         intro LsplitsBC
         /- then C and A are on the same side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
         by_contra LsplitsAC
-        have LguardsAB := B4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, B4iii.L1.splits LsplitsBC⟩
+        have LguardsAB := B4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, Betweenness.splits_commutes LsplitsBC⟩
         contradiction
       by_cases suppose: L splits B and C
       · specialize AseparatefromB suppose
@@ -135,7 +136,7 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
       obtain ⟨PinHl, PinHr⟩ := PinInt
       have LguardsAandP : L guards A and P := PinHl
       have LguardsBandP : L guards B and P := PinHr
-      have LguardsPandB : L guards P and B := B4iii.L1.guards LguardsBandP
+      have LguardsPandB : L guards P and B := Betweenness.guards_commutes LguardsBandP
       have PoffL : P off L := by tauto
       have LguardsAandB : L guards A and B := B4i ⟨AoffL, PoffL, BoffL⟩ ⟨LguardsAandP, LguardsPandB⟩
       contradiction
@@ -166,8 +167,5 @@ I was born, and the teacher talked excitedly about how, one day, you might even 
 I remember jumping online and looking up what kind of personal computers were available in 1982 or 
 whatever year it was. I remember thinking that the videos probably weren't going to be where I'd learn
 most of what I'd learn. I remember thinking the internet was a much better place to look for truth. -/
-
-
-
 
 end Geometry.Ch3.Prop

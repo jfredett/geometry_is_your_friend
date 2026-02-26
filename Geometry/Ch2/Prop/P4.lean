@@ -1,13 +1,14 @@
 import Geometry.Tactics
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
 import Geometry.Ch2.Prop.P2
 
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
 
--- p71. "For every point, there is at least one line not passing through it."
-@[simp] theorem P4 (P : Point) : ∃ L : Line, (P off L) := by
+/-- p71. "For every point, there is at least one line not passing through it." -/
+theorem P4 (P : Point) : ∃ L : Line, (P off L) := by
     -- Similar to 2.3, but using 2.2's configuration.
     obtain ⟨L, M, N, hDistinct, hNC⟩ := Geometry.Ch2.Prop.P2
     unfold Concurrent at hNC

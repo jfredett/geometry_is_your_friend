@@ -2,8 +2,13 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
-import Geometry.Theory
 import Geometry.Tactics
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Ch2
+import Geometry.Theory.Line.Ch2
+import Geometry.Theory.Betweenness.Ch2
 
 import Geometry.Ch2.Prop
 import Geometry.Ch3.Prop.P1
@@ -17,16 +22,6 @@ open Geometry.Ch3.Prop.P1
 
 -- p111
 
-/- a line doesn't care about the order of the points it guards -/
-@[simp] lemma B4iii.L1.guards : (L guards A and B) -> (L guards B and A) := by
-    intro LguardsAB
-    unfold SameSide at *; rw [<- L2] ; tauto
-
-/- a line doesn't care about the order of the points it splits -/
-@[simp] lemma B4iii.L1.splits : (L splits A and B) -> (L splits B and A) := by
-    intro LsplitsAB
-    unfold SameSide at *; rw [<- L2] ; tauto
-
 /-
 "Corollary. (iii) If A and B are on opposite sides of L and if B and C are on the
 same side of L, then A and C are on opposite sides of L"
@@ -35,12 +30,12 @@ Ed. This gets shown here since it's a corollary and I need a lemma from the
 previous proposition
 
 -/
-@[simp] theorem B4iii :
+theorem B4iii :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L splits A and B) ∧ (L guards B and C) -> (L splits A and C) := by
   intro ⟨AoffL, BoffL, CoffL⟩ ⟨LsplitsAB, LguardsBC⟩
   by_contra! LguardsAC
-  have h := B4i ⟨AoffL, CoffL, BoffL⟩ ⟨LguardsAC, B4iii.L1.guards LguardsBC⟩
+  have h := B4i ⟨AoffL, CoffL, BoffL⟩ ⟨LguardsAC, Betweenness.guards_commutes LguardsBC⟩
   contradiction
 
 /-

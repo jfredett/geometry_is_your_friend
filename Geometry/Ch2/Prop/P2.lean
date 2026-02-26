@@ -1,46 +1,17 @@
 import Geometry.Tactics
-import Geometry.Theory
+
+import Geometry.Theory.Axioms
+import Geometry.Theory.Ch1
+import Geometry.Theory.Line.Ch1
+
 import Geometry.Ch2.Prop.P1
 
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
 
--- Author suggests a lemma, "... to prove it, I could first prove a lemma that if three lines
--- are concurrent, the point at which they meet is unique." p.71
-lemma P2.L1 (L M N : Line) :
-        L ≠ M ∧ M ≠ N ∧ L ≠ N ->
-        Concurrent L M N ->
-        ∃! P : Point,
-        (P on L) ∧ (P on M) ∧ (P on N)
-:= by
-    intros hDistinct hConcurrent
-    unfold Concurrent at *
-    obtain ⟨P, hPonL, hPonM, hPonN⟩ := hConcurrent
-    refine ⟨P, ?cEx, ?cUniq⟩
-    -- existence
-    exact ⟨hPonL, hPonM, hPonN⟩
-    -- uniqueness
-    intro Q ⟨hQonL, hQonM, hQonN⟩
-    by_contra! hNeg
-    have ⟨PQ, _, hPQUniq⟩ := I1 P Q hNeg.symm
-    have hPQisL := hPQUniq L ⟨hPonL, hQonL⟩
-    have hPQisM := hPQUniq M ⟨hPonM, hQonM⟩
-    have hLeqM : L = M := by
-        rw [hPQisL, hPQisM]
-    have hLneqM : L ≠ M := hDistinct.left
-    contradiction
 
--- Editor's Lemma: We need to be able to establish that two intersecting lines are never
--- parallel
-lemma P2.L2 :
-    ∀ P : Point, (P on L) -> (P on M) -> (L ∦ M) := by
-      intros P hPonM hPonL
-      unfold Parallel; push_neg
-      intro hLMDistinct
-      use P
-
--- p71, "There exist three distinct lines that are not concurrent."
+/-- p71, "There exist three distinct lines that are not concurrent." -/
 @[simp] theorem P2 : ∃ L M N : Line, (L ≠ M ∧ M ≠ N ∧ L ≠ N) ∧ ¬Concurrent L M N := by
     -- Idea: Use the 3 non-collinear points to build three lines, we can prove they're distinct with
     -- some RAA, and then use the lemma to do the rest.
@@ -72,13 +43,13 @@ lemma P2.L2 :
     -- Now that everything is built, we proceed by contradiction
     by_contra! hNeg
     -- Let's find the Point the Author talks about in the proposed lemma
-    obtain ⟨P, ⟨hPonAB, hPonBC, hPonAC⟩, hPUniq⟩ := P2.L1 AB BC AC ⟨hABneBC,hBCneAC,hABneAC⟩ hNeg
+    obtain ⟨P, ⟨hPonAB, hPonBC, hPonAC⟩, hPUniq⟩ := Line.concurrence_of_three_lines_is_unique ⟨hABneBC,hBCneAC,hABneAC⟩ hNeg
     -- This lemma was not suggested by the author, but is handy. The proof is not long and simply establishes the
     -- 'Parallel' fact for each pair of lines. We need the unique point and the negative condition to build
     -- these
-    have hABnotparBC : (AB ∦ BC) := P2.L2 P hPonAB hPonBC
-    have hABnotparAC : (AB ∦ AC) := P2.L2 P hPonAB hPonAC
-    have hBCnotparAC : (BC ∦ AC) := P2.L2 P hPonBC hPonAC
+    have hABnotparBC : (AB ∦ BC) := Line.intersecting_lines_are_not_parallel hPonAB hPonBC
+    have hABnotparAC : (AB ∦ AC) := Line.intersecting_lines_are_not_parallel hPonAB hPonAC
+    have hBCnotparAC : (BC ∦ AC) := Line.intersecting_lines_are_not_parallel hPonBC hPonAC
     -- Idea: If P is on AB and BC, then P must be the intersection of those two lines, we already know B is on
     -- both AB and BC, and by P1, we know the intersection is unique, so P = B, but that means B is on AC, which
     -- which is false.
