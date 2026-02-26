@@ -12,6 +12,7 @@ import Geometry.Ch3.Ex.Ex1
 import Geometry.Theory.Ch1
 import Geometry.Theory.Ch2
 import Geometry.Theory.Betweenness.Ch2
+import Geometry.Theory.Line.Ch2
 
 namespace Geometry.Ch3.Prop
 
@@ -22,41 +23,48 @@ open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
 
 
+/-- p112. Given A - B - C and A - C - D, then B - C - D and A - B - D (see Figure 3.9) -/
+theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D := by 
+  /- (1) A, B, C, and D are distinct, collinear points (see Exercise 1). -/
+  intro A B C D ⟨ABC, ACD⟩
+  have distinctABCD := Ex1.a ⟨ABC, ACD⟩
+  have ⟨colABC, colBCD⟩ := Ex1.b ⟨ABC, ACD⟩
+  /- (2) There exists a point E not on the line through A,B,C,D (Proposition 2.3) -/
+  -- NOTE: WLOG, we can pick any two points because all these points are collinear
+  let L := line A D
+  have ⟨E, EoffL⟩ := Ch2.Prop.P3 L
+  /- (3) Consider line EC. Since (by hypothesis) AD meets this line in point C,... -/
+  let EC := line E C
+  have LintECatC : L intersects EC at C := by
+    sorry
+  /- ... points A and D are on opposite sides of EC -/
+  have ECsplitsAandD : EC splits A and D := by
+    sorry
+  /- (4) We claim A and B are on the same side of EC. Assume on the contrary that A and B are on opposite sides of EC
+     (RAA Hypothesis) -/
+  by_cases raa : EC splits A and B
+  · /- p113. (5) Then EC meets AB in a point between A and B (definition of "opposite sides" [ed. "splits" in our parlance]). -/
+    have ⟨X, ECintABatX, AXB⟩ : ∃ X : Point, (EC intersects (segment A B) at X) ∧ (A - X - B) := by sorry
+    /- (6) That point must be C (Proposition 2.1) -/
+    have XeqC : X = C := by sorry -- intersection is uniq 
+    /- (7) Thus A - B - C and A - C - B, which contradicts Betweenness Axiom 3. -/
+    have ACB : A - C - B := by sorry
+    exfalso
+    exact Betweenness.absurdity_abc_acb ⟨ABC, ACB⟩
+  · /- (8) Hence, A and B are on the same side of EC (RAA conclusion)
+       (9) B and D are on opposite sides of EC (steps 3 and 8 and the corrolary to Betweenness Axiom 4). -/
+    have ECsplitsBandD : EC splits B and D := by sorry
+    /- (10) Hence, the point C of intersection of lines EC and BD lies between B and D (definition of "opposite sides";
+       Proposition 2.1, i.e., that the point of intersection is unique). -/
+    have BCD : B - C - D := by sorry
+    exact BCD
+  /- A similar argument involving EB proves that A - B - D -/
+
+  /- TODO: Ed: time to break out `suffices` or some other clever thing... -/
+  
+
 -- theorem P3.right : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D := by sorry
 -- theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> A - B - D := by sorry
 
 
 end Geometry.Ch3.Prop
-
-
-
-/- -- this is Prop 3.3
-theorem P3 {A B C X : Point} : A - C - X -> A - X - B -> A - C - B := by
-  intro ACX AXB
-  obtain ⟨⟨AneC, CneX, AneX⟩, ⟨⟨L, AonL, ConL, XonL⟩, ACXCol⟩⟩ := B1a ACX
-  obtain ⟨⟨AneX, XneB, AneB⟩, ⟨⟨M, AonM, XonM, BonM⟩, AXBCol⟩⟩ := B1a AXB
-  have LeqM : L = M := Line.equiv L M A X AneX ⟨AonL, AonM, XonL, XonM⟩
-  -- there is only one line here, and B is on it.
-  rw [<- LeqM] at BonM
-  have CneB : C ≠ B := by
-    by_contra! hNeg
-    rw [hNeg] at ACX
-    -- need A B X and A X B are a contradiction
-    exact absurdity_abc_acb ⟨ACX, AXB⟩
-  have hDistinct : A ≠ B ∧ A ≠ C ∧ A ≠ X ∧ B ≠ X ∧ B ≠ X ∧ C ≠ X := by tauto
-  -- FIXME: This sucks. A better way to construct distinct-blocks would be nice.
-  have distinctACBX : distinct A C X B := by simp_all only [ne_eq, not_false_eq_true, B1a, and_self_left,
-    List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, implies_true, and_self,
-    IsEmpty.forall_iff, List.Pairwise.nil]
-  have ACBCol : Collinear A C B := Collinear.inclusion distinctACBX ⟨ACXCol, AXBCol⟩
-  -- the diagram is:  A - C - X - B
-  rcases B3 A C B ⟨AneC, CneB, AneB, ACBCol⟩ with ⟨ACB, nCAB, nABC⟩ | ⟨nACB, CAB, nABC⟩ | ⟨nACB, nCAB, ABC⟩
-  exact ACB -- simple case
-  -- the line is A -- C -- X
-  --             A ------- X -- B
-  -- maybe an intermediate? If ACX and AXB then CXB?
-  exfalso;
-  -- CAB = BAC, BAC + ACX -> BAX
-  sorry -- ACX contradicts CAB, since A is 'to the left' of C and B is 'to the right' of A, so B can't be 'to the left' of A
-  exfalso; sorry -- ACX contradicts ABC, since
--/
