@@ -93,3 +93,14 @@ such a nice way.
 I fucking love math.
 
 Going to take a break from 3.3 and clean up tautos for a few commits.
+
+# 27-FEB-2026
+
+## 0041
+
+Working with collinearity is a pain; I currently have it limited to a triple, so reasoning about larger bodies of
+collinear points is a pain (I have to manually extract the induced line for each triple and manually correlate them). I
+have a similar problem with `distinct`, which is for pairwise distinct things-with-equality.
+
+I need to build some better tools for reasoning about these, because it makes proofs a pain to follow and is a common
+place where I burn `tauto` time.

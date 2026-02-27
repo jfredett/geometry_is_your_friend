@@ -29,6 +29,8 @@ same side of L, then A and C are on opposite sides of L"
 Ed. This gets shown here since it's a corollary and I need a lemma from the
 previous proposition
 
+
+FIXME: I think I need to drop the avoid hypothesis and do the by_cases argument.
 -/
 theorem B4iii :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->

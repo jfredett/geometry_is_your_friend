@@ -9,10 +9,9 @@ import Geometry.Ch2.Prop
 import Geometry.Ch3.Prop.P1
 import Geometry.Ch3.Prop.B4iii
 import Geometry.Ch3.Ex.Ex1
-import Geometry.Theory.Ch1
-import Geometry.Theory.Ch2
 import Geometry.Theory.Betweenness.Ch1
 import Geometry.Theory.Betweenness.Ch2
+import Geometry.Theory.Line.Ch1
 import Geometry.Theory.Line.Ch2
 
 namespace Geometry.Ch3.Prop
@@ -39,6 +38,8 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
   -- NOTE: WLOG, we can pick either of colABC or colBCD because all these points are collinear
   have ⟨L, AonL, BonL, ConL⟩ := colABC
   have AneB : A ≠ B := by simp_all only [B1a, ne_eq, not_false_eq_true]
+  have BneC : B ≠ C := by simp_all only [B1a, ne_eq, not_false_eq_true]
+  have CneD : C ≠ D := by simp_all only [not_false_eq_true, true_and, B1a, ne_eq]
   have LeqAB : L = line A B := Line.equiv AneB
     ⟨AonL, Line.line_has_definition_points.left, BonL, Line.line_has_definition_points.right⟩
   have ⟨E, EoffL⟩ := Ch2.Prop.P3 L
@@ -69,9 +70,16 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
     have BneC : B ≠ C := by simp_all only [B1a, ne_eq, not_false_eq_true]
     have BeqC := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨BonInt, ConLintEC⟩
     contradiction
+  have DonL : D on L := by rw [LeqAB]; unfold LineThrough; simp only [mem_setOf_eq]; sorry
+  have DoffEC : D off EC := by
+    by_contra! hNeg
+    have DonInt : D ∈ L ∩ EC := ⟨DonL, hNeg⟩
+    have DneC : D ≠ C := Ne.symm (Betweenness.abc_imp_distinct.bnec ACD)
+    have DeqC := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨DonInt, ConLintEC⟩
+    contradiction 
   -- </Ed>
   /- ... points A and D are on opposite sides of EC -/
-  have ECsplitsAandC : EC splits A and C := by
+  have ECsplitsAandD : EC splits A and D := by
     unfold SameSide; push_neg
     intro AoffEC DoffEC
     repeat contradiction
@@ -103,6 +111,7 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
         by_contra! hNeg
         rw [hNeg] at BoffEC
         contradiction
+      -- TODO: I think a better argument exists here to reject the two alternative cases.
       rcases B3 A X B ⟨AneX, BneX.symm, AneB, colAXB⟩ with ⟨AXB, _⟩ | ⟨_, XAB, _⟩ | ⟨_, _, ABX⟩
       · exact AXB
       · exfalso
@@ -124,7 +133,22 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
           exact Betweenness.absurdity_abc_bac ⟨XAB, APB⟩
         contradiction
       · exfalso
-        have ECguardsAB : EC guards A and B := by sorry;
+        have ECguardsAB : EC guards A and B := by
+          refine ⟨AoffEC, BoffEC, Or.inr ?_⟩
+          by_contra! hNeg
+          have ⟨P, PonAB, PonEC⟩ := hNeg
+          have PinIntSeg : P ∈ EC ∩ (segment A B) := ⟨PonEC, PonAB⟩
+          have PinIntLine : P ∈ EC ∩ (line A B) := Set.inter_subset_inter_right EC Line.seg_sub_line PinIntSeg
+          rw [<- LeqAB] at PinIntLine
+          have PeqX : P = X := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨PinIntLine.symm, XinIntLine⟩
+          rw [<- PeqX] at ABX
+          have APB : A - P - B := by
+            unfold Segment at PonAB
+            rcases PonAB with APB | AeqP | BeqP
+            · exact APB
+            · exfalso; rw [<- AeqP] at PonEC; contradiction
+            · exfalso; rw [<- BeqP] at PonEC; contradiction
+          exact Betweenness.absurdity_abc_acb ⟨APB, ABX⟩
         contradiction
     /- (6) That point must be C (Proposition 2.1) -/
     have CeqX : C = X := Intersection.uniq ⟨LintECatC, LintECatX⟩
@@ -132,12 +156,30 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
     have ACB : A - C - B := by rwa [<- CeqX] at AXB
     exfalso
     exact Betweenness.absurdity_abc_acb ⟨ABC, ACB⟩
-  · /- (8) Hence, A and B are on the same side of EC (RAA conclusion)
-       (9) B and D are on opposite sides of EC (steps 3 and 8 and the corrolary to Betweenness Axiom 4). -/
-    have ECsplitsBandD : EC splits B and D := by sorry
+  · /- (8) Hence, A and B are on the same side of EC (RAA conclusion) -/
+    push_neg at raa
+    /- (9) B and D are on opposite sides of EC (steps 3 and 8 and the corrolary to Betweenness Axiom 4). -/
+    have ECsplitsBandD : EC splits B and D := by
+      by_contra! ECguardsBandD
+      have h := B4i ⟨AoffEC, BoffEC, DoffEC⟩ ⟨raa, ECguardsBandD⟩
+      contradiction
     /- (10) Hence, the point C of intersection of lines EC and BD lies between B and D (definition of "opposite sides";
        Proposition 2.1, i.e., that the point of intersection is unique). -/
-    have BCD : B - C - D := by sorry
+    have BCD : B - C - D := by 
+      unfold SameSide at ECsplitsBandD
+      push_neg at ECsplitsBandD
+      specialize ECsplitsBandD BoffEC DoffEC
+      have ⟨BneD, P, ⟨PonSegBD, PonEC⟩⟩ := ECsplitsBandD
+      have PinBDintEC : P ∈ line B D ∩ EC := by sorry
+      have LeqBD : L = line B D := by sorry
+      rw [LeqBD] at LintECatC
+      rw [LintECatC] at PinBDintEC
+      have PeqC : P = C := by tauto
+      rw [<- PeqC]
+      rcases PonSegBD with BPD | BeqP | DeqP
+      · exact BPD
+      · rw [BeqP, <- PeqC] at BneC; contradiction
+      · rw [DeqP, <- PeqC] at CneD; contradiction
     exact BCD
   /- A similar argument involving EB proves that A - B - D -/
 
