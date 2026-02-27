@@ -22,24 +22,19 @@ open Geometry.Ch2.Prop
 open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
 
-set_option profiler true
-
 /-- p112. Given A - B - C and A - C - D, then B - C - D and A - B - D (see Figure 3.9) -/
 theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D := by 
   /- (1) A, B, C, and D are distinct, collinear points (see Exercise 1). -/
   intro A B C D ⟨ABC, ACD⟩
   have distinctABCD := Ex1.a ⟨ABC, ACD⟩
-  -- FIXME: I truly hate this.
-  simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-    forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
-    and_true] at distinctABCD
   have ⟨colABC, colBCD⟩ := Ex1.b ⟨ABC, ACD⟩
   /- (2) There exists a point E not on the line through A,B,C,D (Proposition 2.3) -/
   -- NOTE: WLOG, we can pick either of colABC or colBCD because all these points are collinear
   have ⟨L, AonL, BonL, ConL⟩ := colABC
-  have AneB : A ≠ B := by simp_all only [B1a, ne_eq, not_false_eq_true]
-  have BneC : B ≠ C := by simp_all only [B1a, ne_eq, not_false_eq_true]
-  have CneD : C ≠ D := by simp_all only [not_false_eq_true, true_and, B1a, ne_eq]
+  have AneB : A ≠ B := by distinguish distinctABCD A B
+  have AneC : A ≠ C := by distinguish distinctABCD A C
+  have BneC : B ≠ C := by distinguish distinctABCD B C
+  have CneD : C ≠ D := by distinguish distinctABCD C D
   have LeqAB : L = line A B := Line.equiv AneB
     ⟨AonL, Line.line_has_definition_points.left, BonL, Line.line_has_definition_points.right⟩
   have ⟨E, EoffL⟩ := Ch2.Prop.P3 L
@@ -61,7 +56,6 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
     by_contra! hNeg
     have AonInt : A ∈ L ∩ EC := ⟨AonL, hNeg⟩
     exfalso
-    have AneC : A ≠ C := by simp_all only [B1a, ne_eq, not_false_eq_true]
     have AeqC := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨AonInt, ConLintEC⟩
     contradiction
   have BoffEC : B off EC := by
@@ -82,7 +76,11 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
   have ECsplitsAandD : EC splits A and D := by
     unfold SameSide; push_neg
     intro AoffEC DoffEC
-    repeat contradiction
+    have AneD : A ≠ D := by distinguish distinctABCD A D
+    refine ⟨AneD, ?_⟩
+    use C
+    -- TODO: This gets cleaner with better collinearity
+    sorry
   /- (4) We claim A and B are on the same side of EC. Assume on the contrary that A and B are on opposite sides of EC
      (RAA Hypothesis) -/
   by_cases raa : EC splits A and B

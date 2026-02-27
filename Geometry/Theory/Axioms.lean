@@ -32,7 +32,8 @@ macro_rules (kind := onNotation)
 @[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
 @[reducible] def CollinearL (Sₚ : List Point) : Prop := ∃ L : Line, ∀ A : Point, (A ∈ Sₚ) ↔ (A on L)
 
-
+structure CollinearP (pts : Set Point) : Prop where
+  induced_line : ∃ L : Line, ∀ P ∈ pts, P on L
 
 notation:80 P " off " L => P ∉ L
 notation:80 L " has " P => P ∈ L
