@@ -33,7 +33,7 @@ lemma inclusion : distinct A B C D -> Collinear A B C ∧ Collinear A C D -> Col
     tauto
   obtain ⟨L, AonL, BonL, ConL⟩ := colABC
   obtain ⟨M, AonM, ConM, DonM⟩ := colACD
-  have LeqM : L = M := Line.equiv L M A C AneC ⟨AonL, AonM, ConL, ConM⟩
+  have LeqM : L = M := Line.equiv AneC ⟨AonL, AonM, ConL, ConM⟩
   use L
   rw [<- LeqM] at DonM
   tauto

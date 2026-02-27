@@ -39,8 +39,8 @@ lemma line_trichotomy : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ 
       · tauto
 
 /-- If two distinct points are found on two lines, those lines are equal. -/
-lemma equiv : ∀ L M : Line, ∀ A B : Point, A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
-  intro L M A B AneB ⟨AonL, AonM, BonL, BonM⟩
+lemma equiv {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
+  intro AneB ⟨AonL, AonM, BonL, BonM⟩
   have Aexists : A ∈ L ∩ M := by tauto
   have Bexists : B ∈ L ∩ M := by tauto
   -- Ed. This is a _sweet_ use of trichotomy. This proof was much longer prior to this.
@@ -125,20 +125,11 @@ lemma ray_sub_line : ray A B ⊆ line A B := by
   simp only [mem_setOf_eq]
   exact all_points_on_a_ray_are_collinear PonRay
 
--- FIXME: I think this needs the line-sep property. Prop 3.3 covers this?
-/- lemma seg_inclusion : ∀ A B C D : Point, (distinct A B C D) -/
-/-   -> A on segment C D ∧ B on segment C D -> segment A B ⊆ segment C D := by -/
-/-   unfold Segment; simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false, -/
-/-     forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self, -/
-/-     and_true, mem_setOf_eq, setOf_subset_setOf, and_imp] -/
-/-   intro A B C D AneB AneC AneD BneC BneD CneD AonCD BonCD E hOpts -/
-/-   rcases hOpts with AEB | AeqE | BeqE -/
-/-   · obtain ⟨⟨AneE, BneE, _⟩, ⟨L, AonL, EonL, BonL⟩, colAEB⟩ := B1a AEB -/
-/-     have ConL : C on L := by sorry -/
-/-     have DonL : D on L := by sorry -/
-/-     sorry -/
-/-   · rw [<- AeqE]; exact AonCD -/
-/-   · rw [<- BeqE]; exact BonCD -/
+/-- A segment is a subset of the line A B -/
+lemma seg_sub_line : segment A B ⊆ line A B := by
+  have h₁ : segment A B ⊆ ray A B := seg_sub_ray
+  have h₂ : ray A B ⊆ line A B := ray_sub_line
+  tauto
 
 /-- Every `line A B` is a whole line `L` -/
 lemma linethrough_lift_line : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ L = line A B := by
@@ -203,7 +194,7 @@ lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> se
     have ⟨AonL, BonL⟩ := suppose
     have ⟨_, _, D, L', ⟨_, AonL', _, BonL', DonL'⟩, distinctABD, _, _, ABD⟩ := B2 A B AneB
     -- need to prove L' and L are the same, we can use the Line.equiv
-    have L'eqL := Line.equiv L L' A B AneB ⟨AonL, AonL', BonL, BonL'⟩
+    have L'eqL := Line.equiv AneB ⟨AonL, AonL', BonL, BonL'⟩
     -- FIXME: This is very bad.
     simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
       forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
@@ -275,13 +266,13 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
   · exfalso
     have LisPsonL : L = { P | P on L } := line_by_definition L
     rw [<- LextendsRay] at AonRayAB BonRayAB
-    have LeqLineAB : L = line A B := (Line.equiv L (line A B) A B AneB
-      ⟨AonRayAB, line_has_definition_points.left, BonRayAB, line_has_definition_points.right⟩)
+    have LeqLineAB : L = line A B := Line.equiv AneB
+      ⟨AonRayAB, line_has_definition_points.left, BonRayAB, line_has_definition_points.right⟩
     have lABeqlCD : line A B = line C D := by
       rwa [LeqLineAB] at lineCD
     rw [LeqLineAB] at LextendsRay
     have ⟨X, L', XonL', AonL', BonL', XneA, XneB, XAB⟩ := B2.left A B AneB
-    have L'eqL : L' = line A B := Line.equiv L' (line A B) A B AneB
+    have L'eqL : L' = line A B := Line.equiv AneB
       ⟨AonL', line_has_definition_points.left, BonL', line_has_definition_points.right⟩
     have XonL : X on L := by rwa [LeqLineAB, <- L'eqL]
     -- by construction, X is off the ray
