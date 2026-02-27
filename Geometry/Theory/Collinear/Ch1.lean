@@ -37,36 +37,31 @@ lemma commutes.right : (Collinear A B C) ↔ (Collinear A C B) := by tauto
 lemma commutes.outer : (Collinear A B C) ↔ (Collinear C B A) := by tauto
 
 /-- A point is collinear with itself -/
-lemma any_point_is_self_collinear : ∀ A : Point, Collinear A A A := by
-  intro A
-  have ⟨B, AneB⟩ := Point.distinct_points_exist A
-  have ⟨L, AonL, _⟩  := I1 A B AneB
-  use L
-  tauto
+lemma any_point_is_self_collinear : Collinear A A A := by tauto
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_ABA : ∀ A B : Point, A ≠ B -> Collinear A B A := by
-  intro A B AneB
-  unfold Collinear
+lemma any_two_points_are_collinear_ABA : A ≠ B -> Collinear A B A := by
+  intro AneB
   have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
-  simp at hIncidence
-  use L; tauto
+  simp only at hIncidence
+  use L;
+  simp_all only [ne_eq, and_imp, and_self]
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_ABB : ∀ A B : Point, A ≠ B -> Collinear A B B := by
-  intro A B AneB
-  unfold Collinear
+lemma any_two_points_are_collinear_ABB : A ≠ B -> Collinear A B B := by
+  intro AneB
   have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
   simp at hIncidence
-  use L; tauto
+  use L;
+  simp_all only [ne_eq, and_imp, and_self]
 
 /-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_AAB : ∀ A B : Point, A ≠ B -> Collinear A A B := by
-  intro A B AneB
-  unfold Collinear
+lemma any_two_points_are_collinear_AAB : A ≠ B -> Collinear A A B := by
+  intro AneB
   have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
   simp at hIncidence
-  use L; tauto
+  use L;
+  simp_all only [ne_eq, and_imp, and_self]
 
 end Collinear
 

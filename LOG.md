@@ -67,3 +67,29 @@ template/script for are:
 4. Creating a new chapter/theory section according to whatever strictures I need.
 
 I don't think I'm going to do this now, I'd like to get back to proving, but something to think on.
+
+# 26-FEB-2026
+
+## 2145
+
+I'm making good headway on formalizing Greenberg's proof of 3.3; there was mostly just small stuff missing; my proof of
+step (5) is close to done, but the proof is quite big as a result, and it's a conjuction of two similar but very
+slightly different arguments that is going to be hard to `suffice` away.
+
+I also ran into a new problem, speed. I made liberal use of `tauto` across this code base and it is starting to hurt.
+It's mostly just laziness and a misunderstanding of cost; I've started taking it out where possible. I'll need to add
+another script (or maybe a lint) to count these and chase them away. I'll also need to add a profile step to the CI. The
+stats it produces are pretty basic, but it's more than enough to chase away performance blowups. The issue does seem
+local to the proof (which makes sense, as it's essentially just hammering away using the available hypothesis, which
+don't cut across proofs), it's interesting how proof complexity becomes a performance hazard; you lose a powerful tool
+when the proof is too large. Even if you don't intend to keep the tauto, knowing that your environment has all the
+equipment needed to finish the proof is quite useful, and if the proof is so complex that tauto takes forever, you are
+essentially blinded by your own inefficiency.
+
+Refactoring has always felt like an 'elegant' thing to do; and it's neat to see that mathematical parsimony, clever
+argument, and smart lemma choices; things that feel themselves like elegance, are directly correlated with each other in
+such a nice way.
+
+I fucking love math.
+
+Going to take a break from 3.3 and clean up tautos for a few commits.

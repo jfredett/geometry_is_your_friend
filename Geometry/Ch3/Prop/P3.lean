@@ -11,6 +11,7 @@ import Geometry.Ch3.Prop.B4iii
 import Geometry.Ch3.Ex.Ex1
 import Geometry.Theory.Ch1
 import Geometry.Theory.Ch2
+import Geometry.Theory.Betweenness.Ch1
 import Geometry.Theory.Betweenness.Ch2
 import Geometry.Theory.Line.Ch2
 
@@ -89,29 +90,42 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
       refine (mem_inter_iff X L EC).mp ?_
       rw [LintECatX]
       exact mem_singleton X
+    have ⟨XonL, XonEC⟩ := XinIntLine
     -- </Ed>
     have AXB : A - X - B := by
-      have colAXB : Collinear A X B := by tauto
-      rcases B3 A X B ⟨?AneX, ?AneB, ?BneX, colAXB⟩ with ⟨AXB, _⟩ | ⟨_, XAB, _⟩ | ⟨_, _, ABX⟩
+      have colAXB : Collinear A X B := by
+        use L
+      have AneX : A ≠ X := by
+        by_contra! hNeg
+        rw [hNeg] at AoffEC
+        contradiction
+      have BneX : B ≠ X := by
+        by_contra! hNeg
+        rw [hNeg] at BoffEC
+        contradiction
+      rcases B3 A X B ⟨AneX, BneX.symm, AneB, colAXB⟩ with ⟨AXB, _⟩ | ⟨_, XAB, _⟩ | ⟨_, _, ABX⟩
       · exact AXB
       · exfalso
         have ECguardsAB : EC guards A and B := by
           refine ⟨AoffEC, BoffEC, Or.inr ?_⟩
           by_contra! hNeg
           have ⟨P, PonAB, PonEC⟩ := hNeg
-          have PinIntSeg : P ∈ EC ∩ (segment A B) := by tauto
+          have PinIntSeg : P ∈ EC ∩ (segment A B) := ⟨PonEC, PonAB⟩
           have PinIntLine : P ∈ EC ∩ (line A B) := Set.inter_subset_inter_right EC Line.seg_sub_line PinIntSeg
           rw [<- LeqAB] at PinIntLine
           have PeqX : P = X := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨PinIntLine.symm, XinIntLine⟩
           rw [<- PeqX] at XAB
-          have APB : A - P - B := by tauto
-          tauto
-        sorry
+          have APB : A - P - B := by
+            unfold Segment at PonAB
+            rcases PonAB with APB | AeqP | BeqP
+            · exact APB
+            · exfalso; rw [<- AeqP] at PonEC; contradiction
+            · exfalso; rw [<- BeqP] at PonEC; contradiction
+          exact Betweenness.absurdity_abc_bac ⟨XAB, APB⟩
+        contradiction
       · exfalso
         have ECguardsAB : EC guards A and B := by sorry;
         contradiction
-
-      sorry
     /- (6) That point must be C (Proposition 2.1) -/
     have CeqX : C = X := Intersection.uniq ⟨LintECatC, LintECatX⟩
     /- (7) Thus A - B - C and A - C - B, which contradicts Betweenness Axiom 3. -/

@@ -153,8 +153,8 @@ lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B
   rw [hNeg] at LintABatX
   unfold Intersects at LintABatX
   simp only [inter_self, Line.coincidence_is_coincidence_of_all_points, mem_setOf_eq, mem_singleton_iff] at LintABatX
-  have AeqX : A = X := (LintABatX A).mp (Collinear.any_two_points_are_collinear_ABA A B AneB)
-  have BeqX : B = X := (LintABatX B).mp (Collinear.any_two_points_are_collinear_ABB A B AneB)
+  have AeqX : A = X := (LintABatX A).mp (Collinear.any_two_points_are_collinear_ABA AneB)
+  have BeqX : B = X := (LintABatX B).mp (Collinear.any_two_points_are_collinear_ABB AneB)
   rw [AeqX, BeqX] at AneB
   contradiction
 

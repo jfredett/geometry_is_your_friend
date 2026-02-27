@@ -82,18 +82,18 @@ lemma extension_excludes_endpoints.right : B off extension A B := by sorry
 lemma line_has_definition_points.left : A on line A B := by
   simp only [mem_setOf_eq]
   by_cases AneB : A ≠ B
-  · exact Collinear.any_two_points_are_collinear_ABA A B AneB
+  · exact Collinear.any_two_points_are_collinear_ABA AneB
   · push_neg at AneB ; rw [<- AneB]
     unfold Collinear
-    exact Collinear.any_point_is_self_collinear A
+    exact Collinear.any_point_is_self_collinear
 
 /-- A line contains the points that define it -/
 lemma line_has_definition_points.right : B on line A B := by
   simp only [mem_setOf_eq]
   by_cases AneB : A ≠ B
-  · exact Collinear.any_two_points_are_collinear_ABB A B AneB
+  · exact Collinear.any_two_points_are_collinear_ABB AneB
   · push_neg at AneB ; rw [<- AneB]
-    exact Collinear.any_point_is_self_collinear A
+    exact Collinear.any_point_is_self_collinear
 
 /-- A line contains the points that define it -/
 lemma line_has_definition_points : A on line A B ∧ B on line A B :=

@@ -8,9 +8,11 @@ import Geometry.Tactics
 import Geometry.Ch2.Prop
 import Geometry.Ch3.Prop.P1
 import Geometry.Ch3.Prop.B4iii
-import Geometry.Theory.Ch1
-import Geometry.Theory.Ch2
 import Geometry.Theory.Betweenness.Ch2
+import Geometry.Theory.Line.Ch1
+import Geometry.Theory.Line.Ch2
+import Geometry.Theory.Collinear.Ch1
+import Geometry.Theory.Collinear.Ch2
 
 namespace Geometry.Ch3.Ex
 
@@ -24,11 +26,19 @@ open Geometry.Ch3.Ex
 theorem Ex1.b : A - B - C ∧ A - C - D -> (Collinear A B C) ∧ (Collinear B C D) := by
   intro ⟨ABC, ACD⟩
   have colABC := Betweenness.abc_imp_collinear ABC
-  have AonAD : A on line A D := Line.line_has_definition_points.left
-  have BonAD : B on line A D := by unfold LineThrough; simp only [mem_setOf_eq] ; tauto
-  have ConAD : C on line A D := by unfold LineThrough; simp only [mem_setOf_eq] ; tauto
-  tauto
-  
+  have colACD := Betweenness.abc_imp_collinear ACD
+  -- TODO: This is part a, so this should be combined to a single output I can alias down later.
+  have ⟨AneB, BneC, AneC⟩ := Betweenness.abc_imp_distinct ABC
+  have ⟨_, BneD, AneD⟩ := Betweenness.abc_imp_distinct ACD
+  obtain ⟨L, AonL, BonL, ConL⟩ := colABC
+  obtain ⟨M, AonM, ConM, DonM⟩ := colACD
+  have LeqM : L = M := Line.equiv AneC ⟨AonL, AonM, ConL, ConM⟩
+  rw [<- LeqM] at DonM
+  clear LeqM M AonM ConM -- don't need these anymore.
+  unfold Collinear
+  constructor
+  repeat use L
+
 /-- p146. Given A-B-C and A-C-D:
   (a) Prove that A,B,C, and D are four distinct points (the proof requires and axiom)
 
