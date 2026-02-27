@@ -28,7 +28,7 @@ elab "distinguish" h:ident x:ident y:ident : tactic => do
       -- I feel like there is a way to more systematically prove this
       simp_all only [
         ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-        not_false_eq_true, implies_true, not_true_eq_false, and_self, forall_eq_or_imp, 
+        not_false_eq_true, implies_true, not_true_eq_false, and_self, forall_eq_or_imp,
         forall_eq, IsEmpty.forall_iff, List.Pairwise.nil, and_true
       ]
     try assumption

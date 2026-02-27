@@ -27,13 +27,70 @@ syntax:50 (name := onNotation) term:51 " on " term:50 : term
 macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
--- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
--- TODO: Refactor to use a list?
-@[reducible] def Collinear (A B C : Point) : Prop := ∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)
-@[reducible] def CollinearL (Sₚ : List Point) : Prop := ∃ L : Line, ∀ A : Point, (A ∈ Sₚ) ↔ (A on L)
 
-structure CollinearP (pts : Set Point) : Prop where
-  induced_line : ∃ L : Line, ∀ P ∈ pts, P on L
+---- COLLINEARITY
+
+--- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
+def Collinear (Sₚ : Set Point) : Prop := ∃ L : Line, Sₚ ⊆ L
+
+-- Intermediate structure for pretty printing
+def CollinearList (points : List Point) : Prop := Collinear {p | p ∈ points}
+
+-- Syntax: collinear A B C (space-separated, no brackets)
+syntax "collinear" ident+ : term
+
+macro_rules
+  | `(collinear $xs*) => `(CollinearList [$xs,*])
+
+-- Auto-simplify CollinearList to Collinear in proofs
+@[simp] theorem CollinearList_eq : CollinearList points = Collinear {p | p ∈ points} := rfl
+
+-- Unexpander: show CollinearList as space-separated
+open Lean in
+@[app_unexpander CollinearList]
+def unexpandCollinearList : PrettyPrinter.Unexpander
+  | `(CollinearList [$[$xs],*]) => do
+    let ids := xs.map (⟨·.raw⟩ : TSyntax `term → TSyntax `ident)
+    `(collinear $ids*)
+  | _ => throw ()
+
+-- Helper functions for working with collinearity
+noncomputable def Collinear.induced_line (h : Collinear S) : Line := Classical.choose h
+lemma Collinear.subset_line (h : Collinear S) : S ⊆ (Collinear.induced_line h) := Classical.choose_spec h
+@[simp] lemma Collinear.mem_line (h : Collinear S) (hP : P ∈ S) : P on Collinear.induced_line h := Collinear.subset_line h hP
+
+-- General lemma: collinear as a list is equivalent to collinear as a set
+@[simp] lemma collinear_list_iff {points : List Point} {L : Line} :
+  ({p | p ∈ points} ⊆ L) ↔ (∀ p ∈ points, p ∈ L) := by
+  constructor
+  · intro h p hp
+    exact h hp
+  · intro h p hp
+    exact h p hp
+
+-- More directly: CollinearList unfolds nicely
+@[simp] lemma collinear_list_def (points : List Point) :
+  CollinearList points ↔ ∃ L : Line, ∀ p ∈ points, p ∈ L := by
+  unfold CollinearList Collinear
+  simp only [collinear_list_iff]
+
+example : collinear A B C ↔ ∃ L : Line, A on L ∧ B on L ∧ C on L := by
+  constructor
+  · intro colABC; use colABC.induced_line; simp only [List.mem_cons, List.not_mem_nil, or_false, Set.mem_setOf_eq, true_or, Collinear.mem_line, or_true, and_self]
+  · intro hL
+    let ABC : Set Point := {A, B, C}
+    have ⟨L, AonL, BonL, ConL⟩ := hL
+    use L
+    intro P PinSub
+    simp only [List.mem_cons, List.not_mem_nil, or_false, Set.mem_setOf_eq] at PinSub
+    rcases PinSub with eq | eq | eq
+    repeat rwa [eq]
+    
+-- NOTE: This is not _quite_ where I want it, but it's closer; ideally the collinearity condition wouldn't need the list
+-- intermediate; and would just be another set of points, but to get the syntax to play nice this is where I landed.
+
+
+---- END COLLINEARITY
 
 notation:80 P " off " L => P ∉ L
 notation:80 L " has " P => P ∈ L
@@ -52,8 +109,7 @@ For any two distinct points P and Q, there exists a unique line L which has P an
 /-- For any line, there are at least two distinct points on it -/
 @[simp] axiom I2 : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ (A on L) ∧ (B on L)
 /-- There exists three distinct points not on any single line ("There exists
-three non-collinear points", but without mentioning the undefined notion of
-collinearity) -/
+three non-collinear points", but without mentioning the undefined notion of collinearity) -/
 @[simp] axiom I3 : ∃ A B C : Point, (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧ (∀ (L : Line), (A on L) → (B on L) → (C off L))
 
 /--
@@ -92,7 +148,7 @@ notation:65 A:66 " - " B:66 " - " C:65 => Between A B C
 @[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
 @[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
 @[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
-@[reducible] def LineThrough (A B : Point) := {C | Collinear A B C}
+noncomputable def LineThrough (A B : Point) (h : A ≠ B) : Line := Classical.choose (ExistsUnique.exists (I1 A B h))
 
 -- Keep segment/ray/etc as separate term syntax
 syntax:max "segment " term:max term:max : term
@@ -131,10 +187,8 @@ macro_rules
 p.108a "If A - B - C, then A,B,C are distinct points on the same line...
 -/
 @[simp] axiom B1a {A B C : Point} :
-      A - B - C -> (A ≠ B ∧ B ≠ C ∧ A ≠ C) ∧
-      -- ed. this and next condition may be redundant
-      (∃ L : Line, (A on L) ∧ (B on L) ∧ (C on L)) ∧
-      Collinear A B C
+      A - B - C -> (A ≠ B ∧ B ≠ C ∧ A ≠ C) ∧ collinear [A B C]
+  
 
 /--
 p.108b ... and [A - B - C iff] C - B - A.""
@@ -162,8 +216,7 @@ line, there is always a point between them.
 @[simp] axiom B2 : ∀ B D : Point, B ≠ D ->
   ∃ A C E : Point, ∃ seg : Line,
   ((A on seg) ∧ (B on seg) ∧ (C on seg) ∧ (D on seg) ∧ (E on seg)) ∧
-  distinct A B C D E ∧
-  (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
+  distinct A B C D E ∧ (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 
 
 /-- Construct a point 'to the left' of points BD on the induced line B D -/
@@ -204,7 +257,7 @@ lemma B2.right : ∀ B D : Point, B ≠ D -> ∃ E : Point, ∃ seg : Line,
 /-- p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
-@[simp] axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ Collinear A B C ->
+@[simp] axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ collinear A B C ->
   ( (A - B - C) ∧ ¬(B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧  (B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧ ¬(B - A - C) ∧  (A - C - B))

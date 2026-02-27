@@ -70,7 +70,7 @@ theorem P3.left : ∀ A B C D : Point, (A - B - C) ∧ (A - C - D) -> B - C - D 
     have DonInt : D ∈ L ∩ EC := ⟨DonL, hNeg⟩
     have DneC : D ≠ C := Ne.symm (Betweenness.abc_imp_distinct.bnec ACD)
     have DeqC := Intersection.intersection_is_unique L EC LneEC LnparEC ⟨DonInt, ConLintEC⟩
-    contradiction 
+    contradiction
   -- </Ed>
   /- ... points A and D are on opposite sides of EC -/
   have ECsplitsAandD : EC splits A and D := by
