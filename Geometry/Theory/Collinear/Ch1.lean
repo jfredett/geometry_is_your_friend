@@ -4,6 +4,7 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
+import Mathlib.Data.List.Basic
 import Geometry.Tactics
 import Geometry.Theory.Axioms
 
@@ -17,56 +18,68 @@ open Geometry.Theory
 
 namespace Collinear
 
-/-- Collinearity commutes -/
-lemma commutes.left : (Collinear A B C) ↔ (Collinear B A C) := by
-  unfold Collinear;
-  constructor
-  · intro hL
-    have ⟨L, hInc, hUniq⟩ := hL
-    use L
-    tauto
-  · intro hL
-    have ⟨L, hInc, hUniq⟩ := hL
-    use L
-    tauto
-
-/- Collinearity commutes -/
-lemma commutes.right : (Collinear A B C) ↔ (Collinear A C B) := by tauto
-
-/- Collinearity commutes -/
-lemma commutes.outer : (Collinear A B C) ↔ (Collinear C B A) := by tauto
-
-/-- A point is collinear with itself -/
-lemma any_point_is_self_collinear : ∀ A : Point, Collinear A A A := by
-  intro A
-  have ⟨B, AneB⟩ := Point.distinct_points_exist A
-  have ⟨L, AonL, _⟩  := I1 A B AneB
+/-- There is a line between any two points, so by definition any two points are collinear -/
+lemma any_two_points_are_collinear : A ≠ B -> collinear A B := by
+  intro AneB
+  have ⟨L, ⟨AonL, BonL⟩, _h⟩ := I1 A B AneB
+  unfold Collinear
   use L
-  tauto
+  intro P PinSub
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at PinSub
+  rcases PinSub with eq | eq
+  repeat rwa [eq]
 
-/-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_ABA : ∀ A B : Point, A ≠ B -> Collinear A B A := by
-  intro A B AneB
-  unfold Collinear
-  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
-  simp at hIncidence
-  use L; tauto
+/-- Collinearity is independent of list order -/
+@[simp] lemma order_irrelevance {S T : List Point}
+    (leftCol : Collinear S)
+    (samePoints : (∀ p, p ∈ S ↔ p ∈ T) := by aesop) :
+  Collinear T := by
+  obtain ⟨L, hL⟩ := leftCol
+  use L
+  intro p hp
+  exact hL p ((samePoints p).mpr hp)
 
-/-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_ABB : ∀ A B : Point, A ≠ B -> Collinear A B B := by
-  intro A B AneB
-  unfold Collinear
-  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
-  simp at hIncidence
-  use L; tauto
+@[simp] lemma redundancy_irrelevance_ABB (A B : Point) : collinear A B B ↔ collinear A B := by
+  constructor
+  · intro colABB
+    unfold Collinear at colABB
+    have ⟨L, cond⟩ := colABB
+    use L; intro P PonAB
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at PonAB
+    have ⟨AonL, BonL⟩ : A on L ∧ B on L := by
+      simp only [List.mem_cons, List.not_mem_nil, or_false, or_self, forall_eq_or_imp,
+        forall_eq] at cond;
+      exact cond
+    rcases PonAB with eq | eq
+    repeat rwa [eq]
+  · intro colAB
+    unfold Collinear
+    have ⟨L, h⟩ := colAB
+    use L
+    simp_all only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq, or_self]
+    trivial
 
-/-- There is a line between any two points, so by definition any two points are collinear -/
-lemma any_two_points_are_collinear_AAB : ∀ A B : Point, A ≠ B -> Collinear A A B := by
-  intro A B AneB
-  unfold Collinear
-  have ⟨L, hIncidence, hUniq⟩ := I1 A B AneB
-  simp at hIncidence
-  use L; tauto
+@[simp] lemma redundancy_irrelevance_BAB (A B : Point) : collinear B A B ↔ collinear A B := by
+  constructor
+  · intro colABB
+    unfold Collinear at colABB
+    have ⟨L, cond⟩ := colABB
+    use L; intro P PonAB
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at PonAB
+    have ⟨AonL, BonL⟩ : A on L ∧ B on L := by
+      simp only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq] at cond;
+      have ⟨_, AonL, BonL⟩ := cond
+      exact ⟨AonL, BonL⟩
+    rcases PonAB with eq | eq
+    repeat rwa [eq]
+  · intro colAB
+    unfold Collinear
+    have ⟨L, h⟩ := colAB
+    use L
+    simp_all only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
+    trivial
+
+example (h : collinear A B C) : collinear C B A := order_irrelevance h
 
 end Collinear
 

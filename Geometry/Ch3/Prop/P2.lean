@@ -33,9 +33,8 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
   /- "(3) There is a point B such that B * O * A (Betweenness Axiom 2 [B2])"-/
   have AneO : A ≠ O := by -- author omits this step
     by_contra!; rw [this] at AoffL; tauto
-  obtain ⟨B, _, _, _, _, hDistinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm -- this is the author's approach, I've tucked it away in a lemma below
-  /- author omits these, but they are necessary for the 'by definition' below. -/
-  have AneB : A ≠ B := Ne.symm (Betweenness.abc_imp_distinct.anec bBOA)
+  have ⟨B, _, _, colBOA, distinctBOA, bBOA, _, _⟩ := B2 O A AneO.symm
+  have AneB : A ≠ B := by distinguish distinctBOA A B -- needed later
   have LneAO : L ≠ segment A O := by
     by_contra! hNeg;
     rw [hNeg] at AoffL;
@@ -51,7 +50,7 @@ theorem P2.i : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
     contradiction
   have BoffL : B off L := by
     -- idea: since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension.
-    have ⟨⟨BneO, OneA, _⟩, _, _⟩ := B1a bBOA
+    have ⟨_, colBOA⟩ := B1a bBOA
     have LintAOatO : L intersects segment A O at O := by
       unfold Intersects
       have OonAO : O on segment A O := by tauto

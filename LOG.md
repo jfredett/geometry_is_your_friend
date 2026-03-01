@@ -67,3 +67,57 @@ template/script for are:
 4. Creating a new chapter/theory section according to whatever strictures I need.
 
 I don't think I'm going to do this now, I'd like to get back to proving, but something to think on.
+
+# 26-FEB-2026
+
+## 2145
+
+I'm making good headway on formalizing Greenberg's proof of 3.3; there was mostly just small stuff missing; my proof of
+step (5) is close to done, but the proof is quite big as a result, and it's a conjuction of two similar but very
+slightly different arguments that is going to be hard to `suffice` away.
+
+I also ran into a new problem, speed. I made liberal use of `tauto` across this code base and it is starting to hurt.
+It's mostly just laziness and a misunderstanding of cost; I've started taking it out where possible. I'll need to add
+another script (or maybe a lint) to count these and chase them away. I'll also need to add a profile step to the CI. The
+stats it produces are pretty basic, but it's more than enough to chase away performance blowups. The issue does seem
+local to the proof (which makes sense, as it's essentially just hammering away using the available hypothesis, which
+don't cut across proofs), it's interesting how proof complexity becomes a performance hazard; you lose a powerful tool
+when the proof is too large. Even if you don't intend to keep the tauto, knowing that your environment has all the
+equipment needed to finish the proof is quite useful, and if the proof is so complex that tauto takes forever, you are
+essentially blinded by your own inefficiency.
+
+Refactoring has always felt like an 'elegant' thing to do; and it's neat to see that mathematical parsimony, clever
+argument, and smart lemma choices; things that feel themselves like elegance, are directly correlated with each other in
+such a nice way.
+
+I fucking love math.
+
+Going to take a break from 3.3 and clean up tautos for a few commits.
+
+# 27-FEB-2026
+
+## 0041
+
+Working with collinearity is a pain; I currently have it limited to a triple, so reasoning about larger bodies of
+collinear points is a pain (I have to manually extract the induced line for each triple and manually correlate them). I
+have a similar problem with `distinct`, which is for pairwise distinct things-with-equality.
+
+I need to build some better tools for reasoning about these, because it makes proofs a pain to follow and is a common
+place where I burn `tauto` time.
+
+# 28-FEB-2026
+
+## 2220
+
+I'm getting into the weeds of API design here and I'm finding an increasing need to learn how to actually use the Elab
+and stop cobbling together snippets and screwing around until I get it working. There's a cool project about
+metaprogramming in Lean which is itself a lean project, so I might take a little time and go through that.
+
+The main struggle right now is with coercing lean into an ergonomic API for talking about `distinct` points and
+`collinear` points; in particular, I'd like to have theorems that are something like:
+
+```
+distinct A B C ... /\ D =/= ...
+```
+
+I decided I'd talk about this in a vlog, so if I ever post that anywhere I'll edit a link in here.

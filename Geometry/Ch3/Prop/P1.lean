@@ -1,5 +1,3 @@
-/- FIXME: almost every lemma here should live somewhere in Theory -/
-
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
 import Mathlib.Data.Set.Insert
@@ -35,10 +33,23 @@ theorem P1.i : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
     · tauto
     · /- "... Otherwise, A B and C are three collinear points (by the definition of ray and Axiom B-1)..." -/
       have ⟨AneC, BneC⟩ : A ≠ C ∧ B ≠ C := by tauto
-      have colABC : Collinear A B C := by tauto
+      have distinctABC : distinct A B C := by
+        -- FIXME: this is still pretty ugly, maybe worth lemma-fying
+        simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
+          forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil,
+          and_self, and_true]
+        trivial
+      have colABC : collinear A B C := by 
+        use ray A B
+        intro P PinABC
+        simp only [List.mem_cons, List.not_mem_nil, or_false] at PinABC
+        rcases PinABC with eq | eq | eq
+        · rw [eq]; exact Line.ray_has_endpoints.left
+        · rw [eq]; exact Line.ray_has_endpoints.right
+        · rw [eq]; exact CinInt.left
       /- "so exactly one of A - C - B, A - B - C, or C - A - B holds (Axiom B-3). ..." -/
       have ⟨ConAB, ConBA⟩ : C on ray A B ∧ C on ray B A := by tauto
-      rcases B3 A B C ⟨AneB, BneC, AneC, colABC⟩ with ⟨ABC, _, _⟩ | ⟨_, CAB, _⟩ | ⟨_, _ACB⟩
+      rcases B3 A B C ⟨distinctABC, colABC⟩ with ⟨ABC, _, _⟩ | ⟨_, CAB, _⟩ | ⟨_, _ACB⟩
       · /- "... (4) If A - B - C holds, then C is not on the ray B A; ..." -/
         exfalso;
         have CoffBA : C off ray B A := by
@@ -56,10 +67,45 @@ theorem P1.i : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
           cases)." -/
         tauto
 
--- (ii) Ray A B ∪ Ray B A = LineThrough A B"
--- TODO: This is ugly.
+/-- p.109 "... (ii) Ray A B ∪ Ray B A = LineThrough A B" -/
 theorem P1.ii : A ≠ B -> -- Ed. Same as above.
   (ray A B) ∪ (ray B A) = (line A B) := by
+  intro AneB
+  apply Subset.antisymm
+  · intro P PinUnion
+    rcases PinUnion with PinAB | PinBA
+    · exact Line.ray_sub_line PinAB
+    · apply Line.ray_sub_line at PinBA
+      rwa [(@Line.commutes A B AneB)]
+  · intro P PinLine
+    -- Need to handle the equality cases first, we'll refer to these later in the proof
+    by_cases AneP : A = P
+    · rw [<- AneP]; exact mem_union_left (ray B A) Line.ray_has_endpoints.left
+    by_cases BneP : B = P
+    · rw [<- BneP]; exact mem_union_left (ray B A) Line.ray_has_endpoints.right
+    -- the main proof
+    rcases PinLine with eq | eq | tween | tween | tween
+    -- the equality cases are handled separately above
+    · exfalso; exact absurd eq.symm AneP
+    · exfalso; exact absurd eq.symm BneP
+    -- the case where P is on the segment
+    · have PonSegAB : P on segment A B := by
+        simp only [mem_setOf_eq]
+        left; exact tween
+      exact mem_union_left (ray B A) (Line.seg_sub_ray PonSegAB)
+    -- this is where we need the PneA and PneB conditions
+    · have PonExtAB : P on extension A B := by
+        simp only [mem_setOf_eq]
+        exact ⟨tween, AneP, BneP⟩
+      left; right; exact PonExtAB
+    -- here too, P is on the other extension
+    · have PonExtBA : P on extension B A := by
+        simp only [mem_setOf_eq]
+        exact ⟨B1b.mp tween, BneP, AneP⟩
+      right; right; exact PonExtBA
+
+/- -- TODO: This is ugly. --
+
   intro AneB
   ext P
   constructor
@@ -67,39 +113,40 @@ theorem P1.ii : A ≠ B -> -- Ed. Same as above.
   -- to build everything
   intro hPonRayUnion
   rcases hPonRayUnion with hPonRayAB | hPonRayBA
-  simp only [mem_setOf_eq]; exact Line.all_points_on_a_ray_are_collinear hPonRayAB
-  simp only [mem_setOf_eq]; unfold Ray at hPonRayBA;
-  rcases hPonRayBA with hPonSegmentBA | hPonExtensionBA
-  rw [Line.segment_AB_eq_segment_BA] at hPonSegmentBA; exact Line.all_points_on_a_segment_are_collinear hPonSegmentBA
-  rw [Collinear.commutes.left]; exact Line.all_points_on_an_extension_are_collinear hPonExtensionBA
-  -- Backward Case: Just check all the cases.
-  intro hPonLine
-  unfold LineThrough at *;
-  have ⟨L, ⟨AonL, BonL, PonL⟩⟩ := hPonLine
-  by_cases suppose: P = A ∨ P = B
-  -- Easy case first, this is degenerate
-  -- now if P = A, and P = B, then A = B, which is false.
-  rcases suppose with PeqA | PeqB
-  rw [PeqA]; simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false, Line.segment_AB_eq_segment_BA, or_self]
-  rw [PeqB]; simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false, Line.segment_AB_eq_segment_BA, false_and, or_self]
-  -- Now we have that A B and P are distinct
-  have hABPdistinct := by push_neg at suppose; exact suppose
-  -- Assuming P distinct, B3 + Collinearity means only one betweenness is possible:
-  obtain (⟨bABP, nBAP, nAPB⟩ | ⟨nABP, bBAP, nAPB⟩ | ⟨nABP, nBAP, bAPB⟩) := B3 A B P ⟨AneB, hABPdistinct.right.symm, hABPdistinct.left.symm, hPonLine⟩
-  -- the first assumption here is that P is on the extension
-  obtain hPonExtAB : P on the extension A B := Line.ABP_imp_P_on_ext_AB hABPdistinct bABP
-  -- so it's easy to fulfill the definition and do the set algebra
-  unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
-  -- then we just have to dig a little.
-  constructor; left; exact hPonExtAB
-  --
-  -- B - A - P is the same argument in the other direction.
-  obtain hPonExtBA : P on the extension B A := Line.ABP_imp_P_on_ext_AB (id (And.symm hABPdistinct)) bBAP
-  unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
-  constructor; right; exact hPonExtBA
-  --
-  -- APB means we're on the segment, not the extension, otherwise a similar argument
-  obtain hPonsegAB : P on the segment A B := Line.APB_imp_P_on_segment_AB hABPdistinct bAPB
-  unfold Ray; tauto
+  · exact Line.all_points_on_a_ray_are_collinear hPonRayAB
+  · simp only [mem_setOf_eq]; unfold Ray at hPonRayBA;
+    rcases hPonRayBA with hPonSegmentBA | hPonExtensionBA
+    · rw [Line.segment_AB_eq_segment_BA] at hPonSegmentBA; exact Line.all_points_on_a_segment_are_collinear hPonSegmentBA
+    · rw [Collinear.commutes.left]; exact Line.all_points_on_an_extension_are_collinear hPonExtensionBA
+      -- Backward Case: Just check all the cases.
+      intro hPonLine
+      unfold LineThrough at *;
+      have ⟨L, ⟨AonL, BonL, PonL⟩⟩ := hPonLine
+      by_cases suppose: P = A ∨ P = B
+      -- Easy case first, this is degenerate
+      -- now if P = A, and P = B, then A = B, which is false.
+      rcases suppose with PeqA | PeqB
+      rw [PeqA]; simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false, Line.segment_AB_eq_segment_BA, or_self]
+      rw [PeqB]; simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false, Line.segment_AB_eq_segment_BA, false_and, or_self]
+      -- Now we have that A B and P are distinct
+      have hABPdistinct := by push_neg at suppose; exact suppose
+      -- Assuming P distinct, B3 + Collinearity means only one betweenness is possible:
+      obtain (⟨bABP, nBAP, nAPB⟩ | ⟨nABP, bBAP, nAPB⟩ | ⟨nABP, nBAP, bAPB⟩) := B3 A B P ⟨AneB, hABPdistinct.right.symm, hABPdistinct.left.symm, hPonLine⟩
+      -- the first assumption here is that P is on the extension
+      obtain hPonExtAB : P on the extension A B := Line.ABP_imp_P_on_ext_AB hABPdistinct bABP
+      -- so it's easy to fulfill the definition and do the set algebra
+      unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
+      -- then we just have to dig a little.
+      constructor; left; exact hPonExtAB
+      --
+      -- B - A - P is the same argument in the other direction.
+      obtain hPonExtBA : P on the extension B A := Line.ABP_imp_P_on_ext_AB (id (And.symm hABPdistinct)) bBAP
+      unfold Ray; rw [<- Line.segment_AB_eq_segment_BA]; rw [@union_union_union_comm, union_self, union_comm];
+      constructor; right; exact hPonExtBA
+      --
+      -- APB means we're on the segment, not the extension, otherwise a similar argument
+      obtain hPonsegAB : P on the segment A B := Line.APB_imp_P_on_segment_AB hABPdistinct bAPB
+      unfold Ray; tauto
+-/
 
 end Geometry.Ch3.Prop
