@@ -26,16 +26,16 @@ elab "distinguish" h:ident x:ident y:ident : tactic => do
       simp only [List.pairwise_cons, List.mem_cons] at $h:ident
       -- FIXME: I don't love the simp_all here, it's better than a bare simp_all but
       -- I feel like there is a way to more systematically prove this
-      simp_all only [
-        ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-        not_false_eq_true, implies_true, not_true_eq_false, and_self, forall_eq_or_imp,
-        forall_eq, IsEmpty.forall_iff, List.Pairwise.nil, and_true
-      ]
+      simp_all
     try assumption
   )))
 
 -- TODO: Make the `h` optional by searching the proofstate
 -- TODO: Maybe make the X and Y optional as well
+-- TODO: an unelaborator to pretty-print the distinct condition as the distinct condition
+
+
+-- @[simp] lemma forget :
 
 -- gut check
 example (A B C D : Point) (h : distinct A B C D) : A ≠ B ∧ B ≠ C ∧ A ≠ D := by

@@ -104,3 +104,20 @@ have a similar problem with `distinct`, which is for pairwise distinct things-wi
 
 I need to build some better tools for reasoning about these, because it makes proofs a pain to follow and is a common
 place where I burn `tauto` time.
+
+# 28-FEB-2026
+
+## 2220
+
+I'm getting into the weeds of API design here and I'm finding an increasing need to learn how to actually use the Elab
+and stop cobbling together snippets and screwing around until I get it working. There's a cool project about
+metaprogramming in Lean which is itself a lean project, so I might take a little time and go through that.
+
+The main struggle right now is with coercing lean into an ergonomic API for talking about `distinct` points and
+`collinear` points; in particular, I'd like to have theorems that are something like:
+
+```
+distinct A B C ... /\ D =/= ...
+```
+
+I decided I'd talk about this in a vlog, so if I ever post that anywhere I'll edit a link in here.

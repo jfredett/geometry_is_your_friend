@@ -28,67 +28,45 @@ macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
 
----- COLLINEARITY
+---- COLLINEARITY (FINITE) AND POINTWISE (INFINITE)
 
---- p. 70, "Three or more points A, B, C are _collinear_ if there exists a line incident with all of them."
-def Collinear (Sₚ : Set Point) : Prop := ∃ L : Line, Sₚ ⊆ L
+-- Collinear: finite list of points on a common line
+def Collinear (points : List Point) : Prop := ∃ L : Line, ∀ p ∈ points, p ∈ L
 
--- Intermediate structure for pretty printing
-def CollinearList (points : List Point) : Prop := Collinear {p | p ∈ points}
-
--- Syntax: collinear A B C (space-separated, no brackets)
+-- Syntax: collinear A B C (space-separated)
 syntax "collinear" ident+ : term
 
 macro_rules
-  | `(collinear $xs*) => `(CollinearList [$xs,*])
+  | `(collinear $xs*) => `(Collinear [$xs,*])
 
--- Auto-simplify CollinearList to Collinear in proofs
-@[simp] theorem CollinearList_eq : CollinearList points = Collinear {p | p ∈ points} := rfl
-
--- Unexpander: show CollinearList as space-separated
+-- Pretty printer
 open Lean in
-@[app_unexpander CollinearList]
-def unexpandCollinearList : PrettyPrinter.Unexpander
-  | `(CollinearList [$[$xs],*]) => do
+@[app_unexpander Collinear]
+def unexpandCollinear : PrettyPrinter.Unexpander
+  | `(Collinear [$[$xs],*]) => do
     let ids := xs.map (⟨·.raw⟩ : TSyntax `term → TSyntax `ident)
     `(collinear $ids*)
   | _ => throw ()
 
--- Helper functions for working with collinearity
-noncomputable def Collinear.induced_line (h : Collinear S) : Line := Classical.choose h
-lemma Collinear.subset_line (h : Collinear S) : S ⊆ (Collinear.induced_line h) := Classical.choose_spec h
-@[simp] lemma Collinear.mem_line (h : Collinear S) (hP : P ∈ S) : P on Collinear.induced_line h := Collinear.subset_line h hP
+-- Extract the line from collinearity
+noncomputable def Collinear.line {points : List Point} (h : Collinear points) : Line := Classical.choose h
 
--- General lemma: collinear as a list is equivalent to collinear as a set
-@[simp] lemma collinear_list_iff {points : List Point} {L : Line} :
-  ({p | p ∈ points} ⊆ L) ↔ (∀ p ∈ points, p ∈ L) := by
-  constructor
-  · intro h p hp
-    exact h hp
-  · intro h p hp
-    exact h p hp
+lemma Collinear.on_line {points : List Point} (h : Collinear points) : ∀ p ∈ points, p on h.line := Classical.choose_spec h
 
--- More directly: CollinearList unfolds nicely
-@[simp] lemma collinear_list_def (points : List Point) :
-  CollinearList points ↔ ∃ L : Line, ∀ p ∈ points, p ∈ L := by
-  unfold CollinearList Collinear
-  simp only [collinear_list_iff]
+lemma Collinear.mem {points : List Point} (h : Collinear points) (p : Point) (hp : p ∈ points := by simp) :
+  p on h.line := h.on_line p hp
 
 example : collinear A B C ↔ ∃ L : Line, A on L ∧ B on L ∧ C on L := by
   constructor
-  · intro colABC; use colABC.induced_line; simp only [List.mem_cons, List.not_mem_nil, or_false, Set.mem_setOf_eq, true_or, Collinear.mem_line, or_true, and_self]
-  · intro hL
-    let ABC : Set Point := {A, B, C}
-    have ⟨L, AonL, BonL, ConL⟩ := hL
+  · intro colABC; use colABC.line;
+    exact ⟨colABC.mem A, colABC.mem B, colABC.mem C⟩
+  · rintro ⟨L, AonL, BonL, ConL⟩
     use L
-    intro P PinSub
-    simp only [List.mem_cons, List.not_mem_nil, or_false, Set.mem_setOf_eq] at PinSub
-    rcases PinSub with eq | eq | eq
+    intro P PinABC
+    -- FIXME: I dislike that this is necessary, but I don't have a way of `rcases`-ing my way through the list membership
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at PinABC
+    rcases PinABC with eq | eq | eq
     repeat rwa [eq]
-    
--- NOTE: This is not _quite_ where I want it, but it's closer; ideally the collinearity condition wouldn't need the list
--- intermediate; and would just be another set of points, but to get the syntax to play nice this is where I landed.
-
 
 ---- END COLLINEARITY
 
@@ -148,15 +126,13 @@ notation:65 A:66 " - " B:66 " - " C:65 => Between A B C
 @[reducible] def Segment (A B : Point) := {C | (A - C - B) ∨ A = C ∨ B = C}
 @[reducible] def Extension (A B : Point) := {C | A - B - C ∧ A ≠ C ∧ B ≠ C}
 @[reducible] def Ray (A B : Point) := (Segment A B) ∪ (Extension A B)
-noncomputable def LineThrough (A B : Point) (h : A ≠ B) : Line := Classical.choose (ExistsUnique.exists (I1 A B h))
+@[reducible] def LineThrough (A B : Point) := {C | C = A ∨ C = B ∨ A - C - B ∨ A - B - C ∨ C - A - B}
 
--- Keep segment/ray/etc as separate term syntax
 syntax:max "segment " term:max term:max : term
 syntax:max "ray " term:max term:max : term
 syntax:max "extension " term:max term:max : term
 syntax:max "line " term:max term:max : term
 
--- Even higher for "the" forms
 syntax:1000 "the " "segment " term:max term:max : term
 syntax:1000 "the " "ray " term:max term:max : term
 syntax:1000 "the " "extension " term:max term:max : term
@@ -186,8 +162,7 @@ macro_rules
 /--
 p.108a "If A - B - C, then A,B,C are distinct points on the same line...
 -/
-@[simp] axiom B1a {A B C : Point} :
-      A - B - C -> (A ≠ B ∧ B ≠ C ∧ A ≠ C) ∧ collinear [A B C]
+@[simp] axiom B1a {A B C : Point} : A - B - C -> distinct A B C ∧ collinear A B C
   
 
 /--
@@ -198,35 +173,26 @@ a bit easier. The author even notes, "The second part (C * B * A) makes the obvi
 that 'betwen A and C' means the same as 'between C and A'" Making it a separate axiom means
 I won't have to dig it out of the pile of parts that is 1a.
 -/
-@[simp] axiom B1b : ∀ A B C : Point, A - B - C ↔ C - B - A
+@[simp] axiom B1b {A B C : Point} : A - B - C ↔ C - B - A
 
 
 /--
 p.108 "Given any two distinct points B and D, there exist points A, C, and E lying on →ₗBD such that
 A * B * D, B * C * D, and B * D * E".
 
-Ed. Here I introduce the line BD explicitly with it's incidence conditions
-then posit the proposed points with _their_ incidence conditions, and then
-finally state the between condition.
-
-I like to call this the 'density' axiom because, used recursively, it posits
+Ed. I like to call this the 'density' axiom because, used recursively, it posits
 something like the density of rationals -- for any two distinct points on a
 line, there is always a point between them.
 -/
 @[simp] axiom B2 : ∀ B D : Point, B ≠ D ->
-  ∃ A C E : Point, ∃ seg : Line,
-  ((A on seg) ∧ (B on seg) ∧ (C on seg) ∧ (D on seg) ∧ (E on seg)) ∧
-  distinct A B C D E ∧ (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
+  ∃ A C E : Point, collinear A B C D E ∧ distinct A B C D E ∧ (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 
 
 /-- Construct a point 'to the left' of points BD on the induced line B D -/
-lemma B2.left : ∀ B D : Point, B ≠ D -> ∃ A : Point, ∃ seg : Line,
-    A on seg ∧ B on seg ∧ D on seg ∧ A ≠ B ∧ A ≠ D ∧ A - B - D := by 
+lemma B2.left : ∀ B D : Point, B ≠ D -> ∃ A : Point, collinear A B D ∧ distinct A B D ∧ (A - B - D) := by
       intro B D BneD
-      obtain ⟨A, C, E, L, ⟨AonL, BonL, ConL, DonL, EonL⟩, distinctABCDE, ABD, BCD, BDE⟩ := B2 B D BneD
-      simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-        forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
-        and_true] at distinctABCDE
+      have ⟨A, _ , _, colABD, distinctABD, ABD, _, _⟩ := B2 B D BneD
+
       tauto
 
 /-- Construct a point 'in between' points BD on the induced line B D -/
@@ -250,6 +216,7 @@ lemma B2.right : ∀ B D : Point, B ≠ D -> ∃ E : Point, ∃ seg : Line,
         and_true] at distinctABCDE
       use E, L
       tauto
+-/
       
 -- lemma B2.center
 -- lemma B2.right
@@ -257,7 +224,7 @@ lemma B2.right : ∀ B D : Point, B ≠ D -> ∃ E : Point, ∃ seg : Line,
 /-- p.108 "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
 -/
-@[simp] axiom B3 : ∀ A B C : Point, A ≠ B ∧ B ≠ C ∧ A ≠ C ∧ collinear A B C ->
+@[simp] axiom B3 : ∀ A B C : Point, distinct A B C ∧ collinear A B C ->
   ( (A - B - C) ∧ ¬(B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧  (B - A - C) ∧ ¬(A - C - B)) ∨
   (¬(A - B - C) ∧ ¬(B - A - C) ∧  (A - C - B))

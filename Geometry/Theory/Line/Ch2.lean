@@ -59,6 +59,49 @@ lemma equiv {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (
     contradiction
   · exact LeqM
 
+lemma commutes {AneB : A ≠ B} : line A B = line B A := by
+  -- FIXME: This is an aesop special, it's probably much simpler than this.
+  simp_all only [ne_eq]
+  ext x : 1
+  simp_all only [mem_setOf_eq, B1b]
+  apply Iff.intro
+  · intro a
+    cases a with
+    | inl h =>
+      subst h
+      simp_all only [B1b, or_self_left, true_or, or_true]
+    | inr h_1 =>
+      cases h_1 with
+      | inl h =>
+        subst h
+        simp_all only [true_or]
+      | inr h_2 =>
+        cases h_2 with
+        | inl h => simp_all only [true_or, or_true]
+        | inr h_1 =>
+          cases h_1 with
+          | inl h => simp_all only [or_true]
+          | inr h_2 => simp_all only [true_or, or_true]
+  · intro a
+    cases a with
+    | inl h =>
+      subst h
+      simp_all only [or_self_left, true_or, or_true]
+    | inr h_1 =>
+      cases h_1 with
+      | inl h =>
+        subst h
+        simp_all only [B1b, false_or, true_or]
+      | inr h_2 =>
+        cases h_2 with
+        | inl h => simp_all only [true_or, or_true]
+        | inr h_1 =>
+          cases h_1 with
+          | inl h => simp_all only [or_true]
+          | inr h_2 => simp_all only [true_or, or_true]
+  
+
+
 /-- A segment contains the points that define it -/
 lemma seg_has_endpoints.left : A on segment A B := by tauto
 /-- A segment contains the points that define it -/
@@ -71,6 +114,48 @@ lemma ray_has_endpoints.left : A on ray A B := by
 lemma ray_has_endpoints.right : B on ray A B := by
   simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false]
 
+/-- A ray A B is a subset of the line A B -/
+lemma ray_sub_line : ray A B ⊆ line A B := by
+  intro P PonRay
+  simp only [B1b, mem_setOf_eq]
+  rcases PonRay with (APB | AeqP | BeqP) | h
+  · right; right; left; assumption
+  · left; exact AeqP.symm
+  · right; left; exact BeqP.symm
+  · have ⟨ABP,_⟩ := h
+    right; right; right; left; assumption
+
+/-- pXX "By the definition of segment and ray, `the segment A B ⊆ the ray A B`" -/
+-- FIXME: this is a quote but I didn't write the page #
+lemma seg_sub_ray : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
+
+/-- A segment is a subset of the line A B -/
+lemma seg_sub_line : segment A B ⊆ line A B := by
+  have h₁ : segment A B ⊆ ray A B := seg_sub_ray
+  have h₂ : ray A B ⊆ line A B := ray_sub_line
+  simp only [setOf_subset_setOf, B1b]
+  intro P PonSeg
+  tauto
+
+/-- All points on a line are collinear -/
+lemma all_points_on_a_line_are_collinear {AneB : A ≠ B} : P on line A B -> collinear A B P := by 
+  -- Direct Proof
+  intro PonAB
+  simp only [mem_setOf_eq] at PonAB
+  rcases PonAB with PeqA | PeqB | tween | tween | tween
+  -- TODO: These should be reducible to a single invocation, maybe a suffices?
+  · rw [<- PeqA];
+    apply (Collinear.redundancy_irrelevance_BAB B P).mpr
+    by_cases suppose: B = P
+    · rw [<- PeqA, suppose] at AneB; contradiction
+    · exact Collinear.any_two_points_are_collinear suppose
+  · rw [<- PeqB]
+    apply (Collinear.redundancy_irrelevance_ABB A P).mpr
+    by_cases suppose: A = P
+    · rw [<- PeqB, suppose] at AneB; contradiction
+    · exact Collinear.any_two_points_are_collinear suppose
+  repeat exact Collinear.order_irrelevance (Betweenness.abc_imp_collinear tween)
+
 /-
 /- A extension excludes the points that define it -/
 lemma extension_has_endpoints.left : A off extension A B := by sorry
@@ -79,142 +164,34 @@ lemma extension_excludes_endpoints.right : B off extension A B := by sorry
 -/
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points.left : A on line A B := by
-  simp only [mem_setOf_eq]
-  by_cases AneB : A ≠ B
-  · exact Collinear.any_two_points_are_collinear_ABA AneB
-  · push_neg at AneB ; rw [<- AneB]
-    unfold Collinear
-    exact Collinear.any_point_is_self_collinear
+lemma line_has_definition_points.left : A on line A B := ray_sub_line ray_has_endpoints.left
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points.right : B on line A B := by
-  simp only [mem_setOf_eq]
-  by_cases AneB : A ≠ B
-  · exact Collinear.any_two_points_are_collinear_ABB AneB
-  · push_neg at AneB ; rw [<- AneB]
-    exact Collinear.any_point_is_self_collinear
+lemma line_has_definition_points.right : B on line A B := ray_sub_line ray_has_endpoints.right
 
 /-- A line contains the points that define it -/
-lemma line_has_definition_points : A on line A B ∧ B on line A B :=
-  ⟨line_has_definition_points.left, line_has_definition_points.right⟩
+lemma line_has_definition_points : A on line A B ∧ B on line A B := ⟨line_has_definition_points.left, line_has_definition_points.right⟩
 
 /-- All points on a extension are collinear -/
-lemma all_points_on_an_extension_are_collinear {A B : Point} : P on extension A B -> Collinear A B P := by tauto
+lemma all_points_on_an_extension_are_collinear {A B : Point} : P on extension A B -> collinear A B P := by 
+  intro PonExtAB
+  exact Betweenness.abc_imp_collinear PonExtAB.left
 
 /-- All points on a segment are collinear -/
-lemma all_points_on_a_segment_are_collinear : P on segment A B -> Collinear A B P := by tauto
+lemma all_points_on_a_segment_are_collinear {AneB : A ≠ B} : P on segment A B -> collinear A B P := by 
+  intro PonSegAB
+  apply seg_sub_line at PonSegAB
+  exact @all_points_on_a_line_are_collinear A B P AneB PonSegAB
 
 /-- All points on a ray are collinear -/
-lemma all_points_on_a_ray_are_collinear : P on ray A B -> Collinear A B P := by tauto
-
-/-- All points on a line are collinear -/
-lemma all_points_on_a_line_are_collinear : P on line A B -> Collinear A B P := by tauto
-
-/--
-p109. the author refers to the definition of these things, but the definitions are pretty loose and assume
-undergrad set theory is a familiar topic. These are some of the formalizations of those basic facts.
-
-"By the definition of segment and ray, `the segment A B ⊆ the ray A B`" -/
-lemma seg_sub_ray : segment A B ⊆ ray A B := by simp_all only [subset_union_left]
-
-/-- A ray A B is a subset of the line A B -/
-lemma ray_sub_line : ray A B ⊆ line A B := by
-  intro P PonRay
-  unfold LineThrough
-  simp only [mem_setOf_eq]
-  exact all_points_on_a_ray_are_collinear PonRay
-
-/-- A segment is a subset of the line A B -/
-lemma seg_sub_line : segment A B ⊆ line A B := by
-  have h₁ : segment A B ⊆ ray A B := seg_sub_ray
-  have h₂ : ray A B ⊆ line A B := ray_sub_line
-  tauto
+lemma all_points_on_a_ray_are_collinear {AneB : A ≠ B} : P on ray A B -> collinear A B P := by 
+  intro PonAB
+  apply ray_sub_line at PonAB
+  exact @all_points_on_a_line_are_collinear A B P AneB PonAB
 
 /-- Every `line A B` is a whole line `L` -/
 lemma linethrough_lift_line : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ L = line A B := by
-  intro L
-  have ⟨A, B, AneB, AonL, BonL⟩ := I2 L
-  use A
-  use B
-  refine ⟨AneB, ?_⟩
-  unfold LineThrough
-  apply Subset.antisymm
-  · intro P PonL
-    have colABP : Collinear A B P := by tauto
-    exact mem_setOf.mpr colABP
-  · intro P PinAB
-    have colABP : Collinear A B P := by tauto
-    unfold Collinear at colABP
-    have ⟨L', AonL', BonL', ConL'⟩ := colABP
-    have ⟨M, _, Muniq⟩ := I1 A B AneB
-    have MeqL := Muniq L ⟨AonL, BonL⟩
-    have MeqL' := Muniq L' ⟨AonL', BonL'⟩
-    rw [<- MeqL] at MeqL'
-    rw [<- MeqL']
-    exact ConL'
-
-/- Given any segment AC, we can find B such that AC ⊆ AB -/
-/- lemma seg_extension : ∀ A C : Point, A ≠ C -> ∃ B : Point, (A - C - B ∧ B ≠ A ∧ B ≠ C -> segment A C ⊆ segment A B) := by -/
-/-   intro A C AneC -/
-/-   -- different IDEA: seg AC ⊆ ray AC, ray AC contains all points to the right of C, which includes B by assumption, -/
-/-   -- so ray AC = ray AB, so seg AC ⊆ ray AB, but we know A - C - B now, so C ∈ seg AB. -/
-/-   have B : Point := by tauto; -/
-/-   use B -/
-/-   intro ⟨ACB, BneA, BneC⟩ -/
-/-   have BonRayAC : B on ray A C := by tauto -/
-/-   unfold Ray at BonRayAC -/
-/-   rcases BonRayAC with BonSeg | BonExt -/
-/-   -- B is not on the segment. -/
-/-   exfalso -/
-/-   simp only [mem_setOf_eq] at BonSeg -/
-/-   rcases BonSeg with ABC | BeqA | BeqC -/
-/-   · exact Betweenness.absurdity_abc_acb ⟨ABC, ACB⟩ -/
-/-   · tauto -/
-/-   · tauto -/
-/-   -- So B is on the extension, which means ACB -/
-/-   unfold Extension at BonExt; simp only [ne_eq, mem_setOf_eq] at BonExt -/
-/-   have ⟨ACB, _, _⟩ := BonExt -/
-/-   have ConSegAB : C on segment A B := by tauto -/
-/-   sorry -- idea: if seg A B and seg C D are colinear, and A on CD and B on CD, then AB ⊆ CD -/
-
-/-- A line is 'bigger' than a segment in the sense that, even if the segment is coincident with a line, it
- is possible to find a point on L that is off the segment -/
-lemma line_is_bigger_than_segment : ∀ L : Line, ∀ A B : Point, A ≠ B -> segment A B ≠ L := by
-  intro L A B AneB
-  by_cases suppose : (A off L) ∨ (B off L)
-  · -- one of the points is not collinear with L,
-    by_contra! hNeg
-    rw [<- hNeg] at suppose
-    simp only [mem_setOf_eq, true_or, or_true, not_true_eq_false, or_self] at suppose
-  · -- AB is collinear with L, so we must use B2 to construct a point outside of AB, but on L
-    -- have ⟨D, ABD⟩
-    -- have h : ∃ D : Point, A - B - D
-    push_neg at suppose
-    have ⟨AonL, BonL⟩ := suppose
-    have ⟨_, _, D, L', ⟨_, AonL', _, BonL', DonL'⟩, distinctABD, _, _, ABD⟩ := B2 A B AneB
-    -- need to prove L' and L are the same, we can use the Line.equiv
-    have L'eqL := Line.equiv AneB ⟨AonL, AonL', BonL, BonL'⟩
-    -- FIXME: This is very bad.
-    simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
-      forall_eq_or_imp, forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self,
-      and_true] at distinctABD
-    have ⟨_, ⟨_, AneB, AneD⟩, _, BneD⟩ := distinctABD
-    have colABD : Collinear A B D := by tauto
-    have DoffAB : D off segment A B := by
-      unfold Segment
-      simp only [mem_setOf_eq, not_or]
-      rcases B3 A B D ⟨AneB, BneD, AneD, colABD⟩ with l | c | r
-      repeat tauto
-    by_contra! hNeg
-    rw [L'eqL] at hNeg
-    rw [hNeg] at DoffAB
-    contradiction
-
-/- A line is 'bigger' than an extension in the same way that a line is bigger than a segment -/
-/- lemma line_is_bigger_than_extension : ∀ L : Line, ∀ A B : Point, A ≠ B -> extension A B ≠ L := by -/
-/-   intro L A B AneB -/
-/-   sorry -/
+  sorry
 
 lemma segment_int_extension_is_empty : segment A B ∩ extension A B = ∅ := by
   apply Subset.antisymm
@@ -330,19 +307,20 @@ lemma ABP_imp_P_on_ext_AB (PneAB : P ≠ A ∧ P ≠ B) :
   rw [B1b] at h
   tauto
 
-lemma ABP_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) :
-  A - B - P -> P on the line A B := by
-    intro hABP;
-    have hPonExtAB : P on extension A B := ABP_imp_P_on_ext_AB PneAB hABP
-    unfold LineThrough; simp only [mem_setOf_eq]
-    exact Line.all_points_on_an_extension_are_collinear hPonExtAB
-
-lemma APB_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) :
-  A - P - B -> P on the line A B := by
-    intro hABP;
-    have hPonSegAB : P on segment A B := APB_imp_P_on_segment_AB PneAB hABP
-    unfold LineThrough; simp only [mem_setOf_eq]
-    exact Line.all_points_on_a_segment_are_collinear hPonSegAB
+/- lemma ABP_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) : -/
+/-   A - B - P -> P on the line A B := by -/
+/-     intro ABP; -/
+/-     have distinctABP := Betweenness.abc_imp_distinct ABP -/
+/-     have AneB := by distinguish distinctABP A B -/
+/-     have colABP := Betweenness.abc_imp_collinear ABP -/
+/-     unfold LineThrough -/
+    
+/- lemma APB_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) : -/
+/-   A - P - B -> P on the line A B := by -/
+/-     intro hABP; -/
+/-     have hPonSegAB : P on segment A B := APB_imp_P_on_segment_AB PneAB hABP -/
+/-     unfold LineThrough; simp only [mem_setOf_eq] -/
+/-     exact Line.all_points_on_a_segment_are_collinear hPonSegAB -/
 
 end Line
 
