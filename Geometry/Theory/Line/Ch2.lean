@@ -213,7 +213,22 @@ lemma line_is_bigger_than_ray : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A 
   intro L A B AneB
   by_contra ABeqL
   -- idea: construct a point X - A - B, X is on L, by definition, but off AB, also by def. but under the hypothesis L = AB, -><-
-  sorry
+  have ⟨X, colXAB, distinctXAB, XAB⟩ := B2.left A B AneB
+  separate at distinctXAB;
+  have XonL : X on L := by
+    -- idea, L = AB, and L = colXAB.line by the Line.equiv
+    have LeqXAB : L = colXAB.line := by
+      have ABeqXAB := Line.equiv AneB ⟨Line.ray_has_endpoints.left, colXAB.mem A, Line.ray_has_endpoints.right, colXAB.mem B⟩
+      rw [<- ABeqXAB]; exact ABeqL.symm
+    rw [LeqXAB]; exact colXAB.mem X
+  rw [<- ABeqL] at XonL
+  rcases XonL with XonSeg | XonExt
+  · rcases XonSeg with AXB | AeqX | BeqX
+    · exact Betweenness.absurdity_abc_bac ⟨XAB, AXB⟩
+    · exact absurd AeqX XneA.symm
+    · exact absurd BeqX XneB.symm
+  · have ⟨ABX, _, _⟩ := XonExt
+    exact Betweenness.absurdity_abc_cab ⟨ABX, XAB⟩
 
 /- It helps to be able to commute these around, when we get to congruence this will make part of it trivial -/
 lemma segment_AB_eq_segment_BA : segment A B = segment B A := by
