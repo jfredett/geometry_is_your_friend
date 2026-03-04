@@ -136,7 +136,29 @@ have hBCnotparAC : (BC ∦ AC) := Line.intersecting_lines_are_not_parallel hPonB
 ```
 
 where I construct a proof that a bunch of lines are not parallel to one another by directly invoking the function
-provided by the `Line.intersecting_lines_are_not_parallel` lemma.
+provided by the `Line.intersecting_lines_are_not_parallel` lemma. This is very similar to plain old functional
+programming. `Line.intersecting_lines_are_not_parallel` is a 'lemma', sure:
+
+```lean
+lemma intersecting_lines_are_not_parallel {L M : Line} {P : Point} : (P on L) -> (P on M) -> (L ∦ M)
+``` 
+
+... in the sense that it is a logical statement about lines, but it's also a function that takes two facts (and some
+implicit variables those facts operate on) to produce a new fact.
+
+```lean
+lemma intersecting_lines_are_not_parallel 
+    -- Implicit arguments to the function are searched for in context when the function is called
+    {L M : Line} {P : Point} :
+    -- input arguments, these have _type_ `P on L`, which is itself of type `Prop`
+    (P on L) ->
+    (P on M) ->
+    -- output, a fact of type `(L ∦ M)`, which also has type `Prop`
+    (L ∦ M)
+```
+
+In this mode, "term mode", we act much more like a Haskell-adjacent language. It's quite similar to the old pointfree
+golf I assume people still play with Haskell. 
 
 > Aside: You can also see some custom syntax there for 'not parallel', this is very simple to achieve using the simplest
 > notation-related tool in Lean, `notation`
@@ -149,7 +171,24 @@ provided by the `Line.intersecting_lines_are_not_parallel` lemma.
 > The syntax side of things is a _deep_ well, I'll talk about it a little more at the end, but it suffices to say that I
 > have not yet found too many areas where I think the syntax couldn't be bent to whatever will pulls on it.
 
-You can also use `tactic` mode to prove theorems, and this is what I wanted to do for the `distinct` term.
+You can also use `tactic` mode to prove theorems, and this is what I wanted to do for the `distinct` term. Tactics are
+small programs that run against the 'proofstate', they can inspect known facts, manipulate the goal, and create new
+goals by 'proving' old goals. Those proofs themselves can have interior goals, which allows a tactic to incrementally
+break down a big type into a series of smaller types. Equivalently, it separates a complicated logical statement into
+many simpler ones.
+
+In Haskell, type-directed programming is this sort of delightful flow state where you gain the 'if it compiles, it
+probably works' feeling that is occasional but fleeting in Haskell, and rarely felt outside of languages not in its
+lineage. Lean is quite good at eliciting that feeling, and this makes sense because the type system is powerful enough
+to accurately represent mathematics directly, and mathematics is only ever that feeling (for me, at least).
+
+Tactics are quite powerful, but they're also a little magical. A tactic like `tauto` or `simp` or `aesop` might prove
+your goal, but the reasoning might be opaque, or the proof it generates highly complicated; so it's worthwhile, IMO, to
+learn how to build up from terms, as it's usually a lot more parsimonious, and once you get the hang, it's a lot easier
+to think about it in terms of simple function applications. When building tactics, term-mode proving is handy for
+constructing proofs without having to drop into the `evalTactic` mode; and once you start invoking nested tactics you
+are, at least in spirit, ceding some control over what the prover is doing (which I'll show later when we get to the
+meat of the `distinguish` and `separate` tactics).
 
 # What distinct should do
 
@@ -163,6 +202,13 @@ In particular, I need three things:
 This would allow me to work with the `distinct` condition as a goal, known fact, and tool to prove these simple cases
 automatically by automatically looking at the lists of known-distinct items and trying to prove the goal without
 cluttering the proofstate (which is important for performance reasons).
+
+So far I've found that there are really only three 'kinds' of things you can do in Lean while proving; you can
+manipulate and add facts to the context, you can manipulate and split or glue goals together, or you can close goals.
+Tactics, my intuition says, should have an answer for how they work in each of those states. In my case, `distinct` is a
+type that can be used to express pairwise distinct relationships between (relatively) small, finite lists of variables;
+`distinguish` is a tactic that can prove inequalities using `distinct` hypotheses, and `separate` is a tactic that
+deconstructs a `distinct` term into an equivalent set of inequalities. This covers the three cases.
 
 # How it works
 
@@ -199,10 +245,12 @@ syntax "distinct" ident+ : term
 macro_rules
   | `(distinct $xs*) => `(Distinct [$xs,*])
 
+-- ... snip ...
+
 end Distinct
 ```
 
-this gets me to `distinct A B C D E` as a proof term, I can also write `Distinct [A,B,C,D,E]` but that's much more
+This gets me to `distinct A B C D E` as a proof term, I can also write `Distinct [A,B,C,D,E]` but that's much more
 cumbersome. The syntax category is probably not necessary, but it feels nice to give everything it's own little home.
 Next I added a couple example statements to test with:
 
@@ -211,7 +259,7 @@ Next I added a couple example statements to test with:
 example : distinct A B C D E -> A ≠ X -> A ≠ B ∧ B ≠ C ∧ X ≠ A ∧ (∀ P : Nat, P = 2 -> P > 1) ∧ C ≠ D := by
   intro h AneX
   distinguish
-  -- this part doesn't matter, the assertions are just to make sure the distiguish step doesn't oversolve
+  -- this part doesn't matter, the extra assertions are just to make sure the distiguish step doesn't oversolve
   exact AneX.symm
   intro P Peq2
   rw [Peq2]; trivial
@@ -231,7 +279,7 @@ example (h : distinct A B) : A ≠ B := by distinguish
 
 ```
 
-This covers a few cases, the plan was to write a tactic that worked roughly like this:
+This shows how `distinguish` should work; in particular it should:
 
 1. Flatten and split the goal tree so that every part of the conjunction was it's own goal.
 2. Make a list of all the goals that are just an inequality statement
@@ -280,15 +328,17 @@ partial def splitAndTagGoals : TacticM (List MVarId × List Nat) := do
   return (mvars, ineqIndices)
 ```
 
-There is a great deal of bookkeeping in this, but it's a pretty simple idea -- grab the goal (`getMainGoal`), then try
-to break it into its components using the `splitAndExtract` helper; it does this by simple pattern matching on the goal
--- if it's a conjunction (`q($a ∧ $b)`, which is a quotation of the literal `A ∧ B` with match placeholder for the left
-and right sides of the conjunction), then recurse down each side, updating the index of the goal, if it's an inequality
-(`~q(@Ne _ $a $b)`), mark it as such, and otherwise mark it as a non-equality.
+The majority of tactic writing, it seems, is bookkeeping. There is a great deal of bookkeeping in this, but it's a
+pretty simple idea -- grab the goal (`getMainGoal`), then try to break it into its components using the
+`splitAndExtract` helper defined inline; it does this by simple pattern matching on the goal -- if it's a conjunction
+(`q($a ∧ $b)`, which is a quotation of the literal `A ∧ B` with match placeholder for the left and right sides of the
+conjunction), then recurse down each side, updating the index of the goal, if it's an inequality (`~q(@Ne _ $a $b)`),
+mark it as such, and otherwise mark it as a non-equality.
 
 The other part of this function generates (via the `constructor` tactic in the first branch of the match) an `MVar` for
 each new goal; so the result is a list of `MVarId`s, one for each goal; and a second list which indexes the first to
-tell us where all the inequality goals are (`ineqIndices`).
+tell us where all the inequality goals are (`ineqIndices`). This could maybe be done via pattern matching, but
+`constructor` is a nice, predictable tactic, and shouldn't cause trouble.
 
 Now we've successfully decomposed the goal from a single conjunction tree (that is, it's in some freely associated form,
 not uniformly right-associated) to a 'flat' (right-associatated) list of goals and an index of where the ones we can
@@ -317,12 +367,24 @@ From the LTPG:
 > -- `q(...)` is an expression
 
 This took me a bit to grok, and I'm not sure it feels natural yet, but then again quotes and quasiquotes don't seem like
-the sort of thing you're ever supposed to feel comfortable with, so I suppose it's feeling the way it's supposed to.
+the sort of thing you're ever supposed to feel comfortable with, so I suppose it's feeling the way it's supposed to. The
+type of `goalTypeProp` in:
+
+```lean
+let goalType ← g.getType
+have goalTypeProp : Q(Prop) := goalType
+```
+
+is the _quotation_ of an arbitrary proposition, not a proposition itself. It's a syntactic version of, e.g., `A ≠ B`,
+not the statement `A ≠ B` itself. The same as the difference between: `"A ≠ B"` and `A ≠ B`. 🤯 I suppose there is a
+reason they call it quoting.
+
+
 Another thing this function doesn't do is try to disambiguate situations which are not simple conjunctions; consider a
 proposition like:
 
 ```lean
-distinct A B C D -> A ≠ B ∧ (C ≠ D ∨ V = W) 
+distinct A B C D -> A ≠ B ∧ (C ≠ D ∨ V = W)
 ```
 
 In this example, it is easy to resolve, we know `A ≠ B := by distinguish` and `C ≠ D := by distinguish`, but the
@@ -361,13 +423,13 @@ of arity 2 because it has two parameters, the list of points (it's second parame
 type of the values in that list is not constrained to _only_ points, and so there is an implicit type parameter.
 
 Lean is pretty aggressive about making parts of the language implicit, this is a big step in making the language more
-ergonomic than other languages I've tried. Ergonomics rarely is the only reason I stop using a prover, but it's
+ergonomic than other languages I've tried. Ergonomics rarely are the only reason I stop using a prover, but it's
 frequently the thing that makes it impossible to get over whatever other struggles I have. Lean does a very good job
 here of making it possible -- even easy -- to let context fill in details you don't want to care about but need to care
 about, probably my favorite part of the language.
 
 The code itself is simple; it walks over each fact in the `LocalContext` and builds up a list; the `let mut` is a little
-bit of a lie, as I understand, it's hiding a `State`-monad-adjacent thing that lets you pretend the variable is mutable
+bit of a lie, as I understand. It hides a `State`-monad-adjacent thing that lets you pretend the variable is mutable
 even in this pure-ish environment. This makes it pretty pleasant to write these little programs that query the
 proof-state; it's not too far away from a regular imperative language about as weildy as shell; not powerful, but
 powerful enough.
@@ -450,10 +512,23 @@ to fail if any of the facts we're trying to prove is a simple falsehood of `A �
 already cover that case. Once we're in the branch, the process is simple -- if the respective `fVars` for the left and
 right sides of the inequality are present in the same list of distinct variables, we know there is a proof they are not
 equal, so I construct it using `simp` and `aesop`; two existing automated tactics that can resolve most simply proofs.
+
 The `simp` reduces the `distinct` goal to the relevant inequalities, and `aesop` is able to use that to close. I could,
 and probably should, directly construct the proof here; but doing so is a little messy and this works alright for most
 cases. Since the number of variables is relatively small, it's unlikely this will become a huge performance issue except
-in extreme cases.
+in extreme cases. The reason to be wary here is `aesop` and `simp` both iterate over available theorems in the
+environment, _not_ just the hypotheses in your proofstate. Tagging a theorem with `@[simp]`, or equivalently with one of
+the tags `aesop` cares about, will cause each of these tactics to consider them when running, which it then considers
+recursively up to some user-defined limit. This can lead to two `Spooky-action-at-a-distance` problems, 
+
+1. adding a new `simp` tag or `aesop` tag can result in working proofs failing as they overflow the recursion stack
+2. adding a new `simp` or `aesop` can also result in a performance problem on random theorems. If the new entry adds a
+   new path that can be recursed through, it may result in the prover spending time chasing rabbits.
+
+The moral of the story is to be judicious about the use of `simp` and `aesop` both as tags and tactics. In this case,
+the scope of available and relevant theorems is _relatively_ small, and it should be okay. In principle there should be
+a finitely constructible proof for these facts, and as the `FIXME` mentions, I should probably use it; but this is
+certified Good Enough(tm).
 
 > Aside: It's _really_ interesting how performance of the prover becomes a concern for the math side of things. Earlier,
 > while working more directly on the geometry, I was pretty liberal using the `tauto` tactic; which more or less
@@ -486,18 +561,17 @@ example (A B C D : Point) (h : distinct A B C D) : A ≠ B ∧ B ≠ C ∧ A ≠
   run_tac runDistinct
 ```
 but this is ugly, I prefer the `distinguish` keyword I set before. In fact, I need to be able to use this syntax in
-three contexts:
+three contexts as prior mentioned:
 
 1. As a hypothesis in a theorem statement, e.g. `distinct A B C -> ...`
 2. As a conclusion of a theorem statement, e.g., `... -> distinct A B C := by ...`
 3. As a tool for intermediate proof steps, e.g., `have h := by distinguish`, or `separate at distinctABC` (where
    `distinctABC : distinct A B C`), or even `separate` to separate a goal of `distinct A B C ...` into a conjunction of
-   inequalities. 
+   inequalities.
 
 To do this, we must dive into the darkest magic of this whole thing, the `syntax` and `elab` APIs. The first two items
 are easy, they just construct the `Distinct` structure while eliding the need for brackets and commas (in the case of
 `distinct`, which I showed at the beginning):
-
 
 ```lean
 -- Custom syntax for distinct/distinguish
@@ -608,7 +682,11 @@ elab_rules : tactic
         catch _ => pure ()
 ```
 
-then let's just look at the second half, as it's easy to explain:
+notice the `at h` side uses `simp` and `aesop`, whereas the goal side is just `simp`. Additionally, I restricted `simp`
+to a fixed list of theorems; which can help address the performance issues. In both cases the `simp` flattens out the
+goal into a series of inequalities, and the `aesop` line will then close the inequalities.
+
+I'll focus at the second half, as it's easy to explain:
 
 ```lean
       withMainContext do
@@ -635,11 +713,13 @@ then let's just look at the second half, as it's easy to explain:
         catch _ => pure ()
 ```
 
-This is similar to the `runDistinct` function -- I grab the context, and look at the goal. I'm going to 'prove' this goal by reducing it from a 'prove this conjunction' to
-'the conjunction is proved only if it's constituents are proved'. So I instantiate the MVar and inspect it's type, apply a `whnf` to ensure it's in a normal form, and then verify
-it is indeed a `distinct` goal with the same arity method as `runDistinct`.
+This is similar to the `runDistinct` function -- I grab the context, and look at the goal. I'm going to 'prove' this
+goal by reducing it from a 'prove this conjunction' to 'the conjunction is proved only if it's constituents terms are
+proved'. To do that, I instantiate the MVar and inspect it's type, apply a `whnf` to ensure it's in a normal form, and then
+verify it is indeed a `distinct` goal with the same arity method as `runDistinct`. Worth noting `whnf` is another
+recursive tool which can have similar recursion depth issues, though it's less susceptible in my experience.
 
-Next, I grab the list of points via the `extractPoints` helper, and walk over each one, rewriting with
+Next, I grab the list of points via the `extractPoints` helper, and walk over each one, rewriting with:
 
 ```lean
 @[simp] theorem pairwise_cons : Pairwise R (a::l) ↔ (∀ a', a' ∈ l → R a a') ∧ Pairwise R l :=
@@ -649,11 +729,9 @@ which says, "If an item is in a `List.Pairwise R`, then it has the relationship 
 relationship following it's position in the list" 
 
 If this fails for any reason, the point is skipped and we won't be able to prove everything, but that case is actually
-impossible; because we know the list is only items in a pairwise relationship anyway. After that, there is a big `simp`
-line which does all the necessary rewriting to flatten the list of conjunctions and eliminate the tail cases where a `∧
-True` gets injected to cover the final case. The last `try evalTactic` covers a case where there aren't enough elements
-in the distinct set, and in this case if the tactic fails we don't care, it's a convenience to not have loose, trivial
-goals floating around.
+impossible; because we know the list is only items in a pairwise relationship anyway. The last `try evalTactic` covers a
+case where there aren't enough elements in the distinct set, and in this case if the tactic fails we don't care, it's a
+convenience to not have loose, trivial goals floating around.
 
 All that, ultimately, allows for this to work:
 
@@ -774,7 +852,6 @@ Thanks for nudging me towards writing about it.
 /Joe
 
 # Footnotes
-
 
 [1] Of course, this is equal parts real -- I do mean this as a direct letter to you; but also it's just going to be
 stuck in the repo and and anyone'll be able to read it, and I've written explanations of stuff I'm sure you already know
