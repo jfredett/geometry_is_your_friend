@@ -1,16 +1,16 @@
 Hey Shae,
 
-We briefly chatted on Mastodon about my excitement around Lean tactic metaprogramming, and you mentioned it would make a
-good blogpost, and I wanted to agree; but I kind of hate blogging. I've been doing this "LOG.md" thing for a bit; and I
-like that, but it doesn't _feel_ right for an explanatory blog; I use it more as a journal or engineering log or
+We (very) briefly chatted on Mastodon about my excitement around Lean tactic metaprogramming, and you mentioned it would
+make a good blogpost, and I wanted to agree; but I kind of hate blogging. I've been doing this "LOG.md" thing for a bit;
+and I like that, but it doesn't _feel_ right for an explanatory blog. I use it more as a journal or engineering log or
 scratchpad. I've been trying to embrace my hyperlexia, and this is a good way to do it, but is does feel a little weird
 to write a blog-ish explainer/experience report in it.
 
-I also just don't like the sort of anonymous audience of a blogpost; I know someone _might_ read it, but it feels itchy
-to write something someone only _might_ read. I spend a lot of time thinking about writing and writing about thinking
-and I _care_ about it a lot, I think my identity is in it a bit; so it feels bad if I don't know _someone_ will read it.
-With LOG.md, I know _I'll_ read it, so I don't mind writing, a blogpost, though? All those hits could be bots and
-crawlers; the comments just LLMs; just feels lousy to not _know_ someone has really read it, feels like I wasted my
+I guess it's because I don't like the sort of anonymous audience of a blogpost; I know someone _might_ read it, but it
+feels itchy to write something someone only _might_ read. I spend a lot of time thinking about writing and writing about
+thinking and I _care_ about it a lot, I think my identity is in it a bit; so it feels bad if I don't know _someone_ will
+read it. With LOG.md, I know _I'll_ read it, so I don't mind writing, a blogpost, though? All those hits could be bots
+and crawlers; the comments just LLMs; just feels lousy to not _know_ someone has really read it, feels like I wasted my
 time.
 
 But, as sometimes happens when my anxiety spikes about stuff, I had an idea. I may not be able to ensure that an
@@ -24,7 +24,7 @@ appreciate this approach to blogging; I hope you don't mind being my test subjec
 
 Anyway, the meat of the letter, tactic programming in Lean4.
 
--- Geometry
+# Geometry
 
 I've been working on this thing (`geometry_is_your_friend`) as a little project to learn Lean. It's formalizing Martin
 Greenberg's _Euclidean and Noneuclidean Geometry_. In geometry, one frequently deals with small collections of objects
@@ -79,24 +79,24 @@ simp only [ne_eq, List.pairwise_cons, List.mem_cons, List.not_mem_nil, or_false,
 forall_eq, IsEmpty.forall_iff, implies_true, List.Pairwise.nil, and_self, and_true]
 ```
 
-has cluttered my proof. This is ugly, and so I dug into the guts of the tactic mode to figure it out. Eventually, I got
-it working, basically; it took a whole bunch of cajoling and I only understand like, 20% of it; but it works. I went
-through the _Lean Tactic Programming Guide_ and cannot speak highly enough of it as a significantly better introduction
-to the topic then this will be. The Lean tactic system is _really_ neat; and also a _headtrip_ to understand. It's very
-easy to confuse yourself in terms of what level you're thinking at; and I spent a fair few hours confused because I
-hadn't realized I needed to convert from the `LocalDecl` to an actual `Expr` in order to reference a hypothesis inside
-the inequality proof.
+has cluttered my proof. This is ugly, and so I dug into the guts of the tactic mode to figure it out. Eventually, after
+a whole bunch of cajoling, and while only truly understanding like, 20% of it; but it works. I went through the [_Lean
+Tactic Programming Guide_](https://github.com/mirefek/lean-tactic-programming-guide/tree/main) and cannot speak highly
+enough of it as a significantly better introduction to the topic then this will be. The Lean tactic system is _really_
+neat; and also a _headtrip_ to understand. It's very easy to confuse yourself in terms of what level you're thinking at;
+and I spent a fair few hours confused because I hadn't realized I needed to convert from the `LocalDecl` to an actual
+`Expr` in order to reference a hypothesis inside the inequality proof.
 
 Actually, let me back up a little and talk about the Proof environment and the proofstate. This is based on having read
 through the _Lean Tactic Programming Guide_ over the course of an evening. It is with that hubris the rest of this
 letter is written.
 
--- Proofstate
+# Proofstate
 
 A proof, as you know, is a program; and in particular it is a program of both values and types. Values have Types, and
-Types, in Lean, can depend on Values. The nice thin about Lean's syntax is that it makes heavy use of unicode, so you
-can encode a statement using relatively natural mathematical syntax without having to resort to LaTeX by using some
-clever editor features and a bit of muscle memory which develops pretty quickly. So something like: 
+Types, in Lean, can depend on Values. The nice thing about Lean's syntax is that it makes heavy use of unicode, so you
+can encode a statement using relatively natural mathematical syntax without having to resort to LaTeX. Lean uses some
+clever editor features and a bit of muscle memory which develops pretty quickly. So something like:
 
 ```lean
 example : distinct A B C D E -> A ≠ X -> A ≠ B ∧ (B ≠ C ∧ X ≠ A) ∧ (∀ P : Nat, P = 3 -> P > 1) ∧ (C ≠ D ∨ V = W) := by
@@ -138,16 +138,20 @@ have hBCnotparAC : (BC ∦ AC) := Line.intersecting_lines_are_not_parallel hPonB
 where I construct a proof that a bunch of lines are not parallel to one another by directly invoking the function
 provided by the `Line.intersecting_lines_are_not_parallel` lemma.
 
-> Aside: You can also see some custom syntax there for 'not parallel', this is very simple to achieve using the simplest notation-related tool in Lean, `notation`
+> Aside: You can also see some custom syntax there for 'not parallel', this is very simple to achieve using the simplest
+> notation-related tool in Lean, `notation`
 >
 > ```lean
 > notation:20 L " ∥ " M => Parallel L M
 > notation:20 L " ∦ " M => ¬(Parallel L M)
 > ```
+>
+> The syntax side of things is a _deep_ well, I'll talk about it a little more at the end, but it suffices to say that I
+> have not yet found too many areas where I think the syntax couldn't be bent to whatever will pulls on it.
 
 You can also use `tactic` mode to prove theorems, and this is what I wanted to do for the `distinct` term.
 
--- What distinct should do
+# What distinct should do
 
 In particular, I need three things:
 
@@ -160,7 +164,7 @@ This would allow me to work with the `distinct` condition as a goal, known fact,
 automatically by automatically looking at the lists of known-distinct items and trying to prove the goal without
 cluttering the proofstate (which is important for performance reasons).
 
--- How it works
+# How it works
 
 Here's the lede I've kept buried, the proofstate is just a Monad, it's essentially a little virtual machine that tracks
 the hypotheses in the `LocalContext` as a bunch of `LocalDecls`, which can be easily turned into `Expr`s, which is the
@@ -471,7 +475,7 @@ After that is just book keeping, marking the goals we solved and updating the pr
 own, so all of this bookkeeping has been to accomplish this step, the actual tactic is very simple, but updating the
 state is tricky.
 
--- Syntax and tooling
+# Syntax and tooling
 
 All of this gets us through the _code_ part of this, but there is a whole second step. At the beginning, I showed a bit
 of the `notation` created for `distinct`, in fact, there are three items of syntax I need; I have the tools, but they
@@ -672,7 +676,7 @@ example : D ≠ A ∧ D ≠ B ∧ D ≠ C -> distinct A B C -> distinct A B C D 
   repeat tauto -- tauto covers the .symm
 ```
 
--- Effect on the initial exercise
+# Effect on the initial exercise
 
 This was the original:
 
@@ -727,7 +731,7 @@ A ≠ B ∧ A ≠ C ∧ A ≠ D ∧ B ≠ C ∧ B ≠ D ∧ C ≠ D
 most of which are dispatched by the `distinguish` command immediately following it. The only remaining case is that `B`
 and `D` are distinct, which is easy to prove by contradiction and a known absurdity.
 
--- What's left
+# What's left
 
 There are a lot of improvements to make, I think; my use of the `elab` facilities are pretty naive, and I think a lot
 could be cleaned up if I had a better understanding of the API, but no progress without practice, and this really
@@ -769,7 +773,7 @@ Thanks for nudging me towards writing about it.
 
 /Joe
 
---- Footnotes
+# Footnotes
 
 
 [1] Of course, this is equal parts real -- I do mean this as a direct letter to you; but also it's just going to be
