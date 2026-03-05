@@ -208,6 +208,27 @@ lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L int
   exact LintSeg
   repeat exact AneB
 
+/-- If A - X - B, and L intersects a segment A B at X, then L splits A and B -/
+lemma splits_points {L : Line} {A X B : Point} (AXB : A - X - B) :
+  (L intersects M at X) -> (L splits A and B) := by
+  intro LintAXBatX
+  unfold SameSide
+  push_neg
+  intro AoffL BoffL
+  have distinctAXB := Betweenness.abc_imp_distinct AXB
+  distinguish
+  use X
+  constructor
+  · unfold Segment; simp only [mem_setOf_eq]; left; exact AXB
+  · exact Intersection.inter_touch_left LintAXBatX
+
+lemma miss_means_off {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
+  intro AneX LintMatX
+  by_contra! AonLandM
+  have AinInt : A ∈ L ∩ M := AonLandM
+  rw [LintMatX] at AinInt
+  tauto
+
 end Intersection
 
 end Geometry.Theory

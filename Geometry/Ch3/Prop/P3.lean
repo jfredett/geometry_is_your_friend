@@ -26,63 +26,6 @@ open Geometry.Ch2.Prop
 open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
 
-lemma Intersection.miss_means_off {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
-  intro AneX LintMatX
-  by_contra! AonLandM
-  have AinInt : A ∈ L ∩ M := AonLandM
-  rw [LintMatX] at AinInt
-  tauto
-
-/-- If A - X - B, and L intersects a segment A B at X, then L splits A and B -/
-lemma Intersection.splits_points {L : Line} {A X B : Point} (AXB : A - X - B) :
-  (L intersects M at X) -> (L splits A and B) := by
-  intro LintAXBatX
-  unfold SameSide
-  push_neg
-  intro AoffL BoffL
-  have distinctAXB := Betweenness.abc_imp_distinct AXB
-  distinguish
-  use X
-  constructor
-  · unfold Segment; simp only [mem_setOf_eq]; left; exact AXB
-  ·exact Intersection.inter_touch_left LintAXBatX
-
-lemma Line.glue_segment {A B C : Point} : A - B - C -> segment A C = segment A B ∪ segment B C := by
-  intro ABC
-  apply Subset.antisymm
-  · intro P PonAC
-    rcases PonAC with APC | PeqA | PeqC 
-    · sorry
-    · sorry
-    · sorry
-  · intro P PonABorBC
-    rcases PonABorBC with PonAB | PonBC 
-    · sorry
-    · sorry
-
-lemma Line.segment_extension {A B C : Point} : A - B - C -> segment A B ⊆ segment A C := by
-  intro ABC P PonAB
-  rcases PonAB with APB | PeqA | PeqB
-  · unfold Segment; simp only [mem_setOf_eq];
-    have dAPC := (Ex1.a ⟨APB, ABC⟩) forgetting B
-    have cAPC := (Ex1.b ⟨APB, ABC⟩) forgetting B
-    sorry 
-
-  · rw [<- PeqA]; exact Line.seg_has_endpoints.left
-  · rw [<- PeqB]; unfold Segment; simp only [mem_setOf_eq] ; left; exact ABC;
-
-lemma Betweenness.split_extend {L : Line} {A B C : Point} : A - B - C -> (L splits A and B) -> (L splits A and C) := by
-  intro ABC LsplitAB
-  have distinctABC := Betweenness.abc_imp_distinct ABC
-  have cABC := Betweenness.abc_imp_collinear ABC
-  unfold SameSide at *; push_neg at *
-  intro AoffL CoffL
-  refine ⟨(by distinguish), ?_⟩
-  by_contra! hNeg
-  have BonAC : B on segment A C := by tauto
-  have BoffL := hNeg B BonAC
-  obtain ⟨_, P, PonAB, PonL⟩ := LsplitAB AoffL BoffL
-  exact (absurd PonL) (hNeg P <| Line.segment_extension ABC <| PonAB)
 
 
 /-- p112. Given A - B - C and A - C - D, then B - C - D and A - B - D (see Figure 3.9) -/

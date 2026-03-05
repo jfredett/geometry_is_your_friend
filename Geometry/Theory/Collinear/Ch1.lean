@@ -91,7 +91,7 @@ noncomputable instance collinearCoe {points : List Point} (h : Collinear points)
     simp_all only [List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
     trivial
 
--- example (h : collinear A B C) : collinear C B A := order_irrelevance h
+example (h : collinear A B C) : collinear C B A := order_irrelevance h
 
 end Collinear
 
