@@ -19,6 +19,12 @@ open Geometry.Ch2.Prop
 
 namespace Intersection
 
+instance {L M : Line} {X : Point} : Coe (Intersects L M X) (X ∈ L ∩ M) where
+  coe h := by
+    unfold Intersects at h
+    rw [h]
+    exact Set.mem_singleton X
+
 /-- No points are contained on the intersection of a segment and it's related extension -/
 lemma seg_inter_ext_empty : segment A B ∩ extension A B = ∅ := by
   unfold Segment; unfold Extension

@@ -60,17 +60,14 @@ lemma Line.glue_segment {A B C : Point} : A - B - C -> segment A C = segment A B
     · sorry
     · sorry
 
-
 lemma Line.segment_extension {A B C : Point} : A - B - C -> segment A B ⊆ segment A C := by
   intro ABC P PonAB
   rcases PonAB with APB | PeqA | PeqB
   · unfold Segment; simp only [mem_setOf_eq];
     have dAPC := (Ex1.a ⟨APB, ABC⟩) forgetting B
     have cAPC := (Ex1.b ⟨APB, ABC⟩) forgetting B
-    rcases B3 A P C ⟨dAPC, cAPC⟩ with ⟨APC, _⟩ | ⟨_, PAC, _⟩ | ⟨_, _, ACP⟩
-    · tauto
-    · exfalso; exact Betweenness.absurdity_abc_bac ⟨sorry, PAC⟩
-    · exfalso; exact Betweenness.absurdity_abc_cab ⟨sorry, ACP⟩
+    sorry 
+
   · rw [<- PeqA]; exact Line.seg_has_endpoints.left
   · rw [<- PeqB]; unfold Segment; simp only [mem_setOf_eq] ; left; exact ABC;
 
@@ -267,24 +264,46 @@ theorem P3.right : (A - B - C) ∧ (A - C - D) -> A - B - D := by
       by_contra! EBguardsAandC
       have h := B4i ⟨AoffEB, CoffEB, DoffEB⟩ ⟨EBguardsAandC, raa⟩
       contradiction
-    have EBsplitsAandD : EB splits A and D := by
-      
-      sorry
-    unfold SameSide at EBsplitsAandC
-    push_neg at EBsplitsAandC
-    specialize EBsplitsAandC AoffEB CoffEB
-    have ⟨AneC, P, ⟨PonSegAC, PonEB⟩⟩ := EBsplitsAandC
-    have PinACintEB : P ∈ line A C ∩ EB := ⟨(Line.seg_sub_line PonSegAC), PonEB⟩
-    ---
-    have LeqAC : cL = line A C := Line.equiv AneC 
-      ⟨cL.mem A, Line.line_has_definition_points.left, cL.mem C, Line.line_has_definition_points.right⟩
-    rw [LeqAC] at LintEBatB
-    rw [LintEBatB] at PinACintEB
-    have PeqB : P = B := by tauto
-    rw [<- PeqB]
-    rcases PonSegAC with APC | AeqP | CeqP
-    · sorry
-    · rw [AeqP, <- PeqB] at AneB; contradiction
-    · rw [CeqP, <- PeqB] at BneC; contradiction
+    have EBsplitsAandD := B4iii ⟨AoffEB, CoffEB, DoffEB⟩ ⟨EBsplitsAandC, raa⟩
+    unfold SameSide at EBsplitsAandD
+    push_neg at EBsplitsAandD
+    specialize EBsplitsAandD AoffEB DoffEB
+    have ⟨_, P, PonAD, PonEB⟩ := EBsplitsAandD
+    have PonLineAD := Line.seg_sub_line PonAD
+    have ADeqcL : line A D = cL.line := Line.equiv AneD
+      ⟨Line.line_has_definition_points.left, cL.mem A, Line.line_has_definition_points.right, cL.mem D⟩
+    have PinIntEBcL : P ∈ cL ∩ EB := by
+      rw [<- ADeqcL]; tauto
+    have PeqB : P = B := Intersection.intersection_is_unique cL EB LneEB LnparEB ⟨PinIntEBcL, LintEBatB⟩
+    rcases PonAD with APD | PeqA | PeqD
+    · rwa [PeqB] at APD
+    · exfalso; rw [<- PeqB, PeqA] at AneB; contradiction
+    · exfalso; rw [<- PeqB, PeqD] at BneD; contradiction
+    
+/-
+
+Let me take you through what school was like in more detail.
+
+For the first few years, from third up through seventh grade (I 'skipped' sixth, because it was cheaper
+to have some hand-me-down school materials from the Pastor's family, as I recall), I did school alone in
+what would eventually be my sister's downstairs bedroom. I would sit and stare at a wall for a few hours,
+write some answers on a sheet that I knew wouldn't be checked by anyone, and 'finish' around four or five.
+
+For the first few weeks, Mom sat at a big desk we got from an office auction or something, playing teacher,
+but never really doing any teaching. I remember asking her a question about my math homework once, she told
+me the answer was probably in my book and I should read it. So I did.
+
+Later, when I started seventh grade, is we transitioned to the 'Video Learning Academy' -- I actually don't
+remember the _official_ name, but I think that's what it was. In any case, this was a system where you'd be
+sent these pre-recorded videos with lectures, the 'teachers' -- and some of them legitmately did do some teaching
+-- would occasionally pause and 'ask the students at home' for an answer before returning to the classroom
+for the same.
+
+This is when the supervision really became a formality. For a while it was 'check in every day', then it was
+'check in occasionally, when the thought occurred to Mom' to 'you are responsible for your own education' and
+'we expect you to do this' -- coupled with the classic "Honor thy father and mother" canard that a certain
+class of evangelicals like to break out whenever they do something shitty and want to make it the kid's fault.
+
+-/
 
 end Geometry.Ch3.Prop
