@@ -53,26 +53,39 @@ private partial def buildSublistProof (forgottenExprs : List Expr) (filtered ori
     let α := original.appArg!
     mkAppOptM ``List.Sublist.slnil #[some α]
 
-syntax (name := forgettingTerm) term " forgetting " term : term
+syntax term " forgetting " term,+ : term
 
 elab_rules : term
-  | `($col forgetting $p) => do
+  | `($col forgetting $[$ps],*) => do
     let colExpr ← elabTerm col none
     let colType ← inferType colExpr
-    let forgottenExpr ← elabTerm p none
+    let forgottenExprs ← ps.toList.mapM (fun p => elabTerm p none)
     if isAppOfArity colType ``Collinear 1 then
       let listExpr := colType.getAppArgs[0]!
-      let filteredList ← filterForgotten [forgottenExpr] listExpr
-      let sublistProof ← buildSublistProof [forgottenExpr] filteredList listExpr
+      let filteredList ← filterForgotten forgottenExprs listExpr
+      let sublistProof ← buildSublistProof forgottenExprs filteredList listExpr
       mkAppM ``Collinear.sublist #[colExpr, sublistProof]
     else if isAppOfArity colType ``Distinct 2 then
       let listExpr := colType.getAppArgs[1]!
       let α := colType.getAppArgs[0]!
-      let filteredList ← filterForgotten [forgottenExpr] listExpr
-      let sublistProof ← buildSublistProof [forgottenExpr] filteredList listExpr
+      let filteredList ← filterForgotten forgottenExprs listExpr
+      let sublistProof ← buildSublistProof forgottenExprs filteredList listExpr
       mkAppOptM ``Distinct.sublist #[some α, none, none, some colExpr, some sublistProof]
     else
       throwError "forgetting: expected Collinear or Distinct, got {colType}"
+
+
+example : distinct A B C D -> distinct A B C := by
+  intro dABCD
+  exact dABCD forgetting D
+
+example : distinct A B C D E F G H I J -> distinct A B C D E F G H := by
+  intro dABCD
+  exact (dABCD forgetting J) forgetting I
+
+example : distinct A B C D E F G H I J -> distinct A B C D E F G H := by
+  intro dABCD
+  exact dABCD forgetting I, J
 
 end Forgetting
 

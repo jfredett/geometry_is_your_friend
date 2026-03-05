@@ -869,3 +869,20 @@ me; it's delightful.
 [4] I am _positive_ there is a cleaner way to do this; I don't know what it is, but I'm sure that spending more time
 building up a better structure over the proof would help simplify the monster here, but the critical thing is this does
 work for most of what I need, and so the tyrrany of the local optimum is _definitely_ going to win.
+
+P.S.
+
+A stunning addendum to my suggested trichotomy of things a keyword might operate on -- another has been found!
+
+```lean
+example : distinct A B C D -> distinct A B C := by
+  intro dABCD
+  exact dABCD forgetting D
+```
+
+This is like a little wrapped up proof, similar to the `distinguish` proof, but instead of being a tactic it's a sort of
+term-mode operator. The implementation works for both `collinear` and `distinct` by doing type-dispatch in the
+elaboration step. It constructs the proof dynamically, similar to `distinguish`, but without needing `aesop`, which is
+pretty handy. Operators on proof terms like this is a whole other world I hadn't considered for syntax trickery. Lean is
+so cool.
+
