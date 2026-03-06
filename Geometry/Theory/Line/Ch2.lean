@@ -20,6 +20,7 @@ set_option maxRecDepth 5000
 
 namespace Line
 
+
 /-- An intersection is either empty, a singleton, or the lines are equal. -/
 lemma line_trichotomy : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ M = {X}) ∨ L = M := by
   intro L M
@@ -41,7 +42,7 @@ lemma line_trichotomy : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ 
       · tauto
 
 /-- If two distinct points are found on two lines, those lines are equal. -/
-lemma equiv {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
+@[simp] lemma equiv {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
   intro AneB ⟨AonL, AonM, BonL, BonM⟩
   have Aexists : A ∈ L ∩ M := by tauto
   have Bexists : B ∈ L ∩ M := by tauto
@@ -62,70 +63,17 @@ lemma equiv {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (
   · exact LeqM
 
 lemma commutes {AneB : A ≠ B} : line A B = line B A := by
-  -- FIXME: This is an aesop special, it's probably much simpler than this.
-  simp_all only [ne_eq]
-  ext x : 1
-  simp_all only [mem_setOf_eq, B1b]
-  apply Iff.intro
-  · intro a
-    cases a with
-    | inl h =>
-      subst h
-      simp_all only [B1b, or_self_left, true_or, or_true]
-    | inr h_1 =>
-      cases h_1 with
-      | inl h =>
-        subst h
-        simp_all only [true_or]
-      | inr h_2 =>
-        cases h_2 with
-        | inl h => simp_all only [true_or, or_true]
-        | inr h_1 =>
-          cases h_1 with
-          | inl h => simp_all only [or_true]
-          | inr h_2 => simp_all only [true_or, or_true]
-  · intro a
-    cases a with
-    | inl h =>
-      subst h
-      simp_all only [or_self_left, true_or, or_true]
-    | inr h_1 =>
-      cases h_1 with
-      | inl h =>
-        subst h
-        simp_all only [B1b, false_or, true_or]
-      | inr h_2 =>
-        cases h_2 with
-        | inl h => simp_all only [true_or, or_true]
-        | inr h_1 =>
-          cases h_1 with
-          | inl h => simp_all only [or_true]
-          | inr h_2 => simp_all only [true_or, or_true]
-
-
-
-/-- A segment contains the points that define it -/
-lemma seg_has_endpoints.left : A on segment A B := by tauto
-/-- A segment contains the points that define it -/
-lemma seg_has_endpoints.right : B on segment A B := by tauto
-
-/-- A ray contains the points that define it -/
-lemma ray_has_endpoints.left : A on ray A B := by
-  simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false]
-/-- A ray contains the points that define it -/
-lemma ray_has_endpoints.right : B on ray A B := by
-  simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false]
-
-/-- A ray A B is a subset of the line A B -/
-lemma ray_sub_line : ray A B ⊆ line A B := by
-  intro P PonRay
-  simp only [B1b, mem_setOf_eq]
-  rcases PonRay with (APB | AeqP | BeqP) | h
-  · right; right; left; assumption
-  · left; exact AeqP.symm
-  · right; left; exact BeqP.symm
-  · have ⟨ABP,_⟩ := h
-    right; right; right; left; assumption
+  suffices subset : ∀ A B : Point, A ≠ B -> line A B ⊆ line B A by
+    exact Subset.antisymm
+      (subset A B AneB)
+      (subset B A AneB.symm)
+  intro A B AneB P PinAB
+  rcases PinAB with PeqA | PeqB | APB | ABP | PBA
+  · rw [PeqA]; exact line_has_definition_points.right
+  · rw [PeqB]; exact line_has_definition_points.left
+  · rw [B1b] at APB; tauto
+  · rw [B1b] at ABP; tauto
+  · rw [B1b] at PBA; tauto
 
 /-- pXX "By the definition of segment and ray, `the segment A B ⊆ the ray A B`" -/
 -- FIXME: this is a quote but I didn't write the page #
@@ -164,15 +112,6 @@ lemma extension_has_endpoints.left : A off extension A B := by sorry
 /- A extension excludes the points that define it -/
 lemma extension_excludes_endpoints.right : B off extension A B := by sorry
 -/
-
-/-- A line contains the points that define it -/
-lemma line_has_definition_points.left : A on line A B := ray_sub_line ray_has_endpoints.left
-
-/-- A line contains the points that define it -/
-lemma line_has_definition_points.right : B on line A B := ray_sub_line ray_has_endpoints.right
-
-/-- A line contains the points that define it -/
-lemma line_has_definition_points : A on line A B ∧ B on line A B := ⟨line_has_definition_points.left, line_has_definition_points.right⟩
 
 /-- All points on a extension are collinear -/
 lemma all_points_on_an_extension_are_collinear {A B : Point} : P on extension A B -> collinear A B P := by

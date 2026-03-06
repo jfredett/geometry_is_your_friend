@@ -185,3 +185,28 @@ In any case, the aim is to build some more structures, probably divide up the `t
 with the way it's broken by chapter, I think it's maybe better to try to further divide up things; I believe there
 should be a way to re-export from the various files; so that I don't have to import everything by hand; but to be honest
 the module system (or import system, not really sure which is which) is a mystery.
+
+# 5-MAR-2025
+
+## 1316
+
+Finished 3.3, there are some corrolaries to wind up, but the main bulk is done. The proof is _very_ long and pretty
+nasty, so it probably needs an intermediate or ten to clean it up.
+
+I started thinking about a couple tasks I want to do:
+
+1. Alignment/Concurrence -- a generalization of the `collinear` condition to accept an arbitrary set of points,
+   convertible from `collinear`, but covers all the line equality constraints automatically.
+2. Separating `Theory` a bit more, creating namespaces for `Ray`, `Segment`, etc. Cleaning up naming, and ideally
+   getting `aesop` tags set up?
+3. A `construction` or `diagram` DSL for describing how to construct a diagram that can then be reasoned about; building
+   up the types of propositions by a series of operations that guarantees we're not assuming invalid constructions in
+   the type.
+4. Getting `leanblueprint` 'working', which probably means replacing it. I have `scripts/DumpDecls.lean` which outputs
+   some JSON, I don't like how manual the maintenance of LBP is, so something automated might just obviate the need for
+   all the TeX stuff. Whither plantuml, graphviz, or otherwise.
+5. Extending `Betweenness` to arbitrary length, inferring all the internal conditions; this notation would simplify the 
+   density axiom a bit, and is pretty natural.
+
+I think the plan is to prove the corollaries, merge, then figure out which way to extend; I definitely need to do some
+more refactoring and cleaning, I think the blueprint stuff will help.
