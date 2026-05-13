@@ -64,7 +64,13 @@ theorem P3.left : (A - B - C) ∧ (A - C - D) -> B - C - D := by
   /- ... points A and D are on opposite sides of EC -/
   have ECsplitsAandD : EC splits A and D := Intersection.splits_points ACD (Intersection.symm.mpr LintECatC)
   /- (4) We claim A and B are on the same side of EC. Assume on the contrary that A and B are on opposite sides of EC
-     (RAA Hypothesis) -/
+     (RAA Hypothesis)
+
+     {Ed} This section is proved without the use of Intersection.between_splits, which matches the book closely, but the core
+     argument is not extracted, just left to intuition. This is fine for humans, but it means a very long and inscrutable
+     proof in Lean, replicated ~4 times over, which sucks. So this matches the book, the other branches of this will use the
+     lemma. {/Ed}
+  -/
   by_cases raa : EC splits A and B
   · /- p113. (5) Then EC meets AB in a point between A and B (definition of "opposite sides" [ed. "splits" in our parlance]). -/
     have ⟨X, LintECatX, Xuniq⟩ : ∃! X : Point, (cL intersects EC at X) := by
@@ -163,66 +169,21 @@ theorem P3.right : (A - B - C) ∧ (A - C - D) -> A - B - D := by
   have DoffEB : D off EB := (Intersection.miss_means_off BneD.symm LintEBatB).resolve_left (not_not.mpr (cL.mem D))
   have EBsplitsAandC : EB splits A and C := Intersection.splits_points ABC (Intersection.symm.mpr LintEBatB)
   by_cases raa : EB splits C and D
-  · have ⟨X, LintEBatX, Xuniq⟩ : ∃! X : Point, (cL intersects EB at X) := by
-      rcases Line.line_trichotomy cL EB with LparEB | LintEBatX | LeqEB
-      · exfalso; rwa [LparEB] at BonLintEB
-      · exact LintEBatX
-      · exfalso; rw [<- LeqEB] at AoffEB; contradiction
-    have ⟨XonL, XonEB⟩ := Intersection.inter_touch LintEBatX
-    have CXD : C - X - D := by
-      have BneX : C ≠ X := by by_contra! hNeg; rw [hNeg] at CoffEB; contradiction
-      have DneX : D ≠ X := by by_contra! hNeg; rw [hNeg] at DoffEB; contradiction
-      have distinctCXD : distinct C X D := by separate; tauto;
-      have colCXD : collinear C X D := by
-        use cL
-        intro P PinCXD
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at PinCXD
-        rcases PinCXD with PeqC | PeqX | PeqD
-        · rw [PeqC, LeqCD]; exact LeqCD ▸ cL.mem C
-        · rwa [PeqX]
-        · rw [PeqD, LeqCD]; exact LeqCD ▸ cL.mem D
-      rcases B3 C X D ⟨distinctCXD, colCXD⟩ with ⟨CXD, _⟩ | reject
-      · exact CXD
-      · have EBguardsCD : EB guards C and D := by
-          refine ⟨CoffEB, DoffEB, Or.inr ?_⟩
-          by_contra! hNeg
-          have ⟨P, PonCD, PonEB⟩ := hNeg
-          have PinIntLine : P ∈ EB ∩ (line C D) := Set.inter_subset_inter_right EB Line.seg_sub_line ⟨PonEB, PonCD⟩
-          have CPD : C - P - D := by
-            rcases PonCD with CPD | CeqP | DeqP
-            · exact CPD
-            · exfalso; rw [<- CeqP] at PonEB; contradiction
-            · exfalso; rw [<- DeqP] at PonEB; contradiction
-          have PeqX : P = X := Intersection.intersection_is_unique cL EB LneEB LnparEB ⟨LeqCD ▸ PinIntLine.symm, ⟨XonL, XonEB⟩⟩
-          rcases reject with ⟨_, XCD, _⟩ | ⟨_, _, CDX⟩
-          · exact Betweenness.absurdity_abc_bac ⟨PeqX.symm ▸ XCD, CPD⟩
-          · exact Betweenness.absurdity_abc_acb ⟨CPD, PeqX.symm ▸ CDX⟩
-        contradiction
-    have BeqX : B = X := Intersection.uniq ⟨LintEBatB, LintEBatX⟩
-    have CBD : C - B - D := BeqX.symm ▸ CXD
-    -- NOTE: Interesting that I need the former to prove this, that seems like I got something off somewhere.
+  · have CBD : C - B - D := Intersection.between_splits BneC.symm BneD.symm LintEBatB ⟨cL.mem C, cL.mem D⟩ raa
     exfalso; exact Betweenness.absurdity_abc_bac ⟨P3.left ⟨ABC, ACD⟩, CBD⟩
   · push_neg at raa
-    have EBsplitsAandC : EB splits A and C := by
-      by_contra! EBguardsAandC
-      have h := B4i ⟨AoffEB, CoffEB, DoffEB⟩ ⟨EBguardsAandC, raa⟩
-      contradiction
     have EBsplitsAandD := B4iii ⟨AoffEB, CoffEB, DoffEB⟩ ⟨EBsplitsAandC, raa⟩
-    unfold SameSide at EBsplitsAandD
-    push_neg at EBsplitsAandD
-    specialize EBsplitsAandD AoffEB DoffEB
-    have ⟨_, P, PonAD, PonEB⟩ := EBsplitsAandD
-    have PonLineAD := Line.seg_sub_line PonAD
-    have ADeqcL : line A D = cL.line := Line.equiv AneD
-      ⟨Line.line_has_definition_points.left, cL.mem A, Line.line_has_definition_points.right, cL.mem D⟩
-    have PinIntEBcL : P ∈ cL ∩ EB := by
-      rw [<- ADeqcL]; tauto
-    have PeqB : P = B := Intersection.intersection_is_unique cL EB LneEB LnparEB ⟨PinIntEBcL, LintEBatB⟩
-    rcases PonAD with APD | PeqA | PeqD
-    · rwa [PeqB] at APD
-    · exfalso; rw [<- PeqB, PeqA] at AneB; contradiction
-    · exfalso; rw [<- PeqB, PeqD] at BneD; contradiction
-    
+    exact Intersection.between_splits AneB BneD.symm LintEBatB ⟨cL.mem A, cL.mem D⟩ EBsplitsAandD
+
+/-- p.113, Corollary, Given A-B-C and B-C-D, then A-B-D... -/
+lemma P3.corollary.left : (A - B - C) ∧ (B - C - D) -> A - B - D := by
+  sorry
+
+/-- p.113 and A-C-D -/
+lemma P3.corollary.right : (A - B - C) ∧ (B - C - D) -> A - C - D := by
+  sorry
+
+
 /-
 
 Let me take you through what school was like in more detail.

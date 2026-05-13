@@ -17,7 +17,7 @@ But, as sometimes happens when my anxiety spikes about stuff, I had an idea. I m
 anonymous audience is nonempty, as a blogpost would require, but an open letter? I can guarantee at least _one_ person
 reads it, the recipient[1].
 
-A long time ago in #haskell-cafe I posted my then-current phone number in hex because I, beind a college freshman,
+A long time ago in #haskell-cafe I posted my then-current phone number in hex because I, being a college freshman,
 hadn't yet learned that obfuscation is not the same as encryption. You called my cell, I answered and was confused, then
 I realized the lesson. I remember chatting a bunch in those salad days on IRC, and I have the sense that you would
 appreciate this approach to blogging; I hope you don't mind being my test subject.
@@ -885,4 +885,3 @@ term-mode operator. The implementation works for both `collinear` and `distinct`
 elaboration step. It constructs the proof dynamically, similar to `distinguish`, but without needing `aesop`, which is
 pretty handy. Operators on proof terms like this is a whole other world I hadn't considered for syntax trickery. Lean is
 so cool.
-

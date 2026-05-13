@@ -200,7 +200,7 @@ lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L interse
       rw [PeqX]
       trivial
 
-/- If a line intersects a segment, then it intersects the line containing the segment -/
+/-- If a line intersects a segment, then it intersects the line containing the segment -/
 lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
   intro LintSeg
   apply lift_seg_ray at LintSeg
@@ -222,12 +222,48 @@ lemma splits_points {L : Line} {A X B : Point} (AXB : A - X - B) :
   · unfold Segment; simp only [mem_setOf_eq]; left; exact AXB
   · exact Intersection.inter_touch_left LintAXBatX
 
+/-- If L intersect M at X, and A is not X, then either A is off L or M or both. -/
 lemma miss_means_off {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
   intro AneX LintMatX
   by_contra! AonLandM
   have AinInt : A ∈ L ∩ M := AonLandM
   rw [LintMatX] at AinInt
   tauto
+
+
+/-- Let L and M be lines, with A and B on L. If L intersects M at some X not A or B; and
+  if M splits A and B, then A - X - B 
+
+  ED: This extracts the common argument at the end of p3.3 and it's corollaries.
+-/
+lemma between_splits
+  (AneX : A ≠ X) (BneX : B ≠ X) :
+  (L intersects M at X) -> (A on L ∧ B on L) -> (M splits A and B) -> (A - X - B) := by
+  intro LintMatX ⟨AonL, BonL⟩ MsplitsAB
+  have ⟨AoffM, BoffM⟩  : (A off M) ∧ (B off M) := by
+    have hA := miss_means_off AneX LintMatX
+    have hB := miss_means_off BneX LintMatX
+    tauto
+  unfold SameSide at MsplitsAB; push_neg at MsplitsAB
+  specialize MsplitsAB AoffM BoffM
+  obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
+  -- L and line A B are the same thing since two points determine a line.
+  have LeqAB : L = line A B := Line.equiv AneB ⟨AonL, Line.line_has_definition_points.left, BonL, Line.line_has_definition_points.right⟩
+  -- so P on L
+  have PonL : P on L := by
+    apply Line.seg_sub_line at PonSeg
+    rw [<- LeqAB] at PonSeg
+    trivial
+  -- since P on L and P on M, P = X
+  have PeqX : P = X := by
+    have PinLintM : P ∈ L ∩ M := by tauto
+    rw [LintMatX] at PinLintM
+    tauto
+  -- so now we just dispatch the cases
+  rcases PonSeg with APB | AeqP | BeqP
+  · rw [PeqX] at APB; exact APB
+  · rw [PeqX] at AeqP ; contradiction
+  · rw [PeqX] at BeqP ; contradiction
 
 end Intersection
 
