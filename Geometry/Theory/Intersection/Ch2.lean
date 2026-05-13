@@ -19,6 +19,12 @@ open Geometry.Ch2.Prop
 
 namespace Intersection
 
+instance {L M : Line} {X : Point} : Coe (Intersects L M X) (X ∈ L ∩ M) where
+  coe h := by
+    unfold Intersects at h
+    rw [h]
+    exact Set.mem_singleton X
+
 /-- No points are contained on the intersection of a segment and it's related extension -/
 lemma seg_inter_ext_empty : segment A B ∩ extension A B = ∅ := by
   unfold Segment; unfold Extension
@@ -132,7 +138,7 @@ lemma lift_seg_ray :
       rw [PeqX]; trivial
 
 /-- If L intersects M anywhere, then L cannot be parallel to M -/
-lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by 
+lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by
   intro LintMatP
   unfold Parallel
   push_neg
@@ -141,54 +147,13 @@ lemma intersections_are_not_parallel : (L intersects M at P) -> (L ∦ M) := by
   unfold Intersects at LintMatP
   simp_all only [Line.coincidence_is_coincidence_of_all_points, mem_inter_iff, mem_singleton_iff, ne_eq, not_forall]
 
-/-- If two lines intersect, they are distinct. -/
-lemma intersecting_lines_are_not_equal {AneB : A ≠ B} : (L intersects line A B at X) -> L ≠ line A B := by
-  intro LintABatX
-  have colABX : Collinear A B X := by tauto
-  have AonAB : A on line A B := Line.line_has_definition_points.left
-  have BonAB : B on line A B := Line.line_has_definition_points.right
-  have XonL : X on L := inter_touch_left LintABatX
-  have XonAB : X on line A B := inter_touch_right LintABatX
-  by_contra! hNeg
-  rw [hNeg] at LintABatX
-  unfold Intersects at LintABatX
-  simp only [inter_self, Line.coincidence_is_coincidence_of_all_points, mem_setOf_eq, mem_singleton_iff] at LintABatX
-  have AeqX : A = X := (LintABatX A).mp (Collinear.any_two_points_are_collinear_ABA A B AneB)
-  have BeqX : B = X := (LintABatX B).mp (Collinear.any_two_points_are_collinear_ABB A B AneB)
-  rw [AeqX, BeqX] at AneB
-  contradiction
-
-/- If C is on a segment A B, then A B C are collinear -/
-lemma points_on_segment_are_collinear {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on segment A B -> Collinear A B C := by
-  intro AneB C ConSeg; unfold Collinear
-  tauto
-
-/- If C is on a ray A B, then A B C are collinear -/
-lemma points_on_ray_are_collinear {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on ray A B -> Collinear A B C := by
-  intro AneB C ConRay; unfold Collinear
-  unfold Ray at ConRay
-  tauto
-
-/- If C is on a extension A B, then A B C are collinear -/
-lemma points_on_extension_are_collinear {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on extension A B -> Collinear A B C := by
-  intro AneB C ConExt; unfold Collinear
-  simp_all;
-
-/- If C is on a line A B, then A B C are collinear -/
-lemma points_on_defined_line_are_collinear {A B : Point} : A ≠ B ->
-  ∀ C : Point, C on line A B -> Collinear A B C := by
-  simp only [ne_eq, mem_setOf_eq, imp_self, implies_true]
-
 /-- If a line intersects a ray, then it intersects the line containing the ray -/
 lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
   have XonRayAB : X on ray A B := inter_touch_right LintRay
   have XonL : X on L := inter_touch_left LintRay
-  have XABCol := points_on_ray_are_collinear AneB X XonRayAB
-  have XonLineAB : X on line A B := by tauto
+  have XABCol := @Line.all_points_on_a_ray_are_collinear A B X AneB XonRayAB
+  have XonLineAB : X on line A B := Line.ray_sub_line XonRayAB
   have XonRayAB : X on ray A B := by tauto
   have XinInter : X ∈ L ∩ line A B := by tauto
   have LnparRayAB : L ∦ ray A B := intersections_are_not_parallel LintRay
@@ -235,13 +200,100 @@ lemma lift_ray_line {AneB : A ≠ B} : (L intersects ray A B at X) -> (L interse
       rw [PeqX]
       trivial
 
-/- If a line intersects a segment, then it intersects the line containing the segment -/
+/-- If a line intersects a segment, then it intersects the line containing the segment -/
 lemma lift_seg_line {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
   intro LintSeg
   apply lift_seg_ray at LintSeg
   apply lift_ray_line at LintSeg
   exact LintSeg
   repeat exact AneB
+
+/-- If A - X - B, and L intersects a segment A B at X, then L splits A and B -/
+lemma splits_points {L : Line} {A X B : Point} (AXB : A - X - B) :
+  (L intersects M at X) -> (L splits A and B) := by
+  intro LintAXBatX
+  unfold SameSide
+  push_neg
+  intro AoffL BoffL
+  have distinctAXB := Betweenness.abc_imp_distinct AXB
+  distinguish
+  use X
+  constructor
+  · unfold Segment; simp only [mem_setOf_eq]; left; exact AXB
+  · exact Intersection.inter_touch_left LintAXBatX
+
+/-- If L intersect M at X, and A is not X, then either A is off L or M or both. -/
+lemma miss_means_off {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
+  intro AneX LintMatX
+  by_contra! AonLandM
+  have AinInt : A ∈ L ∩ M := AonLandM
+  rw [LintMatX] at AinInt
+  tauto
+
+
+/-- Let L and M be lines, with A and B on L. If L intersects M at some X not A or B; and
+  if M splits A and B, then A - X - B 
+
+  ED: This extracts the common argument at the end of p3.3 and it's corollaries.
+-/
+lemma between_splits
+  (AneX : A ≠ X) (BneX : B ≠ X) :
+  (L intersects M at X) -> (A on L ∧ B on L) -> (M splits A and B) -> (A - X - B) := by
+  intro LintMatX ⟨AonL, BonL⟩ MsplitsAB
+  have ⟨AoffM, BoffM⟩  : (A off M) ∧ (B off M) := by
+    have hA := miss_means_off AneX LintMatX
+    have hB := miss_means_off BneX LintMatX
+    tauto
+  unfold SameSide at MsplitsAB; push_neg at MsplitsAB
+  specialize MsplitsAB AoffM BoffM
+  obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
+  -- L and line A B are the same thing since two points determine a line.
+  have LeqAB : L = line A B := Line.equiv AneB ⟨AonL, Line.line_has_definition_points.left, BonL, Line.line_has_definition_points.right⟩
+  -- so P on L
+  have PonL : P on L := by
+    apply Line.seg_sub_line at PonSeg
+    rw [<- LeqAB] at PonSeg
+    trivial
+  -- since P on L and P on M, P = X
+  have PeqX : P = X := by
+    have PinLintM : P ∈ L ∩ M := by tauto
+    rw [LintMatX] at PinLintM
+    tauto
+  -- so now we just dispatch the cases
+  rcases PonSeg with APB | AeqP | BeqP
+  · rw [PeqX] at APB; exact APB
+  · rw [PeqX] at AeqP ; contradiction
+  · rw [PeqX] at BeqP ; contradiction
+
+/-- If X is on a line L, and E is not on L, then:
+  1. L and EX are distinct lines
+  2. L and EX are not parallel
+  3. L intersects EX at X -/
+lemma auxillary_line_through {L : Line} {X E : Point} (XonL : X on L) (EoffL : E off L)
+    : (L ≠ (line E X)) ∧ (L ∦ (line E X)) ∧ (L intersects (line E X) at X) := by
+  have XonEX : X on (line E X) := Line.line_has_definition_points.right
+  have EonEX : E on (line E X) := Line.line_has_definition_points.left
+  have ne : L ≠ (line E X) := by
+    by_contra! hNeg; rw [hNeg] at EoffL; contradiction
+  have npar : L ∦ (line E X) := by
+    intro hpar
+    have XinInter : X ∈ L ∩ (line E X) := ⟨XonL, XonEX⟩
+    rw [Intersection.parallel_intersection_is_empty L (line E X) (by tauto) hpar] at XinInter
+    exact absurd XinInter (Set.notMem_empty X)
+  have XonLintEX : X ∈ L ∩ (line E X) := by tauto
+  have int : L intersects (line E X) at X := (single_point_of_intersection X L (line E X) ⟨ne, npar⟩).mp XonLintEX
+  tauto
+
+/-- If A, B, and Z are on L, a line M passes through L at Z, and Z is not between A and B, then M guards A and B. -/
+lemma guards_when_not_between {L M : Line} {Z A B : Point}
+    (AneZ : A ≠ Z) (BneZ : B ≠ Z)
+    (LintMatZ : L intersects M at Z)
+    (onL : A on L ∧ B on L)
+    (notAZB : ¬(A - Z - B))
+    : M guards A and B := by
+  rcases LotEMGuards with split | guard
+  · exact absurd (Intersection.between_splits AneZ BneZ LintMatZ onL split) notAZB
+  · exact guard
 
 end Intersection
 

@@ -11,6 +11,38 @@ namespace Geometry.Theory.Line
 open Set
 open Geometry.Theory
 
+/-- A ray A B is a subset of the line A B -/
+lemma ray_sub_line : ray A B ⊆ line A B := by
+  intro P PonRay
+  simp only [B1b, mem_setOf_eq]
+  rcases PonRay with (APB | AeqP | BeqP) | h
+  · right; right; left; assumption
+  · left; exact AeqP.symm
+  · right; left; exact BeqP.symm
+  · have ⟨ABP,_⟩ := h
+    right; right; right; left; assumption
+
+/-- A segment contains the points that define it -/
+lemma seg_has_endpoints.left : A on segment A B := by tauto
+/-- A segment contains the points that define it -/
+lemma seg_has_endpoints.right : B on segment A B := by tauto
+
+/-- A ray contains the points that define it -/
+lemma ray_has_endpoints.left : A on ray A B := by
+  simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false]
+/-- A ray contains the points that define it -/
+lemma ray_has_endpoints.right : B on ray A B := by
+  simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false]
+
+/-- A line contains the points that define it -/
+lemma line_has_definition_points.left : A on line A B := ray_sub_line ray_has_endpoints.left
+
+/-- A line contains the points that define it -/
+lemma line_has_definition_points.right : B on line A B := ray_sub_line ray_has_endpoints.right
+
+/-- A line contains the points that define it -/
+lemma line_has_definition_points : A on line A B ∧ B on line A B := ⟨line_has_definition_points.left, line_has_definition_points.right⟩
+
 /-- Author suggests a lemma, "... to prove it, I could first prove a lemma that if three lines
 are concurrent, the point at which they meet is unique." p.71 -/
 lemma concurrence_of_three_lines_is_unique :
