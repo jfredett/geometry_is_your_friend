@@ -1,26 +1,28 @@
+2-MAR-2026
+
 Hey Shae,
 
 We (very) briefly chatted on Mastodon about my excitement around Lean tactic metaprogramming, and you mentioned it would
 make a good blogpost, and I wanted to agree; but I kind of hate blogging. I've been doing this "LOG.md" thing for a bit;
 and I like that, but it doesn't _feel_ right for an explanatory blog. I use it more as a journal or engineering log or
-scratchpad. I've been trying to embrace my hyperlexia, and this is a good way to do it, but is does feel a little weird
+scratchpad. I've been trying to embrace my hyperlexia, and this is a good way to do it, but it does feel a little weird
 to write a blog-ish explainer/experience report in it.
 
 I guess it's because I don't like the sort of anonymous audience of a blogpost; I know someone _might_ read it, but it
 feels itchy to write something someone only _might_ read. I spend a lot of time thinking about writing and writing about
-thinking and I _care_ about it a lot, I think my identity is in it a bit; so it feels bad if I don't know _someone_ will
-read it. With LOG.md, I know _I'll_ read it, so I don't mind writing, a blogpost, though? All those hits could be bots
-and crawlers; the comments just LLMs; just feels lousy to not _know_ someone has really read it, feels like I wasted my
-time.
+thinking, and I _care_ about it a lot. I think my identity is in it a bit, so it feels bad if I don't know _someone_
+will read it. With LOG.md, I know _I'll_ read it, so I don't mind writing -- a blogpost, though? All those hits could be
+bots and crawlers, the comments just LLMs. It just feels lousy to not _know_ someone has really read it. It feels like I
+wasted my time.
 
 But, as sometimes happens when my anxiety spikes about stuff, I had an idea. I may not be able to ensure that an
 anonymous audience is nonempty, as a blogpost would require, but an open letter? I can guarantee at least _one_ person
-reads it, the recipient[1].
+reads it, the recipient[^1].
 
 A long time ago in #haskell-cafe I posted my then-current phone number in hex because I, being a college freshman,
-hadn't yet learned that obfuscation is not the same as encryption. You called my cell, I answered and was confused, then
-I realized the lesson. I remember chatting a bunch in those salad days on IRC, and I have the sense that you would
-appreciate this approach to blogging; I hope you don't mind being my test subject.
+hadn't yet learned that obfuscation is not the same as encryption. You called my cell. I answered and was confused. I
+realized the lesson. I remember chatting a bunch in those salad days on IRC, and I have the sense that you would
+appreciate this approach to 'blogging'; I hope you don't mind being my test subject.
 
 Anyway, the meat of the letter, tactic programming in Lean4.
 
@@ -178,17 +180,17 @@ break down a big type into a series of smaller types. Equivalently, it separates
 many simpler ones.
 
 In Haskell, type-directed programming is this sort of delightful flow state where you gain the 'if it compiles, it
-probably works' feeling that is occasional but fleeting in Haskell, and rarely felt outside of languages not in its
+probably works' feeling that is occasional but fleeting in Haskell, and rarely even felt outside of languages not in its
 lineage. Lean is quite good at eliciting that feeling, and this makes sense because the type system is powerful enough
 to accurately represent mathematics directly, and mathematics is only ever that feeling (for me, at least).
 
 Tactics are quite powerful, but they're also a little magical. A tactic like `tauto` or `simp` or `aesop` might prove
 your goal, but the reasoning might be opaque, or the proof it generates highly complicated; so it's worthwhile, IMO, to
-learn how to build up from terms, as it's usually a lot more parsimonious, and once you get the hang, it's a lot easier
-to think about it in terms of simple function applications. When building tactics, term-mode proving is handy for
-constructing proofs without having to drop into the `evalTactic` mode; and once you start invoking nested tactics you
-are, at least in spirit, ceding some control over what the prover is doing (which I'll show later when we get to the
-meat of the `distinguish` and `separate` tactics).
+learn how to build up from terms, as it's usually a lot more parsimonious. Once you get the hang, it's a lot easier to
+think about it in terms of simple function applications. When building tactics, term-mode proving is handy for
+constructing proofs without having to drop into the `evalTactic` mode. Once you start invoking nested tactics you are,
+at least in spirit, ceding some control over what the prover is doing (which I'll show later when we get to the meat of
+the `distinguish` and `separate` tactics).
 
 # What distinct should do
 
@@ -212,22 +214,25 @@ deconstructs a `distinct` term into an equivalent set of inequalities. This cove
 
 # How it works
 
-Here's the lede I've kept buried, the proofstate is just a Monad, it's essentially a little virtual machine that tracks
-the hypotheses in the `LocalContext` as a bunch of `LocalDecls`, which can be easily turned into `Expr`s, which is the
-type of Lean Statements in the AST after elaboration; the Lean parser is a multilayer system, and `Expr` is the last
-step before running actual code[2]. This machine is exposed via the `TacticM` monad, which is essentially a DSL for
-manipulating proofstates. Proofstates themselves are just a collection of variables that get wired together; they come
-in three flavors of interest:
+Here's the lede I've kept buried: **the proofstate is just a Monad**. Essentially, it's a little virtual machine that
+tracks the hypotheses in the `LocalContext` as a bunch of `LocalDecls`. These can be easily turned into `Expr`s, which
+is the type of Lean Statements in the AST after elaboration; the Lean parser is a multilayer system, and `Expr` is the
+last step before running actual code[^2]. This machine is exposed via the `TacticM` monad, which is essentially a DSL
+for manipulating proofstates. Proofstates themselves are just a collection of variables that get wired together; they
+come in three flavors of interest:
 
-- FVars - Free variables, these are the `A B C D E X V W` above, but also `h` is an FVar, I prefer to think of it as
-  'FactVariable', which I think is mostly okay.
-- BVars - Bound variables, these are the arguments to functions, so the `P` in the `(∀ (P : ℕ), P = 3 → P > 1)` above is
-  a BVar
-- MVars - Meta variables, or holes, these are associated with the current goal(s); each must get assigned a term of a
-  matching type to be closed. This is needs to be proved.
+- FVars 
+    - Free variables, these are the `A B C D E X V W` above, but also `h` is an FVar.
+    - I prefer to think of it as 'FactVariable', which I think is mostly okay.
+- BVars 
+    - Bound variables, these are the arguments to functions.
+    - The `P` in the `(∀ (P : ℕ), P = 3 → P > 1)` above is a BVar
+- MVars 
+    - Meta variables, or holes, these are associated with the current goal(s).
+    - Each must get assigned a term of a matching type to be closed.
 
 The `TacticM` monad exposes a simple programming language to interact with these variables, and the `Qq` library and
-`Lean` namespace provide the API to manipulate it. I started[3] with the following to cover #1 above:
+`Lean` namespace provide the API to manipulate it. I started[^3] with the following to cover #1 above:
 
 ```lean
 structure Distinct {α : Type*} (points : List α) : Prop where
@@ -251,7 +256,7 @@ end Distinct
 ```
 
 This gets me to `distinct A B C D E` as a proof term, I can also write `Distinct [A,B,C,D,E]` but that's much more
-cumbersome. The syntax category is probably not necessary, but it feels nice to give everything it's own little home.
+cumbersome. The syntax category is probably not necessary, but it feels nice to give everything its own little home.
 Next I added a couple example statements to test with:
 
 ```lean
@@ -259,7 +264,7 @@ Next I added a couple example statements to test with:
 example : distinct A B C D E -> A ≠ X -> A ≠ B ∧ B ≠ C ∧ X ≠ A ∧ (∀ P : Nat, P = 2 -> P > 1) ∧ C ≠ D := by
   intro h AneX
   distinguish
-  -- this part doesn't matter, the extra assertions are just to make sure the distiguish step doesn't oversolve
+  -- this part doesn't matter, the extra assertions are just to make sure the distinguish step doesn't oversolve
   exact AneX.symm
   intro P Peq2
   rw [Peq2]; trivial
@@ -281,7 +286,7 @@ example (h : distinct A B) : A ≠ B := by distinguish
 
 This shows how `distinguish` should work; in particular it should:
 
-1. Flatten and split the goal tree so that every part of the conjunction was it's own goal.
+1. Flatten and split the goal tree so that every part of the conjunction is its own goal.
 2. Make a list of all the goals that are just an inequality statement
 3. Find all the hypotheses that are created by `distinct`
 4. Use the hypotheses from #3 to try to prove every marked goal from #2
@@ -341,13 +346,13 @@ tell us where all the inequality goals are (`ineqIndices`). This could maybe be 
 `constructor` is a nice, predictable tactic, and shouldn't cause trouble.
 
 Now we've successfully decomposed the goal from a single conjunction tree (that is, it's in some freely associated form,
-not uniformly right-associated) to a 'flat' (right-associatated) list of goals and an index of where the ones we can
+not uniformly right-associated) to a 'flat' (right-associated) list of goals and an index of where the ones we can
 prove with distinct are.
 
-One bit that took me a little while to wrap my head around, when you get the goal, it is an `MVarId`, but we need to
-deal with it's type as a syntactic element that represents a fixed proposition. A goal, ultimately, is just a slot that
-expects a construction assigned to it of the appropriate type; it doesn't carry any information directly with it, so in
-order to talk about it's type, we have to look it up with `goal.getType`, this gives us an `Expr`, which seems like what
+One bit that took me a little while to wrap my head around. When you get the goal it is an `MVarId`, but we need to
+deal with its type as a syntactic element that represents a fixed proposition. A goal, ultimately, is just a slot that
+expects a construction assigned to it of the appropriate type. It doesn't carry any information directly with it, so in
+order to talk about its type we have to look it up with `goal.getType`. This gives us an `Expr`, which seems like what
 we need, because `Expr` is the representation of the syntax, but in fact we need to go one step further and work with
 the `Q`-quoted version of this `Expr`, which allows us to pick it apart without worrying about the constraints of the
 `Expr` type.
@@ -387,7 +392,7 @@ proposition like:
 distinct A B C D -> A ≠ B ∧ (C ≠ D ∨ V = W)
 ```
 
-In this example, it is easy to resolve, we know `A ≠ B := by distinguish` and `C ≠ D := by distinguish`, but the
+In this example, it is easy to resolve: we know `A ≠ B := by distinguish` and `C ≠ D := by distinguish`, but the
 `splitAndTagGoals` above will treat the `(C ≠ D ∨ V = W)` disjunction as unassailable. Similarly a condition like:
 
 ```lean
@@ -395,10 +400,10 @@ distinct A B -> ∀ P : Prop, A ≠ B ∨ P
 ```
 
 is obviously true regardless of the choice of `P`, but the current tool won't look inside the quantifier to reduce that
-to a proof of `∀ P : Prop, True`, even though it can conclude `A ≠ B` easily.
+to a proof of `∀ P : Prop, True`, even though one could conclude `A ≠ B` easily.
 
 Limitations noted, now I have the broken up goal. Next, I need to gather up the tools I'll need; I don't want to try to
-use every availble fact-in-evidence, just the `distinct` properties that I know about; this is not the _best_ way to do
+use every available fact-in-evidence, just the `distinct` properties that I know about; this is not the _best_ way to do
 things, as there might be ambient facts that could be used to prove the property, but hunting for them involves doing a
 lot more mangling of the proofstate, and things were already complicated enough. Here's the function:
 
@@ -419,10 +424,10 @@ This produces a list of `LocalDecl`s that match the signature of the distinct st
 line is what does that, it's looking for a literal `Distinct` of arity 2; which I don't think is the _best_ way to find
 these things, but it is _a_ way and the first one that worked; I suspect there are better tools for this (probably
 pattern matching on the type), but for a simple structure like `Distinct`, it's easy enough to just search for it. It's
-of arity 2 because it has two parameters, the list of points (it's second parameter) is an explicit parameter, but the
+of arity 2 because it has two parameters, the list of points (its second parameter) is an explicit parameter, but the
 type of the values in that list is not constrained to _only_ points, and so there is an implicit type parameter.
 
-Lean is pretty aggressive about making parts of the language implicit, this is a big step in making the language more
+Lean is pretty aggressive about making parts of the language implicit, which is a big step in making the language more
 ergonomic than other languages I've tried. Ergonomics rarely are the only reason I stop using a prover, but it's
 frequently the thing that makes it impossible to get over whatever other struggles I have. Lean does a very good job
 here of making it possible -- even easy -- to let context fill in details you don't want to care about but need to care
@@ -431,11 +436,11 @@ about, probably my favorite part of the language.
 The code itself is simple; it walks over each fact in the `LocalContext` and builds up a list; the `let mut` is a little
 bit of a lie, as I understand. It hides a `State`-monad-adjacent thing that lets you pretend the variable is mutable
 even in this pure-ish environment. This makes it pretty pleasant to write these little programs that query the
-proof-state; it's not too far away from a regular imperative language about as weildy as shell; not powerful, but
+proof-state; it's not too far away from a regular imperative language about as wieldy as shell; not powerful, but
 powerful enough.
 
 Once it finds a declaration of the correct type, it adds it to a list of hypotheses that we use in the following
-monster[4]
+monster[^4]
 
 ```lean
 def runDistinct : TacticM Unit := withMainContext do
@@ -519,7 +524,7 @@ cases. Since the number of variables is relatively small, it's unlikely this wil
 in extreme cases. The reason to be wary here is `aesop` and `simp` both iterate over available theorems in the
 environment, _not_ just the hypotheses in your proofstate. Tagging a theorem with `@[simp]`, or equivalently with one of
 the tags `aesop` cares about, will cause each of these tactics to consider them when running, which it then considers
-recursively up to some user-defined limit. This can lead to two `Spooky-action-at-a-distance` problems, 
+recursively up to some user-defined limit. This can lead to two `spooky-action-at-a-distance` problems, like:
 
 1. adding a new `simp` tag or `aesop` tag can result in working proofs failing as they overflow the recursion stack
 2. adding a new `simp` or `aesop` can also result in a performance problem on random theorems. If the new entry adds a
@@ -532,7 +537,7 @@ certified Good Enough(tm).
 
 > Aside: It's _really_ interesting how performance of the prover becomes a concern for the math side of things. Earlier,
 > while working more directly on the geometry, I was pretty liberal using the `tauto` tactic; which more or less
-> brute-forces it's way through a proof by trying to apply `simp`, `contradiction`, and any available hypothesis to the
+> brute-forces its way through a proof by trying to apply `simp`, `contradiction`, and any available hypothesis to the
 > goal to try to resolve it. In small contexts with few active hypotheses, it's quick enough; but on one proof where I
 > had two dozen or so active facts, it ground the machine to a halt and my file would take tens of seconds to evaluate.
 > Real nasty.
@@ -546,9 +551,8 @@ Once I've attempted the proof, I check to see if I actually managed to assign th
 benefit to a direct construction would be eliminating this branch), and then assign the goal to the MVar associated with
 the proof; closing the goal.
 
-After that is just book keeping, marking the goals we solved and updating the proof state. Lean doesn't do that on it's
-own, so all of this bookkeeping has been to accomplish this step, the actual tactic is very simple, but updating the
-state is tricky.
+The rest is bookkeeping, which Lean doesn't do on its own. The actual tactic is very simple, but updating
+the state is tricky.
 
 # Syntax and tooling
 
@@ -714,8 +718,8 @@ I'll focus at the second half, as it's easy to explain:
 ```
 
 This is similar to the `runDistinct` function -- I grab the context, and look at the goal. I'm going to 'prove' this
-goal by reducing it from a 'prove this conjunction' to 'the conjunction is proved only if it's constituents terms are
-proved'. To do that, I instantiate the MVar and inspect it's type, apply a `whnf` to ensure it's in a normal form, and then
+goal by reducing it from a 'prove this conjunction' to 'the conjunction is proved only if its constituent terms are
+proved'. To do that, I instantiate the MVar and inspect its type, apply a `whnf` to ensure it's in a normal form, and then
 verify it is indeed a `distinct` goal with the same arity method as `runDistinct`. Worth noting `whnf` is another
 recursive tool which can have similar recursion depth issues, though it's less susceptible in my experience.
 
@@ -726,7 +730,7 @@ Next, I grab the list of points via the `extractPoints` helper, and walk over ea
 ```
 
 which says, "If an item is in a `List.Pairwise R`, then it has the relationship `R` with all other items in the pairwise
-relationship following it's position in the list" 
+relationship following its position in the list" 
 
 If this fails for any reason, the point is skipped and we won't be able to prove everything, but that case is actually
 impossible; because we know the list is only items in a pairwise relationship anyway. The last `try evalTactic` covers a
@@ -811,7 +815,7 @@ and `D` are distinct, which is easy to prove by contradiction and a known absurd
 
 # What's left
 
-There are a lot of improvements to make, I think; my use of the `elab` facilities are pretty naive, and I think a lot
+There are a lot of improvements to make, I think; my use of the `elab` facilities is pretty naive, and I think a lot
 could be cleaned up if I had a better understanding of the API, but no progress without practice, and this really
 simplifies a lot of annoying bookkeeping. The fact that the syntax is so directly adjustable and easy to extend and
 tweak is really satisfying. I spent a lot of time writing Ruby, and the reason I liked it was really down to how easy it
@@ -832,7 +836,7 @@ There is also, of course, extending `distinguish` and `separate` to look past di
 resolve goals.
 
 One thing I didn't mention was the `delaborator`. I didn't talk about it mostly because I barely understand it, but it's
-similar to a prettyprinter, it helps display facts and goals in a 'nice' way. Right now the facts look like `Distinct
+similar to a prettyprinter. It helps display facts and goals in a 'nice' way. Right now the facts look like `Distinct
 [A, B, C]`, not `distinct A B C`, which is not _too_ confusing, but originally they looked like `distinctABC :
 List.Pairwise (· ≠ ·) [A, B, C]` which _was_ pretty weird, the delaborator is the thing that fixes that, I think; I
 haven't really dug in.
@@ -843,7 +847,7 @@ floating around that could resolve more goals, but `distinguish` will ignore the
 : Nat, P = 3 -> P > 1) ∧ (C ≠ D ∨ V = W)`, and if you end up with a pair of goals you have to resolve them across two
 lines with `exact h.left; exact h.right` instead of just `exact h`. Low frequency, but possible.
 
-But overall, that's it, that's how it works, it's just a Monad, it's got a little scripting language in it, and now I've
+But overall that's it. That's how it works. It's just a Monad. It's got a little scripting language in it, and now I've
 taken about ~2000 words more than the LTPG to explain the same things but worse, but it was fun to do it and that's what
 matters.
 
@@ -854,13 +858,13 @@ Thanks for nudging me towards writing about it.
 # Footnotes
 
 [1] Of course, this is equal parts real -- I do mean this as a direct letter to you; but also it's just going to be
-stuck in the repo and and anyone'll be able to read it, and I've written explanations of stuff I'm sure you already know
+stuck in the repo and anyone'll be able to read it, and I've written explanations of stuff I'm sure you already know
 well from experience with Haskell and the like, so it's still also kind of a blog post? Left as an exercise to the
 reader.
 
 [2] It is, of course [more complicated than
-that](https://leanprover-community.github.io/lean4-metaprogramming-book/main/02_overview.html#manual-conversions-between-syntaxexprexecutable-code),
-you can bypass Expr, you can convert things back and forth, the parser is _extremely_ flexible.
+that](https://leanprover-community.github.io/lean4-metaprogramming-book/main/02_overview.html#manual-conversions-between-syntaxexprexecutable-code).
+You can bypass Expr. You can convert things back and forth. The parser is _extremely_ flexible.
 
 [3] This is a lie, I started in a much less structured way that mostly involved me copying large chunks of Mathlib and
 hitting it with my face until it mostly worked. I cannot emphasize enough how far from comprehension some of this is to
@@ -868,7 +872,7 @@ me; it's delightful.
 
 [4] I am _positive_ there is a cleaner way to do this; I don't know what it is, but I'm sure that spending more time
 building up a better structure over the proof would help simplify the monster here, but the critical thing is this does
-work for most of what I need, and so the tyrrany of the local optimum is _definitely_ going to win.
+work for most of what I need, and so the tyranny of the local optimum is _definitely_ going to win.
 
 P.S.
 
@@ -885,3 +889,66 @@ term-mode operator. The implementation works for both `collinear` and `distinct`
 elaboration step. It constructs the proof dynamically, similar to `distinguish`, but without needing `aesop`, which is
 pretty handy. Operators on proof terms like this is a whole other world I hadn't considered for syntax trickery. Lean is
 so cool.
+
+P.P.S. (13-MAY-2026)
+
+I got distracted and left this project alone for a bit, but coming back to it, I noticed an interesting,
+mostly-unrelated-to-syntax-hacking thing that needed a place to live.
+
+The project this repo encapsulates is one of in-place formalization, trying to capture Greenberg's original argument _as
+made_ instead of the most idiomatic Lean formalization of the fact. Terence Tao makes a similar caveat in his _Analysis_
+project:
+
+> The files in this directory contain a formalization of my text Analysis I into Lean. The formalization is intended to
+> be **as faithful a paraphrasing as possible to the original text**, while also showcasing Lean's features and syntax. In
+> particular, the formalization is not optimized for efficiency, and **in some cases may deviate from idiomatic Lean
+> usage.**
+>
+> - [README.md of teorth/analysis](https://github.com/teorth/analysis/blob/main/README.md), emph mine
+
+I ran into a similar issue with P3.3, which uses (as I ultimately extracted in `Intersection.between_splits`) the
+converse of `Intersection.splits_points` to dispatch which points end up on which side of the splitting line to
+construct, ultimately, (most of) the apparatus needed to define an arbitrary `A - B - ... - Z` betweenness
+specification. This is its own little syntax rabbit warren to explore, but what was really interesting was the decision
+point in how I'm formalizing Greenberg.
+
+On the one hand, if I were to formalize a theory of Geometry in Lean, I don't think I'd pick this text to work from.
+This makes some sense, Greenberg wasn't optimizing to be formalized, he was optimizing for human intuition. As such, he
+relies occasionally on 'big' (in the sense of # of lines of Lean) steps that are deeply _intuitive_, but frustrating to
+formalize.
+
+There's been a [lot](https://rkirov.github.io/posts/three-cultures-of-math/) of
+[talk](https://davidbessis.substack.com/p/the-fall-of-the-theorem-economy) recently about
+[how](https://terrytao.wordpress.com/2026/05/03/primitive-sets-and-von-mangoldt-chains-erdos-problem-1196-and-beyond/)
+[LLMs/Agents/"AI"](https://gowers.wordpress.com/2026/05/08/a-recent-experience-with-chatgpt-5-5-pro/) are going to
+[obsoletize](https://cdn.openai.com/pdf/6dc7175d-d9e7-4b8d-96b8-48fe5798cd5b/Ramsey.pdf) us in the context of
+mathematics. I think this distinction points at a specific place where, at least for now, it can't.
+
+I've worked a little bit here with some LLM tools; and while I was, at first, extremely antagonistic (irrationally so)
+about them, I think I'm coming around a bit. In working on refactoring out that lemma, in particular, it did a great job
+of immediately spotting and extracting the common lemma (which makes sense, it wasn't hard to spot the duplication, just
+a little tricky to extract amidst all the tactics). Probing it even a little made it clear that the process was
+mechanical and it had no _intuition_ for the structure, just the ability to see the pattern and extract it.
+
+I ended up in a conundrum: how much do I leave in the proof to mimic Greenberg's initial argument, which relies on a
+deeply intuitive and natural conclusion, but which -- at least in the context of my abilities with Lean -- is not a
+trivial conclusion, and how much do I refactor to make the argument 'nice'? On the one hand, my goal is to line-for-line
+confirm the original arguments, filling in the areas that were not 'fully rigorous' (as far as you trust Lean, anyway),
+and not necessarily to write 'good Lean' necessarily that has the kinds of qualities we might look for in a standard
+codebase (e.g., Mathlib). No shade to the standards, I'm just a novice and I only learn by making all the mistakes
+myself.
+
+I offer no conclusion or deeper insight other than to say my solution was to punt as hard and far as I could. I left the
+original argument intact on one branch, and used (or plan to use, at time-of-writing I have two corollaries left to
+prove) the extracted `between_splits` lemma on the others, but I think it's interesting to note that; while we may be
+able to 'harvest the overhang' as David Bessis put it in his article linked above, the consequence is not merely a loss
+of the 'Theorem Economy', but that since this will give us _only_ the factored, narrow, intuition-free proofs; I'm not
+even sure how useful the result would really be to understanding mathematics more deeply. The _point_ of all of this is
+to find the 'big but intuitive' jumps that we can use not just here, but elsewhere. The jump that Greenberg makes is one
+that requires the reader to grab for the intuition that 'betweenness' is really just a kind of ordered listing of the
+names of points. It points towards a lighthouse far in the distance and says "This ship will sail us all the way to
+where Dedekind was when he made his cuts." I don't think this small lemma would be enough to break the intuition, but it
+certainly shortens its long gaze, and if I focused instead on the particular arrangement of lines and halyards, I'd've
+missed seeing the shoreline approaching, and that seems like more than just a simple mechanical disaster; it seems more
+like we're building a tunnel through mathematics to get to the destination, with no concern for what we missed on our
+long, boring drive there. That makes me sad.
