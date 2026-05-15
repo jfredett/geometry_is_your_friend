@@ -36,8 +36,8 @@ theorem P4 {A B C P : Point} (CAB : C - A - B) (PonL : P on (line A B)) : P on r
     have dABC : distinct A B C :=
       (Betweenness.abc_imp_distinct CAB).of_eq (by ext x; simp [Finset.mem_insert, Finset.mem_singleton]; tauto)
     separate
-    -- Ed. Remaining: A ≠ P, B ≠ P, C ≠ P from `PonL : P on line A B` and `CAB`.
-    sorry
+    distinguish
+    all_goals sorry
   have AneB : A ≠ B := by distinguish
   have colABCP : collinear A B C P := by
     have cABC : collinear A B C :=

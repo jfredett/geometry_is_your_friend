@@ -267,13 +267,62 @@ elab_rules : tactic
           throwError "separate: goal is not of the form `Distinct _ _`"
 
         let sExpr := goalType.getArg! 1
-        let _points := extractPoints sExpr
+        let points := extractPoints sExpr
+        let n := points.length
+
+        if n == 0 then
+          throwError "separate: empty Finset"
+        if n == 1 then
+          evalTactic (← `(tactic| exact ⟨Finset.card_singleton _⟩))
+          return
+
+        -- Goal: `Distinct {a₁,...,aₙ} n`. Decompose into a SINGLE goal that's the
+        -- conjunction of all pairwise inequalities — leaving the proof state in a
+        -- form that `distinguish` can split via its existing conjunction-handling
+        -- (`splitAndTagGoals`) and discharge per-inequality from `Distinct` hypotheses.
+        --
+        -- Strategy: use `suffices h : <conj>` to introduce the pairwise-ne conjunction
+        -- as the goal, with the suffices-body constructing `Distinct.mk` via a chain
+        -- of `Finset.card_insert_of_notMem` applications driven by the unpacked `h`.
+
+        -- Names for each pair (i, j) with i < j. Used both to destructure `h` and to
+        -- feed into the `simp` calls that discharge each `aᵢ ∉ {aᵢ₊₁,...,aₙ}` side.
+        let mut pairNames : Array Ident := #[]
+        let mut neqStxs : Array (TSyntax `term) := #[]
+        for i in [:n] do
+          for j in [i+1:n] do
+            pairNames := pairNames.push (mkIdent (Name.mkSimple s!"h_{i}_{j}"))
+            let piStx ← PrettyPrinter.delab points[i]!
+            let pjStx ← PrettyPrinter.delab points[j]!
+            neqStxs := neqStxs.push (← `($piStx ≠ $pjStx))
+
+        -- Right-associated conjunction: a ∧ (b ∧ (c ∧ ...))
+        let mut conjStx : TSyntax `term := neqStxs[neqStxs.size - 1]!
+        for k in [1:neqStxs.size] do
+          let stx := neqStxs[neqStxs.size - 1 - k]!
+          conjStx ← `($stx ∧ $conjStx)
+
+        -- Build the rw chain for the suffices-body. At level i (0 ≤ i < n-1),
+        -- we discharge `aᵢ ∉ {aᵢ₊₁,...,aₙ}` via `simp` using the inequalities
+        -- `h_i_{i+1}, ..., h_i_{n-1}`.
+        let mut rwArgs : Array (TSyntax `Lean.Parser.Tactic.rwRule) := #[]
+        let mut pairIdx := 0
+        for i in [:n-1] do
+          let levelCount := n - 1 - i
+          let mut levelLemmas : Array (TSyntax `Lean.Parser.Tactic.simpLemma) := #[]
+          for k in [:levelCount] do
+            let nm := pairNames[pairIdx + k]!
+            levelLemmas := levelLemmas.push (← `(Lean.Parser.Tactic.simpLemma| $nm:ident))
+          pairIdx := pairIdx + levelCount
+          rwArgs := rwArgs.push (← `(Lean.Parser.Tactic.rwRule|
+            Finset.card_insert_of_notMem (by simp [$levelLemmas,*])))
+        rwArgs := rwArgs.push (← `(Lean.Parser.Tactic.rwRule| Finset.card_singleton))
 
         evalTactic (← `(tactic| (
           refine Distinct.mk ?_
-          simp only [Finset.card_insert_eq_ite, Finset.card_singleton,
-                     Finset.mem_insert, Finset.mem_singleton, Finset.notMem_empty,
-                     ne_eq, not_or, not_false_eq_true])))
+          suffices h : $conjStx by
+            obtain ⟨$pairNames,*⟩ := h
+            rw [$rwArgs,*])))
 
 
 -- EXAMPLES and TESTS
