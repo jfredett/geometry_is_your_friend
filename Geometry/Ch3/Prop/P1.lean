@@ -32,11 +32,17 @@ theorem P1.i : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
     by_cases suppose : C = A ∨ C = B
     · tauto
     · /- "... Otherwise, A B and C are three collinear points (by the definition of ray and Axiom B-1)..." -/
-      have distinctABC : distinct A B C := by separate; tauto
+      have distinctABC : distinct A B C := by
+        push_neg at suppose
+        obtain ⟨CneA, CneB⟩ := suppose
+        refine ⟨?_⟩
+        simp only [Finset.card_insert_eq_ite, Finset.card_singleton,
+                   Finset.mem_insert, Finset.mem_singleton,
+                   AneB, CneA.symm, CneB.symm, if_false, or_false]
       have colABC : collinear A B C := by
         use ray A B
         intro P PinABC
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at PinABC
+        simp only [Finset.mem_insert, Finset.mem_singleton] at PinABC
         rcases PinABC with eq | eq | eq
         · rw [eq]; exact Line.ray_has_endpoints.left
         · rw [eq]; exact Line.ray_has_endpoints.right
@@ -83,19 +89,13 @@ theorem P1.ii : A ≠ B -> -- Ed. Same as above.
     · exfalso; exact absurd eq.symm AneP
     · exfalso; exact absurd eq.symm BneP
     -- the case where P is on the segment
-    · have PonSegAB : P on segment A B := by
-        simp only [mem_setOf_eq]
-        left; exact tween
+    · have PonSegAB : P on segment A B := obvious
       exact mem_union_left (ray B A) (Line.seg_sub_ray PonSegAB)
     -- this is where we need the PneA and PneB conditions
-    · have PonExtAB : P on extension A B := by
-        simp only [mem_setOf_eq]
-        exact ⟨tween, AneP, BneP⟩
+    · have PonExtAB : P on extension A B := obvious
       left; right; exact PonExtAB
     -- here too, P is on the other extension
-    · have PonExtBA : P on extension B A := by
-        simp only [mem_setOf_eq]
-        exact ⟨B1b.mp tween, BneP, AneP⟩
+    · have PonExtBA : P on extension B A := obvious
       right; right; exact PonExtBA
 
 

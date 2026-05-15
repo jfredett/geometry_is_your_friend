@@ -4,7 +4,8 @@ proofs. -/
 import Geometry.Tactics
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.Defs
-import Mathlib.Data.List.Basic
+import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Finset.Insert
 
 import Geometry.Theory.Distinct
 
@@ -12,6 +13,11 @@ namespace Geometry.Theory
 
 /-- A point is the fundamental, opaque type we're working with. -/
 axiom Point : Type
+
+/-- Greenberg reasons classically throughout. Granting decidable equality on `Point`
+    via `Classical.decEq` lets us use `Finset Point` and the associated decidable
+    membership/cardinality machinery. -/
+noncomputable instance : DecidableEq Point := Classical.decEq Point
 
 /-- Ed: In the text, the author ends up using the 'Line is a Set of points' to define segments, rays, and implicitly
 uses the intuitive idea ("A line is the set of collinear points that contain at least two known points"). However, Ch2
@@ -30,30 +36,30 @@ macro_rules (kind := onNotation)
 
 ---- COLLINEARITY (FINITE) AND POINTWISE (INFINITE)
 
--- Collinear: finite list of points on a common line
-def Collinear (points : List Point) : Prop := ∃ L : Line, ∀ p ∈ points, p ∈ L
+-- Collinear: finite set of points on a common line
+def Collinear (points : Finset Point) : Prop := ∃ L : Line, ∀ p ∈ points, p ∈ L
 
 -- Syntax: collinear A B C (space-separated)
 syntax "collinear" ident+ : term
 
 macro_rules
-  | `(collinear $xs*) => `(Collinear [$xs,*])
+  | `(collinear $x $xs*) => do
+      let allArgs := #[x] ++ xs
+      let last := allArgs[allArgs.size - 1]!
+      let front := allArgs.pop
+      let mut acc ← `((Singleton.singleton $last : Finset _))
+      for y in front.reverse do
+        acc ← `(insert $y $acc)
+      `(Collinear $acc)
 
--- Pretty printer
-open Lean in
-@[app_unexpander Collinear]
-def unexpandCollinear : PrettyPrinter.Unexpander
-  | `(Collinear [$[$xs],*]) => do
-    let ids := xs.map (⟨·.raw⟩ : TSyntax `term → TSyntax `ident)
-    `(collinear $ids*)
-  | _ => throw ()
+-- Pretty printer: TODO restore after Finset-literal unexpander is written
 
 -- Extract the line from collinearity
-noncomputable def Collinear.line {points : List Point} (h : Collinear points) : Line := Classical.choose h
+noncomputable def Collinear.line {points : Finset Point} (h : Collinear points) : Line := Classical.choose h
 
-lemma Collinear.on_line {points : List Point} (h : Collinear points) : ∀ p ∈ points, p on h.line := Classical.choose_spec h
+lemma Collinear.on_line {points : Finset Point} (h : Collinear points) : ∀ p ∈ points, p on h.line := Classical.choose_spec h
 
-@[simp] lemma Collinear.mem {points : List Point} (h : Collinear points) (p : Point) (hp : p ∈ points := by simp) :
+@[simp] lemma Collinear.mem {points : Finset Point} (h : Collinear points) (p : Point) (hp : p ∈ points := by simp) :
   p on h.line := h.on_line p hp
 
 example : collinear A B C ↔ ∃ L : Line, A on L ∧ B on L ∧ C on L := by
@@ -63,8 +69,7 @@ example : collinear A B C ↔ ∃ L : Line, A on L ∧ B on L ∧ C on L := by
   · rintro ⟨L, AonL, BonL, ConL⟩
     use L
     intro P PinABC
-    -- FIXME: I dislike that this is necessary, but I don't have a way of `rcases`-ing my way through the list membership
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at PinABC
+    simp only [Finset.mem_insert, Finset.mem_singleton] at PinABC
     rcases PinABC with eq | eq | eq
     repeat rwa [eq]
 
@@ -266,6 +271,114 @@ syntax (name := intersectsAt) term " intersects " term " at " term : term
 macro_rules (kind := intersectsAt)
   | `($L intersects $M at $X) => `(Intersects $L $M $X)
 
+/-- `normalize_eq` walks the local context and flips `=` / `≠` hypotheses between
+    free variables so the LHS comes lex-before the RHS by user-name. Useful when
+    a downstream tactic (`simp`, `tauto`) doesn't know about `Ne.symm` / `Eq.symm`
+    and is stuck on an inequality whose orientation is "backwards". -/
+syntax "normalize_eq" : tactic
+
+open Lean Meta Elab.Tactic in
+elab_rules : tactic
+  | `(tactic| normalize_eq) => withMainContext do
+    -- Snapshot the list of hypotheses to flip; applying them mutates the local
+    -- context, so collect first and apply after.
+    let lctx ← getLCtx
+    let mut toFlip : Array (Name × Bool) := #[]  -- (hypothesis name, isEq?)
+    for ldecl in lctx do
+      if ldecl.isImplementationDetail then continue
+      let ty ← instantiateMVars ldecl.type
+      let (isEq, a?, b?) ←
+        if ty.isAppOfArity ``Eq 3 then
+          pure (true, some (ty.getArg! 1), some (ty.getArg! 2))
+        else if ty.isAppOfArity ``Ne 3 then
+          pure (false, some (ty.getArg! 1), some (ty.getArg! 2))
+        else
+          pure (false, none, none)
+      match a?, b? with
+      | some a, some b =>
+        if a.isFVar && b.isFVar then
+          let aName := (← a.fvarId!.getUserName).toString
+          let bName := (← b.fvarId!.getUserName).toString
+          if aName > bName then
+            toFlip := toFlip.push (ldecl.userName, isEq)
+      | _, _ => pure ()
+    for (hName, isEq) in toFlip do
+      let hIdent := mkIdent hName
+      let symIdent := mkIdent (if isEq then ``Eq.symm else ``Ne.symm)
+      evalTactic (← `(tactic| replace $hIdent:ident := $symIdent:ident $hIdent:ident))
+
+/-- Attempts to unfold any geometric objects in the vicinity and eliminate booleans
+ and the like. Tries to capture the author's intuition for 'by definition' in the text.
+
+ The last alternative handles Finset literal equality (`{A,B,C} = {C,A,B}` etc.) by
+ reducing to membership and tautology — convenient since Finsets are unordered.
+
+ `normalize_eq` runs first to canonicalize `=` / `≠` orientations so `simp_all` can
+ close hypotheses regardless of which side they were originally written on. -/
+macro "obvious" : tactic =>
+  `(tactic| (
+      normalize_eq
+      first
+      | (simp_all only [
+          -- set
+          Set.mem_setOf_eq, Set.mem_union, Set.mem_inter_iff,
+          Set.mem_singleton_iff,
+          -- finset
+          Finset.mem_insert, Finset.mem_singleton, Finset.mem_erase, Finset.notMem_empty,
+          -- line parts
+          Segment, Ray, Extension, LineThrough,
+          -- betweenness normalizing
+          B1b,
+          -- propositional stuff
+          ne_eq, true_or, or_true, false_or, or_false, or_self,
+          true_and, and_true, false_and, and_false, and_self,
+          not_true_eq_false, not_false_eq_true, not_or, not_and, not_not
+        ]; done)
+      | (simp only [Segment, Ray, Extension, LineThrough]; tauto)
+      | (unfold Segment Ray Extension LineThrough at *; tauto)
+      | (ext; simp only [Finset.mem_insert, Finset.mem_singleton, Finset.mem_erase, ne_eq]; tauto)))
+
+macro "obvious" : term => `(by obvious)
+
+/-- `clearly P := by body` introduces `P` as a fact for the rest of the proof, having
+    discharged the negation branch — i.e. the body proves the main goal under the
+    assumption `¬P`. The reading is: "clearly P, because if not, the goal is immediate
+    (`body`); proceeding under `P`".
+
+    For `P` of the form `A ≠ B` or `A = B`, the hypothesis introduced for the rest of
+    the proof is auto-named `AneB` / `AeqB` from the LHS/RHS identifiers; inside the
+    body the dual hypothesis is in scope (`AeqB` / `AneB` respectively). -/
+syntax "clearly " term " := " "by " tacticSeq : tactic
+syntax "clearly " term : tactic
+
+open Lean Elab Tactic in
+elab_rules : tactic
+  | `(tactic| clearly $prop) => do
+    -- Bare `clearly P` form: try `obvious` as the body; if it closes the negation
+    -- branch, behave as `clearly P := by obvious`.
+    evalTactic (← `(tactic| clearly $prop := by obvious))
+  | `(tactic| clearly $prop := by $body) => do
+    match prop with
+    | `($lhs:ident ≠ $rhs:ident) =>
+      let lName := lhs.getId.toString
+      let rName := rhs.getId.toString
+      let eqIdent := mkIdent (Name.mkSimple s!"{lName}eq{rName}")
+      let neIdent := mkIdent (Name.mkSimple s!"{lName}ne{rName}")
+      -- `Classical.em (A = B)` yields `A = B ∨ A ≠ B`. The body discharges the
+      -- equality branch; the inequality branch flows through as the open goal.
+      evalTactic (← `(tactic| (
+        rcases Classical.em ($lhs = $rhs) with $eqIdent:ident | $neIdent:ident
+        · $body)))
+    | `($lhs:ident = $rhs:ident) =>
+      let lName := lhs.getId.toString
+      let rName := rhs.getId.toString
+      let eqIdent := mkIdent (Name.mkSimple s!"{lName}eq{rName}")
+      let neIdent := mkIdent (Name.mkSimple s!"{lName}ne{rName}")
+      evalTactic (← `(tactic| (
+        rcases Classical.em ($lhs = $rhs) with $eqIdent:ident | $neIdent:ident
+        swap
+        · $body)))
+    | _ => throwError "clearly: expected proposition of the form `A ≠ B` or `A = B`"
 
 
 end Geometry.Theory
