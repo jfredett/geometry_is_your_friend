@@ -272,7 +272,7 @@ def IntersectsSome (L M : Set Point) : Prop := ∃ X, L ∩ M = {X}
 
 /-- Extract the intersection witness: `L intersects M → ∃ X, L intersects M at X`.
     This is the main consumer of a bare `intersects` hypothesis. -/
-lemma IntersectsSome.exists_at {L M : Set Point} (h : IntersectsSome L M) :
+lemma IntersectsSome.intersection_point {L M : Set Point} (h : IntersectsSome L M) :
     ∃ X, L ∩ M = {X} := h
 
 -- Syntax for "L intersects M at X" (specific intersection point) and the bare
@@ -366,9 +366,11 @@ macro "obvious" : term => `(by obvious)
     assumption `¬P`. The reading is: "clearly P, because if not, the goal is immediate
     (`body`); proceeding under `P`".
 
-    For `P` of the form `A ≠ B` or `A = B`, the hypothesis introduced for the rest of
-    the proof is auto-named `AneB` / `AeqB` from the LHS/RHS identifiers; inside the
-    body the dual hypothesis is in scope (`AeqB` / `AneB` respectively). -/
+    Supported shapes for `P` (auto-named hypotheses derived from the identifiers):
+    - `A ≠ B`: rest of proof gets `AneB : A ≠ B`; body sees `AeqB : A = B`.
+    - `A = B`: rest of proof gets `AeqB : A = B`; body sees `AneB : A ≠ B`.
+    - `P on L`: rest of proof gets `PonL : P on L`; body sees `PoffL : P off L`.
+    - `P off L`: rest of proof gets `PoffL : P off L`; body sees `PonL : P on L`. -/
 syntax "clearly " term " := " "by " tacticSeq : tactic
 syntax "clearly " term : tactic
 
@@ -399,7 +401,26 @@ elab_rules : tactic
         rcases Classical.em ($lhs = $rhs) with $eqIdent:ident | $neIdent:ident
         swap
         · $body)))
-    | _ => throwError "clearly: expected proposition of the form `A ≠ B` or `A = B`"
+    | `($P:ident on $L:ident) =>
+      let pName := P.getId.toString
+      let lName := L.getId.toString
+      let onIdent := mkIdent (Name.mkSimple s!"{pName}on{lName}")
+      let offIdent := mkIdent (Name.mkSimple s!"{pName}off{lName}")
+      -- `Classical.em (P ∈ L)` yields `P ∈ L ∨ P ∉ L`, i.e. `P on L ∨ P off L`.
+      -- The body discharges the `off` branch; the `on` branch flows through.
+      evalTactic (← `(tactic| (
+        rcases Classical.em ($P ∈ $L) with $onIdent:ident | $offIdent:ident
+        swap
+        · $body)))
+    | `($P:ident off $L:ident) =>
+      let pName := P.getId.toString
+      let lName := L.getId.toString
+      let onIdent := mkIdent (Name.mkSimple s!"{pName}on{lName}")
+      let offIdent := mkIdent (Name.mkSimple s!"{pName}off{lName}")
+      evalTactic (← `(tactic| (
+        rcases Classical.em ($P ∈ $L) with $onIdent:ident | $offIdent:ident
+        · $body)))
+    | _ => throwError "clearly: expected `A ≠ B`, `A = B`, `P on L`, or `P off L`"
 
 
 end Geometry.Theory

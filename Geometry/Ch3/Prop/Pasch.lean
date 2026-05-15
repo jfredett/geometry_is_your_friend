@@ -39,10 +39,37 @@ theorem pasch {A B C : Point} {L : Line}
   (triABC : ¬(collinear A B C)) (LintAB : L intersects segment A B) :
   ((L intersects segment A C) ∨ (L intersects segment B C)) ∧
   (C off L -> ¬((L intersects segment A C) ∧ (L intersects segment B C))) := by
-    
-    sorry
+    /- (1) Either C lies on L or it does not; if it does, the theorem holds (law the excluded middle) -/
+    clearly C off L := by sorry
+    /- (2) A and B do not lie on L, and the segment A B does intersect L (hypothesis and Axiom B-1) -/
+    -- Ed: Author asserts without proof, but it is obvious that these result in true instances for Pasch.
+    clearly A off L := by sorry
+    clearly B off L := by sorry
+    -- Ed: We already have the intersection hypothesis, so this is just mise en place, I suppose this _is_
+    -- the author's justification that A and B are off L.
+    /- (3) Hence, A and B lie on opposite sides of L (by definition) -/
+    have LsplitsAB : L splits A and B := by 
+      sorry
+    /- (4) From step 1 we may assume that C does not lie on L, in which case C is either on the same side of L as A or
+           on the same side of L as B (separation axiom) -/
+    have LguardsACorBC : (L guards A and C) ∨ (L guards B and C) := by sorry
+    rcases LguardsACorBC with LguardsAC | LguardsBC
+    · /- (5) If C is on the same side of L as A, then C is on the opposite side from B, which means that L intersects BC
+           and does not intersect AC ... -/
+      sorry
+    · /- ... similarly, if C is on the same side of L as B, then L intersects AC and does not intersect BC (separation axiom). -/
+      sorry
+    /- (6) The conclusion of Pasch's theorem holds (Logic Rule 11 -- proof by cases). ∎ -/
 
 
 end Geometry.Ch3.Prop
 
+namespace Geometry.Theory
+
+/- Ed: this is a 'standard' geometric theorem that is necessary for results regardless of underlying axiomatization, so 
+I'm aliasing it to the top level 'Theory' namespace so it can be referenced as such, similar to P4's aliasing into the
+Line namespace. There is no other natural namespace for Pasch so I put it here. -/
+alias pasch := Geometry.Ch3.Prop.pasch
+
+end Geometry.Theory
 
