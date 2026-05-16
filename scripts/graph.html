@@ -1,0 +1,1191 @@
+<!doctype html>
+<!--
+  Theorem Atlas — a static viewer for the Geometry theorem dependency graph.
+
+  Open via `just graph-view` (spins up python -m http.server) and visit
+  http://localhost:8765/scripts/graph.html. The page fetches
+  ../blueprint/graph.json, which `scripts/export_graph.py` produces from
+  the Kuzu graph DB at blueprint/graph.kuzu/.
+
+  Layout engines available: dagre (general DAG), ELK (high-quality
+  layered), cose (force-directed). Each has its own param panel.
+
+  Aesthetic: editorial mathematics — warm paper, ink, oxblood accents,
+  Fraunces serif for body & display, JetBrains Mono for code-y bits.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Theorem Atlas · Geometry</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+<script src="https://unpkg.com/elkjs/lib/elk.bundled.js"></script>
+<script src="https://unpkg.com/cytoscape-elk/dist/cytoscape-elk.js"></script>
+
+<style>
+:root {
+  --paper:        #f4ecd8;
+  --paper-soft:   #ede2c5;
+  --paper-deep:   #e0d2ad;
+  --ink:          #1c1410;
+  --ink-soft:     #4a3a2c;
+  --ink-muted:    #7a6852;
+  --ink-ghost:    #b8a685;
+  --accent:       #983327;
+  --accent-soft:  #c87a6a;
+  --teal:         #2c4f50;
+  --gold:         #b08229;
+  --rule:         rgba(28, 20, 16, 0.14);
+  --rule-soft:    rgba(28, 20, 16, 0.06);
+  --shadow:       0 1px 0 rgba(28, 20, 16, 0.04), 0 12px 24px -16px rgba(28, 20, 16, 0.18);
+
+  --display:      'Fraunces', 'EB Garamond', 'Georgia', serif;
+  --body:         'Fraunces', 'EB Garamond', 'Georgia', serif;
+  --mono:         'JetBrains Mono', 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-feature-settings: "kern", "liga", "calt", "onum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Faint paper grain. SVG noise via data URL keeps the file standalone. */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  opacity: 0.6; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18 0 0 0 0 0.13 0 0 0 0 0.08 0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  background-size: 220px 220px;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(176, 130, 41, 0.10), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(152, 51, 39, 0.08), transparent 60%);
+}
+
+/* ---------- Layout shell ---------- */
+.shell {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  height: 100vh;
+}
+
+/* ---------- Masthead ---------- */
+.masthead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 28px;
+  padding: 22px 36px 18px;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.masthead::after {
+  content: ""; position: absolute; left: 36px; right: 36px; bottom: -3px;
+  height: 1px; background: var(--rule); opacity: 0.55;
+}
+
+.mark {
+  font-family: var(--display);
+  font-size: 38px; line-height: 0.8;
+  color: var(--ink);
+  font-variation-settings: "opsz" 144, "wght" 700, "SOFT" 80, "WONK" 1;
+  letter-spacing: -0.02em;
+  user-select: none;
+  display: inline-flex; align-items: center; gap: 14px;
+}
+.mark .sigil {
+  display: inline-block; width: 22px; height: 22px;
+  background: var(--ink);
+  transform: rotate(45deg);
+  position: relative; top: -2px;
+}
+.mark .sigil::after {
+  content: ""; position: absolute; inset: 5px;
+  background: var(--paper);
+  transform: rotate(0deg);
+}
+
+.title-block { display: flex; flex-direction: column; gap: 4px; }
+.title-block h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 600;
+  font-size: 32px; line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.title-block .sub {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-style: italic;
+  font-size: 14px; color: var(--ink-soft);
+  letter-spacing: 0.005em;
+}
+
+.edition {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.edition .roman {
+  font-family: var(--display); font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 12px; letter-spacing: 0.1em; color: var(--ink-soft);
+}
+.edition .counts {
+  display: block; margin-top: 2px;
+  font-family: var(--mono); font-weight: 400; font-size: 12px;
+  color: var(--ink);
+}
+
+/* ---------- Toolbar ---------- */
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto auto;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 36px;
+  border-bottom: 1px solid var(--rule);
+  background:
+    linear-gradient(to bottom, rgba(28, 20, 16, 0.012), transparent 4px),
+    var(--paper-soft);
+}
+
+.field {
+  position: relative;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.field label {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-muted);
+}
+.field input[type=text],
+.field select {
+  appearance: none; -webkit-appearance: none;
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 4px 0 6px;
+  font-family: var(--body);
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.field input[type=text]::placeholder {
+  color: var(--ink-ghost); font-style: italic;
+}
+.field input[type=text]:focus,
+.field select:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+.field select {
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%),
+    linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%);
+  background-position: calc(100% - 11px) calc(50% + 1px), calc(100% - 6px) calc(50% + 1px);
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 22px;
+}
+
+/* Three-button layout switcher styled like a publication's section selector */
+.engines {
+  display: inline-flex; align-items: stretch;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--paper);
+}
+.engines button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--ink);
+  padding: 9px 16px 8px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  display: inline-flex; align-items: baseline; gap: 8px;
+  transition: background 180ms ease, color 180ms ease;
+}
+.engines button:first-child { border-left: 0; }
+.engines button:hover { background: var(--paper-deep); }
+.engines button.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+.engines button .roman {
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-right: 1px;
+}
+
+.icon-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 8px 12px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+.icon-btn:hover { background: var(--paper-deep); border-color: var(--ink-muted); }
+.icon-btn[aria-expanded="true"] {
+  background: var(--ink); color: var(--paper); border-color: var(--ink);
+}
+
+/* ---------- Layout-params drawer ---------- */
+.params {
+  background:
+    linear-gradient(to bottom, rgba(28, 20, 16, 0.04), transparent 10px),
+    var(--paper-soft);
+  border-bottom: 1px solid var(--rule);
+  overflow: hidden;
+  max-height: 280px;
+  transition: max-height 320ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 18px 36px 22px;
+}
+.params.hidden { max-height: 0; padding-top: 0; padding-bottom: 0; }
+
+.params-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 28px;
+  align-items: start;
+}
+.params-section h3 {
+  margin: 0 0 12px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 600;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  display: flex; align-items: baseline; gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+.params-section h3 .num {
+  font-style: normal;
+  font-variation-settings: "opsz" 14, "wght" 600;
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+.params-section h3 .annotation {
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-style: italic;
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.param-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 4px 0;
+}
+.param-row label {
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-variation-settings: "opsz" 14, "wght" 500;
+}
+.param-row input,
+.param-row select {
+  appearance: none; -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dotted var(--ink-ghost);
+  padding: 2px 0 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  width: 100%;
+}
+.param-row input:focus,
+.param-row select:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+.param-row select {
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%),
+    linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%);
+  background-position: calc(100% - 8px) calc(50% + 1px), calc(100% - 4px) calc(50% + 1px);
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+  padding-right: 18px;
+}
+
+.apply-col {
+  display: flex; flex-direction: column; gap: 6px;
+  align-items: flex-end; justify-content: flex-end;
+  align-self: stretch;
+  padding-top: 30px;
+}
+#layout-apply {
+  appearance: none;
+  background: var(--accent);
+  color: var(--paper);
+  border: 0;
+  padding: 12px 22px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 200ms ease, transform 100ms ease, box-shadow 200ms ease;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.1), 0 10px 18px -12px rgba(152, 51, 39, 0.55);
+}
+#layout-apply:hover { background: #7a2820; }
+#layout-apply:active { transform: translateY(1px); }
+.apply-hint {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-style: italic;
+  font-size: 10px;
+  color: var(--ink-muted);
+  letter-spacing: 0.03em;
+}
+
+/* ---------- Main pane ---------- */
+.main {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr minmax(380px, 420px);
+  min-height: 0;
+}
+
+#cy {
+  position: relative;
+  background:
+    /* faint ruled paper */
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 31px,
+      rgba(28, 20, 16, 0.025) 31px 32px
+    ),
+    radial-gradient(ellipse at 50% 50%, var(--paper) 60%, var(--paper-deep) 100%);
+  border-right: 1px solid var(--rule);
+}
+
+/* Figure caption pinned in the corner of the graph */
+.figure-caption {
+  position: absolute;
+  bottom: 18px; left: 24px;
+  z-index: 2;
+  font-family: var(--display);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+.figure-caption em {
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "wght" 500;
+  color: var(--ink-soft);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.figure-axes {
+  position: absolute;
+  top: 18px; right: 18px;
+  z-index: 2;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-align: right;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+/* ---------- Inspector ---------- */
+.inspector {
+  position: relative;
+  padding: 32px 30px 36px;
+  overflow-y: auto;
+  background:
+    linear-gradient(to right, rgba(28, 20, 16, 0.04), transparent 16px),
+    var(--paper-soft);
+}
+.inspector::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: var(--rule); opacity: 0.6;
+}
+
+.empty-state {
+  padding-top: 80px;
+  text-align: center;
+}
+.empty-state .glyph {
+  font-family: var(--display);
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-size: 60px;
+  color: var(--accent);
+  line-height: 1;
+}
+.empty-state p {
+  margin: 24px 0 0;
+  font-family: var(--display);
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.entry-head {
+  display: grid; gap: 6px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+.entry-head .marker {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.entry-head .marker .pill {
+  display: inline-block;
+  padding: 1px 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  margin-left: 6px;
+}
+.entry-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 28px;
+  line-height: 1.05;
+  color: var(--ink);
+  word-break: break-word;
+  letter-spacing: -0.005em;
+}
+.entry-head .fqn {
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  word-break: break-all;
+  line-height: 1.55;
+}
+.entry-head .sorry-tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 9px;
+  background: var(--accent);
+  color: var(--paper);
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-style: italic;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.meta-grid {
+  display: grid; grid-template-columns: 84px 1fr; gap: 4px 14px;
+  margin: 0 0 22px;
+}
+.meta-grid dt {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  padding-top: 2px;
+}
+.meta-grid dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.doc-block {
+  margin: 0 0 22px;
+  position: relative;
+  padding: 4px 0 4px 18px;
+  border-left: 2px solid var(--accent);
+  font-family: var(--display);
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.doc-block::before {
+  content: "“";
+  position: absolute; left: -2px; top: -12px;
+  font-style: normal;
+  font-size: 32px;
+  color: var(--accent-soft);
+  line-height: 1;
+}
+
+.type-block {
+  margin: 0 0 18px;
+}
+.type-block .type-label {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.type-block pre {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--paper-deep);
+  border-left: 1px solid var(--ink-muted);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+/* Legend at the bottom of the inspector */
+.legend {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+.legend .legend-title {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+.legend ul {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
+}
+.legend li {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.legend .swatch {
+  display: inline-block; width: 12px; height: 12px;
+  border: 1px solid var(--ink);
+}
+.legend .swatch.shape-circle { border-radius: 50%; }
+.legend .swatch.shape-diamond { transform: rotate(45deg); width: 9px; height: 9px; }
+.legend .swatch.shape-triangle {
+  width: 0; height: 0; border: 0;
+  border-left: 7px solid transparent; border-right: 7px solid transparent;
+  border-bottom: 12px solid var(--ink);
+  background: transparent;
+}
+.legend .swatch.shape-ring {
+  background: transparent;
+  box-shadow: 0 0 0 2px var(--accent);
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+}
+
+/* ---------- Fade-in on load ---------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.masthead { animation: rise 600ms ease-out both; }
+.toolbar  { animation: rise 600ms ease-out 80ms both; }
+.params   { animation: rise 600ms ease-out 160ms both; }
+.main     { animation: rise 600ms ease-out 240ms both; }
+
+/* Subtle "loading…" placeholder shown until graph.json arrives */
+.loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-style: italic;
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 14px; color: var(--ink-muted);
+  pointer-events: none;
+  z-index: 2;
+}
+.loading::before {
+  content: "∎"; margin-right: 10px;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* small screens: stack inspector below canvas */
+@media (max-width: 980px) {
+  .main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
+  #cy { border-right: 0; border-bottom: 1px solid var(--rule); }
+  .params-grid { grid-template-columns: 1fr; }
+  .toolbar { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <div class="mark"><span class="sigil" aria-hidden="true"></span></div>
+    <div class="title-block">
+      <h1>Theorem Atlas</h1>
+      <div class="sub">A graph of dependencies among the formalised propositions, after Greenberg.</div>
+    </div>
+    <div class="edition">
+      <span class="roman">vol. iii · edn. <span id="edition-no">i</span></span>
+      <span class="counts" id="counts">— · — propositions</span>
+    </div>
+  </header>
+
+  <nav class="toolbar">
+    <div class="field">
+      <label for="search">Search</label>
+      <input id="search" type="text" placeholder="filter by label or fully-qualified name…" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="module-filter">Module</label>
+      <select id="module-filter"><option value="">∗ all modules</option></select>
+    </div>
+    <div class="engines" role="group" aria-label="layout engine">
+      <button id="layout-dagre" class="active" type="button">
+        <span class="roman">i</span><span>dagre</span>
+      </button>
+      <button id="layout-elk" type="button">
+        <span class="roman">ii</span><span>elk</span>
+      </button>
+      <button id="layout-cose" type="button">
+        <span class="roman">iii</span><span>cose</span>
+      </button>
+    </div>
+    <button id="toggle-controls" class="icon-btn" type="button" aria-expanded="false">parameters</button>
+    <button id="reset" class="icon-btn" type="button" title="re-fit view">re-fit</button>
+  </nav>
+
+  <section class="params hidden" id="layout-controls" aria-hidden="true">
+    <div class="params-grid">
+      <div class="params-section">
+        <h3><span class="num">I</span> dagre <span class="annotation">layered, classic</span></h3>
+        <div class="param-row">
+          <label for="dagre-ranker">ranker</label>
+          <select id="dagre-ranker">
+            <option value="network-simplex" selected>network-simplex</option>
+            <option value="tight-tree">tight-tree</option>
+            <option value="longest-path">longest-path</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label for="dagre-rankdir">direction</label>
+          <select id="dagre-rankdir">
+            <option value="BT" selected>BT (axioms↑)</option>
+            <option value="TB">TB (theorems↑)</option>
+            <option value="LR">LR</option>
+            <option value="RL">RL</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label for="dagre-align">align</label>
+          <select id="dagre-align">
+            <option value="">center</option>
+            <option value="UL">upper-left</option>
+            <option value="UR">upper-right</option>
+            <option value="DL">lower-left</option>
+            <option value="DR">lower-right</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label for="dagre-nodesep">nodeSep</label>
+          <input id="dagre-nodesep" type="number" min="5" max="200" value="30">
+        </div>
+        <div class="param-row">
+          <label for="dagre-ranksep">rankSep</label>
+          <input id="dagre-ranksep" type="number" min="10" max="400" value="60">
+        </div>
+        <div class="param-row">
+          <label for="dagre-edgesep">edgeSep</label>
+          <input id="dagre-edgesep" type="number" min="2" max="100" value="10">
+        </div>
+      </div>
+
+      <div class="params-section">
+        <h3><span class="num">II</span> elk <span class="annotation">eclipse, refined</span></h3>
+        <div class="param-row">
+          <label for="elk-algorithm">algorithm</label>
+          <select id="elk-algorithm">
+            <option value="layered" selected>layered</option>
+            <option value="mrtree">mrtree</option>
+            <option value="force">force</option>
+            <option value="stress">stress</option>
+            <option value="random">random</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label for="elk-direction">direction</label>
+          <select id="elk-direction">
+            <option value="UP" selected>UP (axioms↑)</option>
+            <option value="DOWN">DOWN</option>
+            <option value="LEFT">LEFT</option>
+            <option value="RIGHT">RIGHT</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <label for="elk-nodenode">nodeNode</label>
+          <input id="elk-nodenode" type="number" min="10" max="400" value="60">
+        </div>
+        <div class="param-row">
+          <label for="elk-betweenlayers">layer Δ</label>
+          <input id="elk-betweenlayers" type="number" min="20" max="600" value="100">
+        </div>
+        <div class="param-row">
+          <label for="elk-strategy">node placement</label>
+          <select id="elk-strategy">
+            <option value="NETWORK_SIMPLEX" selected>network-simplex</option>
+            <option value="BRANDES_KOEPF">brandes-koepf</option>
+            <option value="LINEAR_SEGMENTS">linear-segments</option>
+            <option value="SIMPLE">simple</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="params-section">
+        <h3><span class="num">III</span> cose <span class="annotation">force-directed</span></h3>
+        <div class="param-row">
+          <label for="cose-repulsion">repulsion</label>
+          <input id="cose-repulsion" type="number" min="500" max="50000" step="500" value="8000">
+        </div>
+        <div class="param-row">
+          <label for="cose-edgelen">edge length</label>
+          <input id="cose-edgelen" type="number" min="20" max="500" value="100">
+        </div>
+      </div>
+
+      <div class="apply-col">
+        <button id="layout-apply" type="button">re-run layout</button>
+        <span class="apply-hint">edits hold until you press this</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="main">
+    <div id="cy">
+      <div class="loading" id="loading">composing the figure</div>
+      <div class="figure-axes" id="figure-axes">
+        <span id="figure-engine">dagre</span><br>
+        <span id="figure-stats">— nodes · — edges</span>
+      </div>
+      <div class="figure-caption">
+        Fig. <em>i</em>. — The Geometric Atlas, as a directed graph of definitional and inferential dependence.
+      </div>
+    </div>
+
+    <aside class="inspector" id="info">
+      <div class="empty-state" id="empty-state">
+        <div class="glyph">∎</div>
+        <p>Touch a node to read its preface, premises, and conclusion.</p>
+      </div>
+    </aside>
+  </main>
+
+</div>
+
+<script>
+// ---------- Helpers ----------
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function shapeForKind(kind, hasSorry) {
+  // ellipse for theorems & defs, diamond for axioms, hexagon for the rest.
+  // has_sorry stacks an oxblood ring on top via border styling (below).
+  switch (kind) {
+    case 'theorem': return 'ellipse';
+    case 'def':     return 'ellipse';
+    case 'axiom':   return 'diamond';
+    default:        return 'hexagon';
+  }
+}
+
+function fillForKind(kind, hasSorry) {
+  if (hasSorry) return '#983327';            // oxblood
+  switch (kind) {
+    case 'theorem': return '#1c1410';        // ink
+    case 'def':     return '#2c4f50';        // teal
+    case 'axiom':   return '#b08229';        // gold
+    default:        return '#7a6852';        // muted ink
+  }
+}
+
+// ---------- Main ----------
+async function main() {
+  cytoscape.use(cytoscapeDagre);
+  if (typeof cytoscapeElk !== 'undefined') cytoscape.use(cytoscapeElk);
+
+  let data;
+  try {
+    const resp = await fetch('../blueprint/graph.json');
+    data = await resp.json();
+  } catch (e) {
+    document.getElementById('loading').textContent =
+      'could not load blueprint/graph.json — run `just graph` first.';
+    return;
+  }
+  document.getElementById('loading').remove();
+
+  const nodes = data.nodes;
+  const edges = data.edges;
+
+  // ---- Module dropdown ----
+  const modules = [...new Set(nodes.map(n => n.data.module).filter(Boolean))].sort();
+  const sel = document.getElementById('module-filter');
+  modules.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m; sel.appendChild(o);
+  });
+
+  // ---- Counts ----
+  const sorryCount = nodes.filter(n => n.data.has_sorry).length;
+  document.getElementById('counts').textContent =
+    `${nodes.length} propositions · ${edges.length} dependencies` +
+    (sorryCount ? ` · ${sorryCount} pending` : '');
+  document.getElementById('figure-stats').textContent =
+    `${nodes.length} nodes · ${edges.length} edges`;
+
+  // ---- Cytoscape ----
+  const cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: { nodes, edges },
+    minZoom: 0.1, maxZoom: 4,
+    wheelSensitivity: 0.2,
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'background-color': n => fillForKind(n.data('kind'), n.data('has_sorry')),
+          'shape': n => shapeForKind(n.data('kind')),
+          'label': 'data(label)',
+          'color': '#1c1410',
+          'font-family': 'Fraunces, EB Garamond, Georgia, serif',
+          'font-size': '9px',
+          'font-style': 'italic',
+          'font-weight': 500,
+          'text-valign': 'top',
+          'text-halign': 'center',
+          'text-margin-y': -3,
+          'text-background-color': '#f4ecd8',
+          'text-background-opacity': 0.85,
+          'text-background-padding': 2,
+          'text-background-shape': 'roundrectangle',
+          'width': 'mapData(degree, 0, 30, 8, 24)',
+          'height': 'mapData(degree, 0, 30, 8, 24)',
+          'border-width': n => n.data('has_sorry') ? 2 : 1,
+          'border-color': n => n.data('has_sorry') ? '#7a2820' : '#1c1410',
+          'transition-property': 'background-color, border-color, width, height',
+          'transition-duration': '160ms',
+        },
+      },
+      {
+        selector: 'node[has_sorry]',
+        style: {
+          'border-style': 'solid',
+        },
+      },
+      {
+        selector: 'node:selected',
+        style: {
+          'border-width': 3,
+          'border-color': '#983327',
+          'width': 'mapData(degree, 0, 30, 14, 32)',
+          'height': 'mapData(degree, 0, 30, 14, 32)',
+        },
+      },
+      {
+        selector: 'edge',
+        style: {
+          'width': 0.8,
+          'line-color': 'rgba(28, 20, 16, 0.32)',
+          'target-arrow-shape': 'triangle-backcurve',
+          'target-arrow-color': 'rgba(28, 20, 16, 0.5)',
+          'curve-style': 'bezier',
+          'arrow-scale': 0.7,
+        },
+      },
+      {
+        selector: '.dim',
+        style: { 'opacity': 0.08 },
+      },
+      {
+        selector: 'node.related',
+        style: {
+          'border-color': '#983327',
+          'border-width': 2,
+        },
+      },
+      {
+        selector: 'edge.related',
+        style: {
+          'line-color': '#983327',
+          'target-arrow-color': '#983327',
+          'width': 1.3,
+          'opacity': 0.9,
+          'z-index': 99,
+        },
+      },
+    ],
+    layout: dagreOpts(),
+  });
+
+  // Precompute degree so mapData(degree, …) in the stylesheet has data to bind.
+  cy.nodes().forEach(n => n.data('degree', n.degree()));
+
+  // ---------- Layout options ----------
+  function dagreOpts() {
+    const align = document.getElementById('dagre-align')?.value || '';
+    const opts = {
+      name: 'dagre',
+      ranker: document.getElementById('dagre-ranker')?.value || 'network-simplex',
+      rankDir: document.getElementById('dagre-rankdir')?.value || 'BT',
+      nodeSep: +(document.getElementById('dagre-nodesep')?.value || 30),
+      rankSep: +(document.getElementById('dagre-ranksep')?.value || 60),
+      edgeSep: +(document.getElementById('dagre-edgesep')?.value || 10),
+      animate: true, animationDuration: 350,
+      fit: true, padding: 40,
+    };
+    if (align) opts.align = align;
+    return opts;
+  }
+  function coseOpts() {
+    return {
+      name: 'cose',
+      animate: false,
+      nodeRepulsion: +(document.getElementById('cose-repulsion')?.value || 8000),
+      idealEdgeLength: +(document.getElementById('cose-edgelen')?.value || 100),
+      fit: true, padding: 50,
+    };
+  }
+  function elkOpts() {
+    return {
+      name: 'elk',
+      elk: {
+        algorithm: document.getElementById('elk-algorithm')?.value || 'layered',
+        'elk.direction': document.getElementById('elk-direction')?.value || 'UP',
+        'elk.spacing.nodeNode':
+            +(document.getElementById('elk-nodenode')?.value || 60),
+        'elk.layered.spacing.nodeNodeBetweenLayers':
+            +(document.getElementById('elk-betweenlayers')?.value || 100),
+        'elk.layered.nodePlacement.strategy':
+            document.getElementById('elk-strategy')?.value || 'NETWORK_SIMPLEX',
+      },
+      fit: true, padding: 40,
+      animate: false,
+    };
+  }
+
+  // ---------- Inspector ----------
+  const info = document.getElementById('info');
+  // Stash the empty-state markup so we can restore it on canvas-deselect.
+  const emptyStateHTML = info.innerHTML;
+  function restoreEmptyState() { info.innerHTML = emptyStateHTML; }
+  function escapeHtmlBlock(s) { return escapeHtml(s); }
+
+  function showNode(d) {
+    const sorryTag = d.has_sorry
+      ? `<span class="sorry-tag">contains sorry</span>` : '';
+    const propTag = d.is_proposition
+      ? `<span class="pill">Prop</span>` : '';
+    const kindLabel = (d.kind || '·').toUpperCase();
+
+    info.innerHTML = `
+      <div class="entry-head">
+        <div class="marker">${kindLabel}${propTag}</div>
+        <h2>${escapeHtml(d.label)}</h2>
+        <div class="fqn">${escapeHtml(d.id)}</div>
+        ${sorryTag}
+      </div>
+
+      <dl class="meta-grid">
+        <dt>Module</dt><dd>${escapeHtml(d.module || '—')}</dd>
+        <dt>File</dt><dd>${escapeHtml(d.file || '—')}</dd>
+        <dt>Namespace</dt><dd>${escapeHtml(d.namespace || '—')}</dd>
+      </dl>
+
+      ${d.doc ? `<blockquote class="doc-block">${escapeHtmlBlock(d.doc)}</blockquote>` : ''}
+
+      ${d.type_pp ? `
+        <div class="type-block">
+          <div class="type-label">Type signature</div>
+          <pre>${escapeHtml(d.type_pp)}</pre>
+        </div>` : ''}
+
+      <div class="legend">
+        <div class="legend-title">Atlas legend</div>
+        <ul>
+          <li><span class="swatch shape-circle" style="background:#1c1410"></span> theorem</li>
+          <li><span class="swatch shape-circle" style="background:#2c4f50"></span> definition</li>
+          <li><span class="swatch shape-diamond" style="background:#b08229"></span> axiom</li>
+          <li><span class="swatch shape-circle" style="background:#7a6852"></span> opaque</li>
+          <li><span class="swatch shape-ring" style="background:#983327"></span> contains <em>sorry</em></li>
+          <li><span class="swatch" style="background:transparent;border:1px solid #1c1410">&nbsp;</span> selected</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  cy.on('tap', 'node', e => {
+    showNode(e.target.data());
+    // Highlight 1-hop neighbourhood.
+    cy.elements().removeClass('related');
+    const node = e.target;
+    const neighborhood = node.closedNeighborhood();
+    neighborhood.addClass('related');
+  });
+
+  cy.on('tap', e => {
+    if (e.target === cy) {
+      cy.elements().removeClass('related');
+      restoreEmptyState();
+    }
+  });
+
+  // ---------- Search ----------
+  document.getElementById('search').oninput = (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    cy.elements().removeClass('dim');
+    if (!q) return;
+    const matches = cy.nodes().filter(n =>
+      n.data('label').toLowerCase().includes(q) ||
+      n.data('id').toLowerCase().includes(q));
+    if (matches.length === 0) return;
+    cy.elements().difference(matches.union(matches.connectedEdges())).addClass('dim');
+    cy.fit(matches, 60);
+  };
+
+  // ---------- Module filter ----------
+  sel.onchange = (e) => {
+    const m = e.target.value;
+    cy.elements().removeClass('dim');
+    if (!m) return;
+    const matches = cy.nodes().filter(n => n.data('module') === m);
+    cy.elements().difference(matches.union(matches.connectedEdges())).addClass('dim');
+    cy.fit(matches, 60);
+  };
+
+  // ---------- Engine switcher ----------
+  let lastEngine = 'dagre';
+  const optsFor = { dagre: dagreOpts, elk: elkOpts, cose: coseOpts };
+  const buttons = {
+    dagre: document.getElementById('layout-dagre'),
+    elk:   document.getElementById('layout-elk'),
+    cose:  document.getElementById('layout-cose'),
+  };
+
+  function setEngine(name) {
+    lastEngine = name;
+    Object.entries(buttons).forEach(([k, b]) =>
+      b.classList.toggle('active', k === name));
+    document.getElementById('figure-engine').textContent = name;
+  }
+  function runLayout() {
+    const opts = optsFor[lastEngine]();
+    cy.layout(opts).run();
+  }
+  buttons.dagre.onclick = () => { setEngine('dagre'); runLayout(); };
+  buttons.elk.onclick   = () => {
+    if (typeof cytoscapeElk === 'undefined') {
+      alert('ELK plugin failed to load — check network access to unpkg.');
+      return;
+    }
+    setEngine('elk'); runLayout();
+  };
+  buttons.cose.onclick  = () => { setEngine('cose'); runLayout(); };
+
+  document.getElementById('layout-apply').onclick = runLayout;
+  document.getElementById('reset').onclick = () => cy.fit(60);
+
+  // ---------- Params drawer ----------
+  const toggle = document.getElementById('toggle-controls');
+  toggle.onclick = () => {
+    const panel = document.getElementById('layout-controls');
+    const willHide = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden');
+    panel.setAttribute('aria-hidden', willHide ? 'true' : 'false');
+    toggle.setAttribute('aria-expanded', willHide ? 'false' : 'true');
+    toggle.textContent = willHide ? 'parameters' : 'parameters · open';
+  };
+}
+
+main();
+</script>
+</body>
+</html>

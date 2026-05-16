@@ -32,6 +32,12 @@ package "geometry-is-your-friend" where
 lean_exe "dumpdecls" where
   root := `scripts.DumpDecls
 
+lean_exe "dumpimports" where
+  root := `scripts.DumpImports
+
+lean_exe "dumptactics" where
+  root := `scripts.DumpTactics
+
 @[default_target]
 lean_lib «Geometry» where
   srcDir := "."    -- points to main src folder

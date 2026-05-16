@@ -1,8 +1,11 @@
 /.lake
+history.txt
+blueprint/
 Greenberg.pdf
 blueprint/web
 blueprint/print
 *.paux
 blueprint/lean_decls
+blueprint/graph.kuzu/
 .venv/
 web/

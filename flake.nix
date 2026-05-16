@@ -46,6 +46,7 @@
               graphviz
               jq
               just
+              kuzu
               pandoc
               ripgrep
               timg

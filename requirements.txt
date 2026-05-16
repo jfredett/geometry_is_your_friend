@@ -1,3 +1,4 @@
 plastex
 plastexdepgraph
 leanblueprint
+kuzu
