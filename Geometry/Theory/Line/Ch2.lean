@@ -185,13 +185,6 @@ lemma segment_AB_sub_ray_BA : segment A B ⊆ ray B A := by
   intro P hPinSegAB
   simp_all only [mem_setOf_eq, mem_union, segment_AB_eq_segment_BA, true_or]
 
-lemma APB_imp_P_on_segment_AB : A - P - B -> P on the segment A B := obvious
-
-lemma APB_imp_P_on_ray_AB : A - P - B -> P on the ray A B := obvious
-
-lemma ABP_imp_P_on_ext_AB (PneAB : P ≠ A ∧ P ≠ B) :
-  A - B - P -> P on the extension A B := by intro _; obvious
-
 /- lemma ABP_imp_P_on_line_AB (PneAB : P ≠ A ∧ P ≠ B) : -/
 /-   A - B - P -> P on the line A B := by -/
 /-     intro ABP; -/
