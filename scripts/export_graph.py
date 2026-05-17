@@ -218,12 +218,13 @@ def main() -> None:
         OPTIONAL MATCH (d)-[:DECLARED_IN]->(m:Module)
         RETURN d.name, d.kind, d.file, m.name, d.namespace,
                d.has_sorry, d.is_proposition, d.doc, d.type_pp,
-               d.line_start, d.line_end
+               d.line_start, d.line_end,
+               d.atlas_kind, d.atlas_number, d.atlas_title
         """
     )
     while rs.has_next():
         (name, kind, file, module, ns, has_sorry, is_prop, doc, type_pp,
-         ls, le) = rs.get_next()
+         ls, le, atlas_kind, atlas_number, atlas_title) = rs.get_next()
         kind_of[name] = kind
         doc_of[name] = doc
         label = name.split(".")[-1]
@@ -244,6 +245,12 @@ def main() -> None:
                 "line_end": le,
                 "source": source_text,
                 "source_html": highlighted.get(name),
+                # Atlas attribute metadata (None when the decl carries no
+                # `@[atlas …]`). The viewer keys off `atlas_kind` to decide
+                # whether to render the book-style card chrome.
+                "atlas_kind": atlas_kind,
+                "atlas_number": atlas_number,
+                "atlas_title": atlas_title,
             }
         })
 

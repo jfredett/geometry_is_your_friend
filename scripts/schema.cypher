@@ -13,7 +13,12 @@ CREATE NODE TABLE Decl(
     line_end INT64,
     has_sorry BOOLEAN,
     is_proposition BOOLEAN,
-    is_noncomputable BOOLEAN
+    is_noncomputable BOOLEAN,
+    // Atlas attribute metadata (nullable; populated when @[atlas …] is set
+    // — typically via the `atlas <kind>` command macros in Atlas.lean).
+    atlas_kind STRING,
+    atlas_number STRING,
+    atlas_title STRING
 );
 
 CREATE NODE TABLE Module(

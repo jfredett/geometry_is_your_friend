@@ -32,6 +32,9 @@ package "geometry-is-your-friend" where
 lean_exe "dumpdecls" where
   root := `scripts.DumpDecls
 
+lean_exe "atlasprobe" where
+  root := `scripts.AtlasProbe
+
 lean_exe "dumpimports" where
   root := `scripts.DumpImports
 
@@ -47,6 +50,19 @@ lean_lib «Geometry» where
   srcDir := "."    -- points to main src folder
   -- You can also specify includeDirs if needed, e.g., for diagrams
   -- includeDirs := #[ "geometry/**/diagrams" ]
+
+-- Atlas is a top-level library so it can be extracted into its own
+-- package later without touching the Geometry namespace. For now it
+-- lives in this same repo with its own `lean_lib`.
+lean_lib «Atlas» where
+  srcDir := "."
+  roots := #[`Atlas]
+
+-- Smoke test for Atlas. Separate library so the test file doesn't
+-- accidentally get pulled into Geometry's transitive closure.
+lean_lib «AtlasTest» where
+  srcDir := "."
+  roots := #[`AtlasTest]
 
 require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
 

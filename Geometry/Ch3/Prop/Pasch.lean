@@ -21,6 +21,7 @@ import Geometry.Theory.Line.Ch1
 import Geometry.Theory.Line.Ch2
 import Geometry.Theory.Forgetting
 import Geometry.Theory.Intersection.Ch3
+import Atlas
 
 namespace Geometry.Ch3.Prop
 
@@ -34,8 +35,9 @@ open Geometry.Ch3.Ex
 also intersect AC or BC (see figure 3.10). If C does not lie on L, then L does not intersect both AC and BC.
 
   Intuititively, this theorem says that if a line "goes into" a triangle through one side, it must "come out" through
-another side.-/
-theorem pasch {A B C : Point} {L : Line}
+another side. -/
+atlas proposition 3.7 "Pasch's Postulate"
+  {A B C : Point} {L : Line}
   (triABC : ¬(collinear A B C)) (LintSegAB : L intersects segment A B) :
   ((L intersects segment A C) ∨ (L intersects segment B C)) ∧
   (C off L -> ¬((L intersects segment A C) ∧ (L intersects segment B C))) := by
@@ -68,12 +70,26 @@ theorem pasch {A B C : Point} {L : Line}
       · contrapose!; intro _; exact ConL
     /- (2) A and B do not lie on L, ... -/
     -- Ed: Author asserts without proof, but it is obvious that these result in true instances for Pasch.
+    -- NOTE: Do I need to dispatch both at once? is that easier than one or the other? This argument is
+    -- kinda messy
     clearly A off L := by
       -- if A on L, then L intersects segment A C at A, and L does not intersect B C at all, since A is off BC
       have AonAC : A on segment A C := obvious
+      have AinInt : A ∈ L ∩ segment A C := obvious
+      have LintAC : L intersects segment A C := obvious
+      have LintACatA : L intersects segment A C at A := by sorry
+      -- intuition: if L intersects AC at A, then L can either be 'tangent' to the triangle (just touches A)
+      -- or passes through and is subject to pasch
+      -- so either "L avoids AB and BC" xor "L enters the triangle and is subject to pasch.
+      by_contra! hNeg
+      obtain ⟨_, _, LintBC⟩ := hNeg (Or.inl LintAC)
+      -- intuition: we now have L int AB, BC, AC, which means the triangle must be a point and A = B = C.
+    
+      sorry
+      
+      /-
       clearly A off segment B C := by
         -- triABC is the play here; have collinear B C (via segment B C), so since ¬ collinear {A,B,C}, contra
-        have colBC : collinear B C := sorry
         have colABC : collinear A B C := by
           use segment B C; intro P PisABC
           by_exhaustion PisABC
@@ -81,14 +97,10 @@ theorem pasch {A B C : Point} {L : Line}
           · rw [PeqB]; exact Line.seg_has_endpoints.left
           · rw [PeqC]; exact Line.seg_has_endpoints.right
         contradiction
-      have LavoidsBC : L ∩ segment B C = ∅ := by sorry
       constructor
-      · have AinInt : A ∈ L ∩ segment A C := obvious
-        obvious
-      · intros; push_neg; intro LintAC; by_contra! LintBC
-        have colABC : collinear A B C := by
-          sorry
-        contradiction
+      · obvious
+      · sorry
+      -/
     clearly B off L := by
       -- similar arg to above
       sorry
@@ -117,7 +129,7 @@ namespace Geometry.Theory
 /- Ed: this is a 'standard' geometric theorem that is necessary for results regardless of underlying axiomatization, so 
 I'm aliasing it to the top level 'Theory' namespace so it can be referenced as such, similar to P4's aliasing into the
 Line namespace. There is no other natural namespace for Pasch so I put it here. -/
-alias pasch := Geometry.Ch3.Prop.pasch
+alias pasch := Geometry.Ch3.Prop.«Pasch's Postulate»
 
 end Geometry.Theory
 

@@ -1,5 +1,6 @@
 import Lean
 import Geometry
+import Atlas
 
 /-- Filter out compiler-generated / parser-machinery declarations so the graph
     contains user-authored content. -/
@@ -135,6 +136,21 @@ def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
   let isProp ← try isProp info.type catch _ => pure false
   let propFlag := if isProp then "true" else "false"
   let nc := if Lean.isNoncomputable env name then "true" else "false"
+  -- Atlas metadata: emitted as a string when present, JSON `null` otherwise.
+  -- The `@[atlas …]` attribute is auto-applied by the `atlas <kind>` command
+  -- macros in `Atlas.lean`; see `Atlas.atlasEntry?` for the lookup.
+  let atlasEntry := Atlas.atlasEntry? env name
+  let (atlasKindField, atlasNumberField, atlasTitleField) := match atlasEntry with
+    | some e =>
+      ( s!"\"atlas_kind\":\"{jsonEscape e.kind}\""
+      , s!"\"atlas_number\":\"{jsonEscape e.number}\""
+      , s!"\"atlas_title\":\"{jsonEscape e.title}\""
+      )
+    | none =>
+      ( "\"atlas_kind\":null"
+      , "\"atlas_number\":null"
+      , "\"atlas_title\":null"
+      )
   let fields : Array String := #[
     s!"\"name\":\"{name}\"",
     s!"\"kind\":\"{kind}\"",
@@ -149,7 +165,10 @@ def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
     s!"\"has_sorry\":{sorryFlag}",
     s!"\"is_proposition\":{propFlag}",
     s!"\"is_noncomputable\":{nc}",
-    s!"\"deps\":{depsJson}"
+    s!"\"deps\":{depsJson}",
+    atlasKindField,
+    atlasNumberField,
+    atlasTitleField
   ]
   return "{" ++ String.intercalate "," fields.toList ++ "}"
 

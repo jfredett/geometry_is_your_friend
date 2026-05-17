@@ -65,7 +65,9 @@ def insert_decls(conn: kuzu.Connection, decls: list[dict]) -> int:
               doc: $doc, namespace: $namespace, file: $file,
               line_start: $line_start, line_end: $line_end,
               has_sorry: $has_sorry, is_proposition: $is_proposition,
-              is_noncomputable: $is_noncomputable
+              is_noncomputable: $is_noncomputable,
+              atlas_kind: $atlas_kind, atlas_number: $atlas_number,
+              atlas_title: $atlas_title
             })
             """,
             {
@@ -81,6 +83,11 @@ def insert_decls(conn: kuzu.Connection, decls: list[dict]) -> int:
                 "has_sorry": d.get("has_sorry", False),
                 "is_proposition": d.get("is_proposition", False),
                 "is_noncomputable": d.get("is_noncomputable", False),
+                # Atlas attribute metadata. JSON `null` from the dumper
+                # (decl had no `@[atlas …]`) maps cleanly to Kuzu NULL.
+                "atlas_kind": d.get("atlas_kind"),
+                "atlas_number": d.get("atlas_number"),
+                "atlas_title": d.get("atlas_title"),
             },
         )
     return len(decls)

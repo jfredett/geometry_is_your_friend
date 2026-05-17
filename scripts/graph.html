@@ -189,7 +189,7 @@ body::after {
 /* ---------- Toolbar ---------- */
 .toolbar {
   display: grid;
-  grid-template-columns: 1fr 1fr auto auto auto;
+  grid-template-columns: 1fr 1fr auto auto auto auto;
   gap: 18px;
   align-items: center;
   padding: 14px 36px;
@@ -858,6 +858,94 @@ body::after {
   50%      { opacity: 1; }
 }
 
+/* ---------- Atlas-kind filter chips ---------- */
+/* Compact pillbox in the toolbar. Each chip toggles whether nodes with
+   that `atlas_kind` are dimmed. `ALL` clears the filter. The active
+   chip inverts to the dark-ink fill that matches the publication's
+   section selector aesthetic. */
+.atlas-chips {
+  display: inline-flex; flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  align-items: center;
+}
+.atlas-chips .atlas-chip {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 5px 9px;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.atlas-chips .atlas-chip:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+.atlas-chips .atlas-chip.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.atlas-chips .atlas-chip .sigil {
+  color: var(--accent);
+  margin-right: 3px;
+  font-style: normal;
+}
+.atlas-chips .atlas-chip.active .sigil {
+  color: var(--paper-soft);
+}
+
+/* ---------- Inspector: atlas marker block ---------- */
+/* Sits above the FQN/title block when the node carries `@[atlas …]`.
+   Reads as a small editorial section header — kind chip + number on
+   one row, prose title underneath. */
+.atlas-marker {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.atlas-marker .atlas-marker-head {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 6px;
+}
+.atlas-marker .atlas-kind-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.atlas-marker .atlas-number {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--accent);
+  letter-spacing: 0;
+}
+.atlas-marker .atlas-title {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.05;
+  color: var(--ink);
+  margin: 0;
+}
+
 /* ---------- HTML "index card" nodes ---------- */
 .node-card {
   /* matches the cytoscape node size (640 × 380) */
@@ -888,6 +976,66 @@ body::after {
   border-color: var(--accent);
   border-width: 3px;
   background: #f3dad3;
+}
+
+/* ---------- Atlas-aware card chrome ----------
+   When the decl has `@[atlas …]` we replace the small kind-chip-only
+   header with a structured marker (chip + number on one line, prose
+   title as the dominant heading). The `data.label` (decl name) is
+   kept as quiet metadata at the bottom of the card. */
+.node-card.atlas .node-card-atlas-head {
+  display: flex; align-items: baseline; gap: 12px;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding-bottom: 2px;
+}
+.node-card.atlas .node-card-atlas-kind {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+}
+.node-card.atlas .node-card-atlas-number {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 28px;
+  letter-spacing: 0;
+  color: var(--accent);
+  text-transform: none;
+}
+.node-card.atlas .node-card-atlas-sep {
+  font-size: 18px;
+  color: var(--ink-ghost);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.node-card.atlas .node-card-atlas-title {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 40px;
+  line-height: 1.04;
+  color: var(--ink);
+  word-break: break-word;
+  border-bottom: 1px solid rgba(28, 20, 16, 0.18);
+  padding-bottom: 8px;
+}
+.node-card.atlas .node-card-atlas-fqn {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+  text-transform: none;
+  word-break: break-all;
+  opacity: 0.7;
 }
 
 .node-card-head {
@@ -1019,6 +1167,18 @@ body::after {
     <div class="field">
       <label for="module-filter">Module</label>
       <select id="module-filter"><option value="">∗ all modules</option></select>
+    </div>
+    <div class="atlas-chips" id="atlas-chips" role="group" aria-label="filter by atlas kind">
+      <button type="button" class="atlas-chip active" data-atlas-kind="">All</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="proposition"><span class="sigil">§</span>Prop</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="corollary"><span class="sigil">§</span>Cor</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="lemma"><span class="sigil">§</span>Lem</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="theorem"><span class="sigil">§</span>Thm</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="axiom"><span class="sigil">§</span>Axm</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="exercise"><span class="sigil">§</span>Exr</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="definition"><span class="sigil">§</span>Def</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="remark"><span class="sigil">§</span>Rem</button>
+      <button type="button" class="atlas-chip" data-atlas-kind="postulate"><span class="sigil">§</span>Pst</button>
     </div>
     <div class="engine-badge" aria-label="layout engine">
       <span class="roman">layout</span><span>elk</span>
@@ -1182,6 +1342,29 @@ function renderNodeCard(d) {
   const sorry = d.has_sorry ? ' has-sorry' : '';
   const doc = d.doc ? truncate(d.doc, 220) : '';
   const typeHtml = renderTypeHtml(d.type_pp);
+
+  // Atlas-aware rendering: when the decl carries `@[atlas …]`, render
+  // the structured marker (kind chip + book number + prose title) as
+  // the card head instead of the bare decl name. The decl name moves
+  // to a quiet line at the bottom so the FQN is still discoverable
+  // without dominating the typography.
+  if (d.atlas_kind) {
+    return `
+      <div class="node-card atlas kind-${kind}${sorry}">
+        <div class="node-card-atlas-head">
+          <span class="node-card-atlas-kind">§ ${escapeHtml(d.atlas_kind)}</span>
+          <span class="node-card-atlas-sep">·</span>
+          <span class="node-card-atlas-number">${escapeHtml(d.atlas_number || '')}</span>
+          ${d.has_sorry ? '<span class="node-card-flag" style="margin-left:auto">sorry</span>' : ''}
+        </div>
+        <div class="node-card-atlas-title">${escapeHtml(d.atlas_title || d.label)}</div>
+        ${doc ? `<div class="node-card-doc">${escapeHtml(doc)}</div>` : ''}
+        <div class="node-type${typeHtml ? '' : ' empty'}">${typeHtml}</div>
+        <div class="node-card-atlas-fqn">${escapeHtml(d.label)}</div>
+      </div>
+    `;
+  }
+
   return `
     <div class="node-card kind-${kind}${sorry}">
       <div class="node-card-head">
@@ -1707,7 +1890,22 @@ async function main() {
       ? `<span class="pill">Prop</span>` : '';
     const kindLabel = (d.kind || '·').toUpperCase();
 
+    // Atlas marker block: rendered above the FQN when the decl has
+    // `@[atlas …]` metadata. Mirrors the card head's structure (kind
+    // chip · number / prose title) so the inspector and the canvas
+    // card use the same visual vocabulary.
+    const atlasMarker = d.atlas_kind ? `
+      <div class="atlas-marker">
+        <div class="atlas-marker-head">
+          <span class="atlas-kind-chip">§ ${escapeHtml(d.atlas_kind)}</span>
+          <span class="atlas-number">${escapeHtml(d.atlas_number || '')}</span>
+        </div>
+        <h3 class="atlas-title">${escapeHtml(d.atlas_title || '')}</h3>
+      </div>
+    ` : '';
+
     info.innerHTML = `
+      ${atlasMarker}
       <div class="entry-head">
         <div class="marker">${kindLabel}${propTag}</div>
         <h2>${escapeHtml(d.label)}</h2>
@@ -1803,9 +2001,15 @@ async function main() {
     const q = e.target.value.toLowerCase().trim();
     cy.elements().removeClass('dim');
     if (!q) return;
-    const matches = cy.nodes().filter(n =>
-      n.data('label').toLowerCase().includes(q) ||
-      n.data('id').toLowerCase().includes(q));
+    // Match against decl name, fully-qualified ID, AND the atlas
+    // prose title — so users can find Pasch's Postulate by typing
+    // "pasch" without knowing its FQN.
+    const matches = cy.nodes().filter(n => {
+      const lbl   = (n.data('label') || '').toLowerCase();
+      const id    = (n.data('id')    || '').toLowerCase();
+      const atlas = (n.data('atlas_title') || '').toLowerCase();
+      return lbl.includes(q) || id.includes(q) || atlas.includes(q);
+    });
     if (matches.length === 0) return;
     cy.elements().difference(matches.union(matches.connectedEdges())).addClass('dim');
     cy.fit(matches, 60);
@@ -1820,6 +2024,33 @@ async function main() {
     cy.elements().difference(matches.union(matches.connectedEdges())).addClass('dim');
     cy.fit(matches, 60);
   };
+
+  // ---------- Atlas-kind chip filter ----------
+  // Same dim/undim mechanic as the module dropdown: clicking a chip
+  // dims everything whose `atlas_kind` doesn't match (along with all
+  // edges that aren't between two matches' neighbourhoods). The `All`
+  // chip clears the filter. Only one chip can be active at a time.
+  const chipContainer = document.getElementById('atlas-chips');
+  chipContainer.querySelectorAll('.atlas-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chipContainer.querySelectorAll('.atlas-chip').forEach(c =>
+        c.classList.remove('active'));
+      chip.classList.add('active');
+      const kind = chip.dataset.atlasKind || '';
+      cy.elements().removeClass('dim');
+      if (!kind) return;
+      const matches = cy.nodes().filter(n => n.data('atlas_kind') === kind);
+      if (matches.length === 0) {
+        // No matches: dim everything so the user sees the empty result.
+        cy.elements().addClass('dim');
+        return;
+      }
+      cy.elements()
+        .difference(matches.union(matches.connectedEdges()))
+        .addClass('dim');
+      cy.fit(matches, 60);
+    });
+  });
 
   // ---------- Layout runner ----------
   function runLayout() {
