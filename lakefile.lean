@@ -37,6 +37,10 @@ lean_exe "dumpimports" where
 
 lean_exe "dumptactics" where
   root := `scripts.DumpTactics
+  -- SubVerso's `processCommands` ends up running `IO.getRandomBytes`
+  -- (and other initializers) via the interpreter, which requires this
+  -- flag. Without it every module fails with a native-impl error.
+  supportInterpreter := true
 
 @[default_target]
 lean_lib «Geometry» where

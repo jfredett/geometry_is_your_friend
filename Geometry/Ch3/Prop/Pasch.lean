@@ -71,9 +71,16 @@ theorem pasch {A B C : Point} {L : Line}
     clearly A off L := by
       -- if A on L, then L intersects segment A C at A, and L does not intersect B C at all, since A is off BC
       have AonAC : A on segment A C := obvious
-      have AoffBC : A off segment B C := by
+      clearly A off segment B C := by
         -- triABC is the play here; have collinear B C (via segment B C), so since ¬ collinear {A,B,C}, contra
-        sorry
+        have colBC : collinear B C := sorry
+        have colABC : collinear A B C := by
+          use segment B C; intro P PisABC
+          by_exhaustion PisABC
+          · rw [PeqA]; trivial
+          · rw [PeqB]; exact Line.seg_has_endpoints.left
+          · rw [PeqC]; exact Line.seg_has_endpoints.right
+        contradiction
       have LavoidsBC : L ∩ segment B C = ∅ := by sorry
       constructor
       · have AinInt : A ∈ L ∩ segment A C := obvious

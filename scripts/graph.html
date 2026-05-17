@@ -7,8 +7,7 @@
   ../blueprint/graph.json, which `scripts/export_graph.py` produces from
   the Kuzu graph DB at blueprint/graph.kuzu/.
 
-  Layout engines available: dagre (general DAG), ELK (high-quality
-  layered), cose (force-directed). Each has its own param panel.
+  Layout: ELK (Eclipse Layout Kernel) — layered, refined.
 
   Aesthetic: editorial mathematics — warm paper, ink, oxblood accents,
   Fraunces serif for body & display, JetBrains Mono for code-y bits.
@@ -17,6 +16,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Theorem Atlas · Geometry</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,10 +26,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
 <script src="https://unpkg.com/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
-<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
-<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://unpkg.com/elkjs/lib/elk.bundled.js"></script>
 <script src="https://unpkg.com/cytoscape-elk/dist/cytoscape-elk.js"></script>
+
+<!-- KaTeX for rendering type signatures as math.
+     Vendored locally (see scripts/vendor/katex/). Earlier attempts via
+     jsdelivr and unpkg both failed to load in this environment — CSS
+     came back with the right bytes but didn't apply, and unpkg
+     returned a 500. Serving from the same origin as the page sidesteps
+     the issue entirely. Script loaded WITHOUT defer so `katex` is
+     available by the time main() runs. -->
+<!-- Cache-bust query parameter on every viewer change so reloads pick
+     up the new URL instead of serving a stale CSS from the browser
+     cache. Bump `v=` whenever the link target changes. -->
+<link rel="stylesheet" href="./vendor/katex/katex.min.css?v=local-10">
+<script src="./vendor/katex/katex.min.js?v=local-10"></script>
+
+<!-- HTML-inside-node plugin: lets us put a real DOM card (with KaTeX) at
+     each node, scaled by Cytoscape's pan/zoom. -->
+<script src="https://unpkg.com/cytoscape-node-html-label@1.2.2/dist/cytoscape-node-html-label.min.js"></script>
 
 <style>
 :root {
@@ -121,22 +138,33 @@ body::after {
   transform: rotate(0deg);
 }
 
-.title-block { display: flex; flex-direction: column; gap: 4px; }
+.title-block { display: flex; flex-direction: column; gap: 6px; }
 .title-block h1 {
   margin: 0;
   font-family: var(--display);
   font-variation-settings: "opsz" 144, "wght" 600;
-  font-size: 32px; line-height: 1;
-  letter-spacing: 0.04em;
+  font-size: 28px; line-height: 1.02;
+  letter-spacing: 0.03em;
   color: var(--ink);
   text-transform: uppercase;
 }
-.title-block .sub {
+.title-block .byline {
+  display: flex; gap: 24px;
   font-family: var(--display);
   font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+.title-block .byline em {
   font-style: italic;
-  font-size: 14px; color: var(--ink-soft);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  color: var(--ink);
   letter-spacing: 0.005em;
+  text-transform: none;
+  font-size: 12px;
+  margin-left: 4px;
 }
 
 .edition {
@@ -169,6 +197,27 @@ body::after {
   background:
     linear-gradient(to bottom, rgba(28, 20, 16, 0.012), transparent 4px),
     var(--paper-soft);
+}
+
+/* Read-only engine badge (sits where the engine switcher used to). */
+.engine-badge {
+  display: inline-flex; align-items: baseline; gap: 10px;
+  padding: 9px 16px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14, "wght" 500;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.engine-badge .roman {
+  font-variation-settings: "opsz" 14, "wght" 600;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
 }
 
 .field {
@@ -288,8 +337,8 @@ body::after {
 
 .params-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 36px;
   align-items: start;
 }
 .params-section h3 {
@@ -400,7 +449,9 @@ body::after {
 .main {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr minmax(380px, 420px);
+  /* Roughly 2:1 — graph dominant, inspector wide enough for long
+     proof source without ugly wrapping (min 500px). */
+  grid-template-columns: 2fr minmax(500px, 1fr);
   min-height: 0;
 }
 
@@ -482,6 +533,41 @@ body::after {
   font-variation-settings: "opsz" 14, "wght" 400;
   font-size: 14px;
   color: var(--ink-muted);
+}
+.katex-diagnostic {
+  margin-top: 40px;
+  text-align: left;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+}
+.katex-diagnostic .diagnostic-label {
+  font-family: var(--display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-muted);
+  margin: 10px 0 4px;
+}
+.katex-diagnostic #katex-test {
+  font-size: 18px;
+  color: var(--ink);
+  padding: 10px;
+  background: var(--paper-deep);
+  border-left: 2px solid var(--accent);
+  min-height: 28px;
+}
+.katex-diagnostic pre {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--ink);
+  color: var(--paper-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 120px;
+  overflow: auto;
 }
 
 .entry-head {
@@ -586,6 +672,7 @@ body::after {
   margin: 0 0 18px;
 }
 .type-block .type-label {
+  display: flex; align-items: baseline; justify-content: space-between;
   font-family: var(--display);
   font-variation-settings: "opsz" 14, "wght" 500;
   font-size: 10px;
@@ -594,6 +681,45 @@ body::after {
   color: var(--ink-muted);
   margin-bottom: 8px;
 }
+.type-block .type-toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 2px 0;
+  font-family: var(--display);
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px dotted var(--accent-soft);
+}
+.type-block .type-toggle:hover { color: #7a2820; border-bottom-color: var(--accent); }
+.type-block .type-rendered {
+  padding: 14px 16px;
+  background: var(--paper-deep);
+  border-left: 2px solid var(--gold);
+  color: var(--ink);
+  min-height: 40px;
+  max-height: 320px;
+  overflow: auto;            /* long signatures get a scrollbar */
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* Leave KaTeX's internal layout (display:inline-block, positioning,
+   font-family on glyph spans) untouched — overriding `display` or
+   `white-space` on `.katex` breaks the nested span layout and the
+   glyphs collapse to zero size. We only set color/font-size. */
+.type-block .type-rendered .katex {
+  font-size: 14px;
+  color: var(--ink);
+}
+.type-block .type-rendered .katex-display {
+  margin: 0;
+  text-align: left;
+}
+.type-block .type-source,
 .type-block pre {
   margin: 0;
   padding: 12px 14px;
@@ -607,6 +733,56 @@ body::after {
   word-break: break-word;
   overflow-x: auto;
 }
+
+/* ---------- Source block in inspector ---------- */
+.source-block {
+  margin: 22px 0 0;
+}
+.source-block .type-label .src-locus {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 10px;
+  color: var(--ink-muted);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.source-block .src-pre {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--ink);
+  color: var(--paper-soft);
+  border-left: 2px solid var(--teal);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: auto;
+  max-height: 420px;
+  border-radius: 2px;
+}
+.source-block .src-pre code {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  white-space: pre;
+}
+/* Lean syntax highlighting — token classes emitted by
+   scripts/DumpTactics.lean's `tokenClass`. Palette tuned for the dark
+   `var(--ink)` background. Keep class names in sync with that Lean
+   file (`lean-kw`, `lean-def`, `lean-const`, `lean-var`, …). */
+.src-pre .lean-kw     { color: #d68a7a; font-weight: 500; }     /* keywords */
+.src-pre .lean-def    { color: #e6c074; font-weight: 500; }     /* definition sites */
+.src-pre .lean-const  { color: #8eb3b0; }                       /* const references */
+.src-pre .lean-ctor   { color: #c096c3; }                       /* anonymous ctors */
+.src-pre .lean-var    { color: #ddd0b6; }                       /* local vars */
+.src-pre .lean-str    { color: #9fbf8e; }                       /* string literals */
+.src-pre .lean-opt    { color: #b5916a; }                       /* options */
+.src-pre .lean-doc    { color: #c8b385; font-style: italic; }   /* docstrings */
+.src-pre .lean-sort   { color: #8eb3b0; font-style: italic; }   /* Type/Sort */
+.src-pre .lean-lvl    { color: #b5916a; }                       /* level vars */
+.src-pre .lean-mod    { color: #8aa9a7; }                       /* module names */
+.src-pre .lean-typed  { color: #ddd0b6; }                       /* with-type */
+.src-pre .lean-unk    { color: var(--paper-soft); }             /* unclassified */
 
 /* Legend at the bottom of the inspector */
 .legend {
@@ -636,22 +812,21 @@ body::after {
   color: var(--ink-soft);
 }
 .legend .swatch {
-  display: inline-block; width: 12px; height: 12px;
+  display: inline-block; width: 14px; height: 10px;
   border: 1px solid var(--ink);
+  background: var(--paper);
+  border-radius: 2px;
 }
-.legend .swatch.shape-circle { border-radius: 50%; }
-.legend .swatch.shape-diamond { transform: rotate(45deg); width: 9px; height: 9px; }
-.legend .swatch.shape-triangle {
-  width: 0; height: 0; border: 0;
-  border-left: 7px solid transparent; border-right: 7px solid transparent;
-  border-bottom: 12px solid var(--ink);
-  background: transparent;
+.legend .swatch.shape-sorry {
+  border: 2px solid var(--accent);
+  background: #f0d8d1;
 }
-.legend .swatch.shape-ring {
-  background: transparent;
-  box-shadow: 0 0 0 2px var(--accent);
-  border: 1px solid var(--ink);
-  border-radius: 50%;
+.legend .glyph {
+  display: inline-block;
+  width: 14px; text-align: center;
+  font-family: var(--display);
+  font-style: normal;
+  color: var(--ink);
 }
 
 /* ---------- Fade-in on load ---------- */
@@ -683,6 +858,133 @@ body::after {
   50%      { opacity: 1; }
 }
 
+/* ---------- HTML "index card" nodes ---------- */
+.node-card {
+  /* matches the cytoscape node size (640 × 380) */
+  width: 640px;
+  height: 380px;
+  box-sizing: border-box;
+  padding: 28px 32px;
+  background: #f7efd8;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(28, 20, 16, 0.04),
+    6px 8px 0 -2px rgba(28, 20, 16, 0.12),
+    14px 18px 32px -16px rgba(28, 20, 16, 0.35);
+  font-family: var(--display);
+  color: var(--ink);
+  display: flex; flex-direction: column; gap: 10px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.node-card.kind-theorem { background: #f5ecd2; }
+.node-card.kind-def     { background: #dfe7e6; }
+.node-card.kind-axiom   { background: #ead7a4; border-color: #8a6a25; }
+.node-card.kind-opaque  { background: #e4dbc5; }
+.node-card.has-sorry {
+  border-color: var(--accent);
+  border-width: 3px;
+  background: #f3dad3;
+}
+
+.node-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--display);
+  font-size: 12px; letter-spacing: 0.14em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+}
+.node-card-kind { display: inline-flex; align-items: baseline; gap: 6px; }
+.node-card-kind .glyph {
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 0;
+  font-style: normal;
+}
+.node-card-flag {
+  background: var(--accent);
+  color: var(--paper);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  font-variation-settings: "opsz" 14, "wght" 600;
+}
+
+.node-card-name {
+  font-family: var(--display);
+  font-variation-settings: "opsz" 144, "wght" 500;
+  font-style: italic;
+  font-size: 38px;
+  line-height: 1.05;
+  color: var(--ink);
+  word-break: break-word;
+  border-bottom: 1px solid rgba(28, 20, 16, 0.18);
+  padding-bottom: 8px;
+}
+
+.node-card-doc {
+  font-family: var(--display);
+  font-style: italic;
+  font-variation-settings: "opsz" 14, "wght" 400;
+  font-size: 18px;
+  line-height: 1.42;
+  color: var(--ink-soft);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.node-type {
+  flex: 1;
+  min-height: 0;
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--ink);
+  overflow: hidden;
+  display: block;
+  word-break: break-word;
+}
+.node-type.empty::before { content: ""; }
+.node-type.fallback {
+  font-style: italic;
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: block;
+}
+/* KaTeX inside cards. Same rule as inspector: don't override `display`
+   or `white-space` on `.katex` — let KaTeX use its own inline-block
+   layout. The card just constrains size & clips overflow. */
+.node-type .katex {
+  font-size: 1.05em;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.node-type .katex-display { margin: 0; text-align: left; }
+
+/* Visible fallback when KaTeX produces no output. Without this, a
+   silently-empty render would just leave the card's type slot blank. */
+.fallback {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--accent);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.type-block .type-rendered .fallback {
+  color: var(--accent);
+  font-style: italic;
+}
+
 /* small screens: stack inspector below canvas */
 @media (max-width: 980px) {
   .main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
@@ -698,11 +1000,13 @@ body::after {
   <header class="masthead">
     <div class="mark"><span class="sigil" aria-hidden="true"></span></div>
     <div class="title-block">
-      <h1>Theorem Atlas</h1>
-      <div class="sub">A graph of dependencies among the formalised propositions, after Greenberg.</div>
+      <h1>Euclidean and Noneuclidean Geometry | Geometry is your Friend</h1>
+      <div class="byline">
+        <span class="byline-line">Text: <em>Marvin Jay Greenberg</em></span>
+        <span class="byline-line">Formalization: <em>Joe Fredette</em></span>
+      </div>
     </div>
     <div class="edition">
-      <span class="roman">vol. iii · edn. <span id="edition-no">i</span></span>
       <span class="counts" id="counts">— · — propositions</span>
     </div>
   </header>
@@ -716,16 +1020,8 @@ body::after {
       <label for="module-filter">Module</label>
       <select id="module-filter"><option value="">∗ all modules</option></select>
     </div>
-    <div class="engines" role="group" aria-label="layout engine">
-      <button id="layout-dagre" class="active" type="button">
-        <span class="roman">i</span><span>dagre</span>
-      </button>
-      <button id="layout-elk" type="button">
-        <span class="roman">ii</span><span>elk</span>
-      </button>
-      <button id="layout-cose" type="button">
-        <span class="roman">iii</span><span>cose</span>
-      </button>
+    <div class="engine-badge" aria-label="layout engine">
+      <span class="roman">layout</span><span>elk</span>
     </div>
     <button id="toggle-controls" class="icon-btn" type="button" aria-expanded="false">parameters</button>
     <button id="reset" class="icon-btn" type="button" title="re-fit view">re-fit</button>
@@ -734,50 +1030,7 @@ body::after {
   <section class="params hidden" id="layout-controls" aria-hidden="true">
     <div class="params-grid">
       <div class="params-section">
-        <h3><span class="num">I</span> dagre <span class="annotation">layered, classic</span></h3>
-        <div class="param-row">
-          <label for="dagre-ranker">ranker</label>
-          <select id="dagre-ranker">
-            <option value="network-simplex" selected>network-simplex</option>
-            <option value="tight-tree">tight-tree</option>
-            <option value="longest-path">longest-path</option>
-          </select>
-        </div>
-        <div class="param-row">
-          <label for="dagre-rankdir">direction</label>
-          <select id="dagre-rankdir">
-            <option value="BT" selected>BT (axioms↑)</option>
-            <option value="TB">TB (theorems↑)</option>
-            <option value="LR">LR</option>
-            <option value="RL">RL</option>
-          </select>
-        </div>
-        <div class="param-row">
-          <label for="dagre-align">align</label>
-          <select id="dagre-align">
-            <option value="">center</option>
-            <option value="UL">upper-left</option>
-            <option value="UR">upper-right</option>
-            <option value="DL">lower-left</option>
-            <option value="DR">lower-right</option>
-          </select>
-        </div>
-        <div class="param-row">
-          <label for="dagre-nodesep">nodeSep</label>
-          <input id="dagre-nodesep" type="number" min="5" max="200" value="30">
-        </div>
-        <div class="param-row">
-          <label for="dagre-ranksep">rankSep</label>
-          <input id="dagre-ranksep" type="number" min="10" max="400" value="60">
-        </div>
-        <div class="param-row">
-          <label for="dagre-edgesep">edgeSep</label>
-          <input id="dagre-edgesep" type="number" min="2" max="100" value="10">
-        </div>
-      </div>
-
-      <div class="params-section">
-        <h3><span class="num">II</span> elk <span class="annotation">eclipse, refined</span></h3>
+        <h3><span class="num">§</span> elk <span class="annotation">eclipse layout kernel · layered</span></h3>
         <div class="param-row">
           <label for="elk-algorithm">algorithm</label>
           <select id="elk-algorithm">
@@ -799,11 +1052,11 @@ body::after {
         </div>
         <div class="param-row">
           <label for="elk-nodenode">nodeNode</label>
-          <input id="elk-nodenode" type="number" min="10" max="400" value="60">
+          <input id="elk-nodenode" type="number" min="10" max="2000" value="240">
         </div>
         <div class="param-row">
           <label for="elk-betweenlayers">layer Δ</label>
-          <input id="elk-betweenlayers" type="number" min="20" max="600" value="100">
+          <input id="elk-betweenlayers" type="number" min="20" max="3000" value="520">
         </div>
         <div class="param-row">
           <label for="elk-strategy">node placement</label>
@@ -813,18 +1066,6 @@ body::after {
             <option value="LINEAR_SEGMENTS">linear-segments</option>
             <option value="SIMPLE">simple</option>
           </select>
-        </div>
-      </div>
-
-      <div class="params-section">
-        <h3><span class="num">III</span> cose <span class="annotation">force-directed</span></h3>
-        <div class="param-row">
-          <label for="cose-repulsion">repulsion</label>
-          <input id="cose-repulsion" type="number" min="500" max="50000" step="500" value="8000">
-        </div>
-        <div class="param-row">
-          <label for="cose-edgelen">edge length</label>
-          <input id="cose-edgelen" type="number" min="20" max="500" value="100">
         </div>
       </div>
 
@@ -839,11 +1080,7 @@ body::after {
     <div id="cy">
       <div class="loading" id="loading">composing the figure</div>
       <div class="figure-axes" id="figure-axes">
-        <span id="figure-engine">dagre</span><br>
         <span id="figure-stats">— nodes · — edges</span>
-      </div>
-      <div class="figure-caption">
-        Fig. <em>i</em>. — The Geometric Atlas, as a directed graph of definitional and inferential dependence.
       </div>
     </div>
 
@@ -851,6 +1088,15 @@ body::after {
       <div class="empty-state" id="empty-state">
         <div class="glyph">∎</div>
         <p>Touch a node to read its preface, premises, and conclusion.</p>
+        <div class="katex-diagnostic">
+          <div class="diagnostic-label">Viewer build: <code>v=local-10</code> (if this doesn't say v=local-10, your browser is serving cached HTML; open in a private window)</div>
+          <div class="diagnostic-label">KaTeX self-test</div>
+          <div id="katex-test"></div>
+          <div class="diagnostic-label">Raw KaTeX HTML (first 240 chars)</div>
+          <pre id="katex-test-raw"></pre>
+          <div class="diagnostic-label">.katex bounding rect</div>
+          <pre id="katex-test-rect"></pre>
+        </div>
       </div>
     </aside>
   </main>
@@ -866,31 +1112,453 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function shapeForKind(kind, hasSorry) {
-  // ellipse for theorems & defs, diamond for axioms, hexagon for the rest.
-  // has_sorry stacks an oxblood ring on top via border styling (below).
+// All nodes are rectangular cards; kind is communicated through:
+//   - background tint (subtle, paper-toned per kind)
+//   - a glyph prefix in the label (∎ theorem, ƒ def, ◆ axiom, · opaque)
+//   - an oxblood border for has_sorry.
+function cardBgForKind(kind, hasSorry) {
+  if (hasSorry) return '#f0d8d1';           // pale rose for unfinished work
   switch (kind) {
-    case 'theorem': return 'ellipse';
-    case 'def':     return 'ellipse';
-    case 'axiom':   return 'diamond';
-    default:        return 'hexagon';
+    case 'theorem': return '#ede1c7';        // warmer paper, ink ≃ theorem
+    case 'def':     return '#dbe4e4';        // pale teal-tinted paper
+    case 'axiom':   return '#e9d8a9';        // pale gold paper
+    default:        return '#e0d8c6';        // muted paper
   }
 }
 
-function fillForKind(kind, hasSorry) {
-  if (hasSorry) return '#983327';            // oxblood
+function glyphForKind(kind) {
   switch (kind) {
-    case 'theorem': return '#1c1410';        // ink
-    case 'def':     return '#2c4f50';        // teal
-    case 'axiom':   return '#b08229';        // gold
-    default:        return '#7a6852';        // muted ink
+    case 'theorem': return '∎';
+    case 'def':     return 'ƒ';
+    case 'axiom':   return '◆';
+    default:        return '·';
   }
+}
+
+function cardLabel(kind, label) {
+  return `${glyphForKind(kind)}  ${label}`;
+}
+
+// ---------- Node card (HTML, rendered atop each cytoscape node) ----------
+function truncate(s, n) {
+  s = String(s || '').replace(/\s+/g, ' ').trim();
+  return s.length <= n ? s : s.slice(0, n - 1) + '…';
+}
+
+// Renders a Lean type signature to KaTeX HTML, or falls back to a
+// visible escaped-source span. Errors and empty renders are surfaced
+// rather than silently swallowed.
+function texToKatexHtml(tex, { displayMode = false } = {}) {
+  if (!tex) return '';
+  if (typeof katex === 'undefined') {
+    return `<span class="fallback">${escapeHtml(tex)} [katex not loaded]</span>`;
+  }
+  let html;
+  try {
+    html = katex.renderToString(tex, {
+      displayMode,
+      throwOnError: false,
+      strict: 'ignore',
+      output: 'html',
+      errorColor: '#983327',
+    });
+  } catch (err) {
+    return `<span class="fallback">${escapeHtml(tex)} [${escapeHtml(err.message)}]</span>`;
+  }
+  if (!html || html.trim() === '') {
+    return `<span class="fallback">${escapeHtml(tex)} [empty render]</span>`;
+  }
+  return html;
+}
+
+function renderTypeHtml(rawType) {
+  if (!rawType) return '';
+  const tex = leanToLatex(rawType);
+  return texToKatexHtml(tex, { displayMode: false });
+}
+
+function renderNodeCard(d) {
+  const kind = d.kind || 'other';
+  const sorry = d.has_sorry ? ' has-sorry' : '';
+  const doc = d.doc ? truncate(d.doc, 220) : '';
+  const typeHtml = renderTypeHtml(d.type_pp);
+  return `
+    <div class="node-card kind-${kind}${sorry}">
+      <div class="node-card-head">
+        <span class="node-card-kind"><span class="glyph">${glyphForKind(kind)}</span> ${kind}</span>
+        ${d.has_sorry ? '<span class="node-card-flag">sorry</span>' : ''}
+      </div>
+      <div class="node-card-name">${escapeHtml(d.label)}</div>
+      ${doc ? `<div class="node-card-doc">${escapeHtml(doc)}</div>` : ''}
+      <div class="node-type${typeHtml ? '' : ' empty'}">${typeHtml}</div>
+    </div>
+  `;
+}
+
+// ---------- Lean → LaTeX (best-effort) ----------
+// Heuristic translator: replaces Lean's Unicode mathematical operators with
+// KaTeX-friendly LaTeX, strips namespace prefixes, and wraps identifiers
+// containing underscores so KaTeX doesn't try to interpret them as
+// subscripts. The result is a best-effort rendering — fully-elaborated
+// terms from `ppExpr` can include constructs (universe polymorphism,
+// instance synthesis residue) that aren't really mathematics; for those
+// the LaTeX render gracefully falls back to the raw mono signature.
+const LEAN_TO_TEX_OPS = [
+  ['↔',   '\\iff '],
+  ['→',   '\\to '],
+  ['∀',   '\\forall '],
+  ['∃!',  '\\exists! '],
+  ['∃',   '\\exists '],
+  ['¬',   '\\neg '],
+  ['≠',   '\\neq '],
+  ['≤',   '\\leq '],
+  ['≥',   '\\geq '],
+  ['∈',   '\\in '],
+  ['∉',   '\\notin '],
+  ['∪',   '\\cup '],
+  ['∩',   '\\cap '],
+  ['⊆',   '\\subseteq '],
+  ['⊂',   '\\subset '],
+  ['⊇',   '\\supseteq '],
+  ['⊃',   '\\supset '],
+  ['∅',   '\\emptyset '],
+  ['∧',   '\\wedge '],
+  ['∨',   '\\vee '],
+  ['⟨',   '\\langle '],
+  ['⟩',   '\\rangle '],
+  ['≡',   '\\equiv '],
+  ['≅',   '\\cong '],
+  ['ℕ',   '\\mathbb{N} '],
+  ['ℤ',   '\\mathbb{Z} '],
+  ['ℝ',   '\\mathbb{R} '],
+  ['ℚ',   '\\mathbb{Q} '],
+  ['ℂ',   '\\mathbb{C} '],
+  ['↦',   '\\mapsto '],
+  ['⊢',   '\\vdash '],
+  ['⊥',   '\\bot '],
+  ['⊤',   '\\top '],
+  ['∎',   '\\blacksquare '],
+];
+
+// KaTeX has special meanings for `#`, `%`, `&`, `~`, `^`, `$`, `\`.
+// Of these, Lean type signatures typically only emit `_` and (rarely)
+// `^`. Replace `_` with `\_` so it isn't interpreted as a subscript.
+function escapeMath(s) {
+  return s.replace(/_/g, '\\_');
+}
+
+// Match a balanced parenthesised expression with up to 4 levels of
+// nesting, OR a dotted identifier token. Used by the prefix→infix
+// rewrites below to find function arguments. JS regex has no native
+// recursion so this is hand-unrolled — 4 levels covers every signature
+// I've seen so far; extend if a heavier `And`/`Or` chain appears.
+const ARG_PAT = (() => {
+  // depth-0 paren group: `(no-parens-inside)`
+  // depth-k: outer parens with content that may include depth-(k-1) groups
+  const grow = (inner) =>
+    String.raw`\([^()]*(?:${inner}[^()]*)*\)`;
+  let p = String.raw`\([^()]*\)`;            // depth 0
+  p = grow(p);                                // depth 1
+  p = grow(p);                                // depth 2
+  p = grow(p);                                // depth 3
+  p = grow(p);                                // depth 4
+  return String.raw`(?:${p}|[\w.]+)`;
+})();
+
+function leanToLatex(raw) {
+  if (!raw) return '';
+  let s = String(raw);
+
+  // 1. Strip project namespace prefixes and universe annotations.
+  s = s.replace(/Geometry\.Theory\./g, '');
+  s = s.replace(/Geometry\.Ch[0-9]+\.[\w.]*\./g, '');
+  s = s.replace(/\.\{[^}]*\}/g, '');
+
+  // 2. Drop typeclass-instance bracketed hypotheses entirely.
+  s = s.replace(/\[inst[^\]]*\]/g, '');
+
+  // 3. Collapse multi-line whitespace.
+  s = s.replace(/\s+/g, ' ');
+
+  // 3a. Lean's implicit-arg binders `{A B : T}` and Finset literals
+  //     `{a, b, c}` use literal braces; KaTeX treats `{...}` as an
+  //     invisible math group, so without escaping the braces vanish.
+  //     Escape now (before the tokenizer runs) — afterwards the
+  //     `\mathrm{...}` wrappers from the tokenizer contain literal
+  //     braces too and we don't want to double-escape those.
+  s = s.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+
+  // 4. Rewrite verbose elaborated prefix forms into compact infix /
+  //    symbolic notation, then iterate until no more matches — each
+  //    pass exposes new opportunities once outer arguments collapse.
+  //
+  //    NOTE on order: patterns sharing a prefix go in decreasing
+  //    specificity. The Finset insert/singleton patterns build set
+  //    literals using `⦃ ⦄` as placeholders so they can't be confused
+  //    with native LaTeX braces; the final rewrite converts the
+  //    placeholders to `\{` `\}` after all collapsing is done.
+  const rewrites = [
+    // ---- Lean's prop combinators ----
+    [new RegExp(`Set\\.instMembership\\.mem (${ARG_PAT}) (${ARG_PAT})`, 'g'),
+     '$2 ∈ $1'],
+    [new RegExp(`Set\\.instHasSubset\\.Subset (${ARG_PAT}) (${ARG_PAT})`, 'g'),
+     '$1 ⊆ $2'],
+    [new RegExp(`\\bIff (${ARG_PAT}) (${ARG_PAT})`, 'g'), '$1 ↔ $2'],
+    [new RegExp(`\\bOr (${ARG_PAT}) (${ARG_PAT})`,  'g'), '$1 ∨ $2'],
+    [new RegExp(`\\bAnd (${ARG_PAT}) (${ARG_PAT})`, 'g'), '$1 ∧ $2'],
+    [new RegExp(`\\bNe (${ARG_PAT}) (${ARG_PAT})`,  'g'), '$1 ≠ $2'],
+    [new RegExp(`\\bEq (${ARG_PAT}) (${ARG_PAT})`,  'g'), '$1 = $2'],
+    [new RegExp(`\\bNot (${ARG_PAT})`, 'g'), '¬$1'],
+
+    // ---- Existence binders. `∃ X, P` and `∃! X, P` get pp'd by
+    // Lean as `Exists fun X => P` / `ExistsUnique fun X => P`.
+    // Rewrite at this stage (pre-tokenization) so we can introduce
+    // single Unicode `∃` / `∃!` and let step-6 op-subs translate them
+    // to KaTeX commands. `ExistsUnique` must come FIRST — otherwise
+    // the broader `\bExists ` rule's `\b` boundary would attempt a
+    // match on `ExistsUnique` and fail (saving us), but ordering it
+    // explicitly is robust to anyone changing `\bExists` later.
+    [/\bExistsUnique fun (\w+) =>\s*/g, '∃! $1, '],
+    [/\bExists fun (\w+) =>\s*/g,       '∃ $1, '],
+
+    // ---- Finset literals: `{A, B, C}` desugars to
+    // `Finset.instInsert.insert A (Finset.instInsert.insert B (Finset.instSingleton.singleton C))`.
+    // Collapse singleton first, then iteratively peel off inserts.
+    // Uses `⦃ ⦄` placeholders so the intermediate text can't be
+    // confused with already-escaped LaTeX braces.
+    //
+    // The Insert pattern matches ONLY bare `⦃…⦄` (no optional parens).
+    // An earlier version had `\(?⦃…⦄\)?` which greedily ate the
+    // trailing `)` of the inner call and left the outer `(` of
+    // `Collinear (…)` stranded — visible as `collinear ({A,B,C}` in
+    // the rendered output. Letting `strip-parens` (next rule) handle
+    // parens uniformly avoids that asymmetry.
+    [/Finset\.instSingleton\.singleton (\w+)/g, '⦃$1⦄'],
+    [/Finset\.instInsert\.insert (\w+) ⦃([^⦃⦄]*)⦄/g, '⦃$1, $2⦄'],
+    // Strip redundant parens that wrap a set literal: `(⦃...⦄)` → `⦃...⦄`
+    [/\(\s*(⦃[^⦃⦄]*⦄)\s*\)/g, '$1'],
+  ];
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const [re, repl] of rewrites) {
+      const next = s.replace(re, repl);
+      if (next !== s) { s = next; changed = true; }
+    }
+    if (!changed) break;
+  }
+  // Lower the ⦃ ⦄ placeholders to KaTeX-visible braces.
+  s = s.replace(/⦃/g, '\\{').replace(/⦄/g, '\\}');
+
+  // 5. Tokenize and wrap multi-letter identifiers in `\mathrm{...}`
+  //    (upright). Single letters pass through as math variables.
+  const out = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/[A-Za-z]/.test(c)) {
+      let j = i + 1;
+      while (j < s.length && /[A-Za-z0-9_']/.test(s[j])) j++;
+      const id = s.slice(i, j);
+      if (id.length === 1) {
+        out.push(id);
+      } else {
+        out.push(`\\mathrm{${escapeMath(id)}}`);
+      }
+      i = j;
+    } else {
+      out.push(c);
+      i++;
+    }
+  }
+  s = out.join('');
+
+  // 5a. Geometry-specific aliases. These run AFTER tokenization so
+  //     identifier names like `LineThrough` are already wrapped in
+  //     `\mathrm{...}`. Easy to extend: add more alias rules here.
+  //
+  //   Geometry primitives (point/line construction notation):
+  //     LineThrough A B  →  $\overleftrightarrow{AB}$  (the line)
+  //     Ray A B          →  $\overrightarrow{AB}$      (ray from A through B)
+  //     Segment A B      →  $\overline{AB}$            (segment AB)
+  //     Between A B C    →  $A - B - C$                (formalization syntax, not book's `*`)
+  //
+  //   Predicates that are usually read aloud as English verbs/adjectives
+  //   (rendered in text-mode so they stay upright and obviously non-variable):
+  //     IntersectsSome L M  →  L intersects M
+  //     Intersects L M P    →  L meets M at P
+  //     Parallel L M        →  L ∥ M
+  //     Distinct {…}        →  text-mode "distinct" (variadic; just lowercase the head)
+  //     Collinear {…}       →  text-mode "collinear"
+  //     ExistsUnique fun X => …  →  ∃! X, …
+  //
+  //   Easy to extend: add another `[regex, replacement]` row.
+  const TOK = String.raw`(?:\\mathrm\{[^}]+\}|[A-Za-z]|\([^()]+\))`;
+  const geom = [
+    // Binary geometry primitives
+    [new RegExp(`\\\\mathrm\\{LineThrough\\}\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '\\overleftrightarrow{$1$2}'],
+    [new RegExp(`\\\\mathrm\\{Ray\\}\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '\\overrightarrow{$1$2}'],
+    [new RegExp(`\\\\mathrm\\{Segment\\}\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '\\overline{$1$2}'],
+    // Ternary betweenness
+    [new RegExp(`\\\\mathrm\\{Between\\}\\s+(${TOK})\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '$1 - $2 - $3'],
+    // Predicates rendered as English verbs
+    [new RegExp(`\\\\mathrm\\{IntersectsSome\\}\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '$1 \\text{ intersects } $2'],
+    [new RegExp(`\\\\mathrm\\{Intersects\\}\\s+(${TOK})\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '$1 \\text{ meets } $2 \\text{ at } $3'],
+    [new RegExp(`\\\\mathrm\\{Parallel\\}\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '$1 \\parallel $2'],
+    // SameSide / ¬SameSide. Step 4's `Not X → ¬X` already ran and
+    // wrapped the negated form as `¬(\mathrm{SameSide} L A B)`, so
+    // we match the parenthesised case FIRST — otherwise the positive
+    // rule below would consume the `\mathrm{SameSide}` and we'd be
+    // stuck rendering "¬(L guards A, B)" instead of "L splits A, B".
+    [new RegExp(`¬\\(\\\\mathrm\\{SameSide\\}\\s+(${TOK})\\s+(${TOK})\\s+(${TOK})\\)`, 'g'),
+     '$1 \\text{ splits } $2, $3'],
+    [new RegExp(`\\\\mathrm\\{SameSide\\}\\s+(${TOK})\\s+(${TOK})\\s+(${TOK})`, 'g'),
+     '$1 \\text{ guards } $2, $3'],
+    // (Exists / ExistsUnique are handled in step 4, before
+    // tokenization — see `\bExists fun X => …` rewrites.)
+    // Variadic / Finset-taking predicates: just lowercase the head
+    // (the arguments — usually a set literal `{A, B, C}` — follow).
+    [/\\mathrm\{Distinct\}/g,   '\\text{distinct}\\,'],
+    [/\\mathrm\{Collinear\}/g,  '\\text{collinear}\\,'],
+    [/\\mathrm\{Concurrent\}/g, '\\text{concurrent}\\,'],
+    [/\\mathrm\{Extension\}/g,  '\\text{ext}\\,'],
+    // NOTE: `Line` and `Point` (the types themselves) are intentionally
+    // NOT rewritten. They're prevalent as namespace prefixes
+    // (`Line.equiv`, `Point.X`) and a blanket lowercase would mangle
+    // those dotted references. They render as `Line`/`Point` in upright
+    // text-style already via `\mathrm{}` from the tokenizer.
+  ];
+  for (const [re, repl] of geom) s = s.replace(re, repl);
+
+  // 5b. Thin-space between juxtaposed single letters so binders like
+  //     `{A B C P : Point}` don't look cramped in math mode. Lookahead
+  //     so the regex consumes only the letter + whitespace, leaving
+  //     the second letter available for the next iteration.
+  s = s.replace(/(\b[A-Za-z])\s+(?=[A-Za-z]\b)/g, '$1\\,');
+
+  // 6. Substitute Unicode math operators for LaTeX macros — including
+  //    the ones we just introduced in step 4 (∈, ⊆, ¬, …).
+  for (const [u, t] of LEAN_TO_TEX_OPS) {
+    s = s.split(u).join(t);
+  }
+
+  return s.trim();
+}
+
+function renderTypeKatex(target, raw) {
+  if (!raw) { target.textContent = '(no type signature)'; return; }
+  const tex = leanToLatex(raw);
+  target.innerHTML = texToKatexHtml(tex, { displayMode: true });
+  target.classList.add('type-latex');
 }
 
 // ---------- Main ----------
+// Inspect document.styleSheets to find KaTeX's CSS and report whether
+// its rules are actually in the cascade. Returns a short status string.
+function katexCssStatus() {
+  const sheets = Array.from(document.styleSheets);
+  const lines = [];
+  lines.push(`document.styleSheets.length = ${sheets.length}`);
+  for (const s of sheets) {
+    try {
+      const href = s.href || '(inline)';
+      let n = 0;
+      try { n = s.cssRules ? s.cssRules.length : 0; }
+      catch (e) { n = -1; }  // SecurityError on cross-origin stylesheets
+      lines.push(`  ${href} — ${n} rules`);
+      if (href && href.includes('katex')) {
+        // Look for the .katex { font-family: KaTeX_Main, ... } rule.
+        if (s.cssRules) {
+          for (const r of s.cssRules) {
+            const sel = r.selectorText;
+            if (sel && (sel === '.katex' || sel === '.katex,.katex *')) {
+              lines.push(`    → '${sel}' rule found: font=${r.style.font || '(none)'}`);
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      lines.push(`  [error: ${e.message}]`);
+    }
+  }
+  return lines.join('\n');
+}
+
+// Render a known-good KaTeX expression into the diagnostic slot. This
+// lets us see whether KaTeX itself is functioning (independent of the
+// lean→latex translator), and read the .katex bounding box.
+function runKatexSelfTest() {
+  const slot = document.getElementById('katex-test');
+  const raw  = document.getElementById('katex-test-raw');
+  const rect = document.getElementById('katex-test-rect');
+  if (!slot) return;
+  const tex = '\\int_0^{\\infty} e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}';
+  if (typeof katex === 'undefined') {
+    slot.textContent = '[KaTeX global missing]';
+    if (raw) raw.textContent = '(katex global not loaded)';
+    return;
+  }
+  let html = '';
+  try {
+    html = katex.renderToString(tex, {
+      displayMode: true, throwOnError: false, output: 'html',
+    });
+  } catch (e) {
+    slot.textContent = '[render threw: ' + e.message + ']';
+    return;
+  }
+  slot.innerHTML = html;
+  if (raw) raw.textContent = html.slice(0, 240);
+  // Read the .katex bounding box after the next frame so layout settles.
+  requestAnimationFrame(() => {
+    const k = slot.querySelector('.katex');
+    const cssReport = katexCssStatus();
+    if (!k) {
+      if (rect) rect.textContent = '(no .katex span found)\n\n' + cssReport;
+      return;
+    }
+    const r = k.getBoundingClientRect();
+    const cs = getComputedStyle(k);
+    // Dump every rule across all sheets whose selector matches this
+    // element. Helps spot the rule that overrides KaTeX's font.
+    const matching = [];
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch (e) { continue; }
+      if (!rules) continue;
+      for (const rule of rules) {
+        if (!rule.selectorText) continue;
+        let m = false;
+        try { m = k.matches(rule.selectorText); } catch (e) { continue; }
+        if (!m) continue;
+        const fam = rule.style.fontFamily || rule.style.font || '';
+        const size = rule.style.fontSize || '';
+        if (fam || size) {
+          matching.push(`  ${rule.selectorText}  { font-family: ${fam || '—'}; font-size: ${size || '—'} }  [${(sheet.href || 'inline').split('/').pop()}]`);
+        }
+      }
+    }
+    if (rect) rect.textContent =
+      `rect: ${r.width.toFixed(1)} × ${r.height.toFixed(1)}\n` +
+      `font-family: ${cs.fontFamily}\nfont-size: ${cs.fontSize}\n` +
+      `color: ${cs.color}\ndisplay: ${cs.display}\nvisibility: ${cs.visibility}\n\n` +
+      cssReport + '\n\nrules matching .katex (font-related only):\n' +
+      (matching.length ? matching.join('\n') : '  (none)');
+  });
+}
+
 async function main() {
-  cytoscape.use(cytoscapeDagre);
+  runKatexSelfTest();
   if (typeof cytoscapeElk !== 'undefined') cytoscape.use(cytoscapeElk);
+  // cytoscape-node-html-label is a self-registering plugin: it attaches
+  // `nodeHtmlLabel` to cytoscape's prototype on script load. No use() call.
 
   let data;
   try {
@@ -920,7 +1588,7 @@ async function main() {
     `${nodes.length} propositions · ${edges.length} dependencies` +
     (sorryCount ? ` · ${sorryCount} pending` : '');
   document.getElementById('figure-stats').textContent =
-    `${nodes.length} nodes · ${edges.length} edges`;
+    `${nodes.length} nodes · ${edges.length} edges (pruned)`;
 
   // ---- Cytoscape ----
   const cy = cytoscape({
@@ -930,44 +1598,26 @@ async function main() {
     wheelSensitivity: 0.2,
     style: [
       {
+        // The cytoscape node is an invisible rectangle that holds the
+        // HTML card (added via the `nodeHtmlLabel` plugin below). The
+        // card itself draws the visible content.
         selector: 'node',
         style: {
-          'background-color': n => fillForKind(n.data('kind'), n.data('has_sorry')),
-          'shape': n => shapeForKind(n.data('kind')),
-          'label': 'data(label)',
-          'color': '#1c1410',
-          'font-family': 'Fraunces, EB Garamond, Georgia, serif',
-          'font-size': '9px',
-          'font-style': 'italic',
-          'font-weight': 500,
-          'text-valign': 'top',
-          'text-halign': 'center',
-          'text-margin-y': -3,
-          'text-background-color': '#f4ecd8',
-          'text-background-opacity': 0.85,
-          'text-background-padding': 2,
-          'text-background-shape': 'roundrectangle',
-          'width': 'mapData(degree, 0, 30, 8, 24)',
-          'height': 'mapData(degree, 0, 30, 8, 24)',
-          'border-width': n => n.data('has_sorry') ? 2 : 1,
-          'border-color': n => n.data('has_sorry') ? '#7a2820' : '#1c1410',
-          'transition-property': 'background-color, border-color, width, height',
-          'transition-duration': '160ms',
-        },
-      },
-      {
-        selector: 'node[has_sorry]',
-        style: {
-          'border-style': 'solid',
+          'shape': 'round-rectangle',
+          'background-opacity': 0,
+          'background-color': '#f4ecd8',
+          'border-width': 0,
+          'label': '',                       // ← suppress native label
+          'width': 640,                      // ← 3×5 index card, landscape (oversized)
+          'height': 380,
+          'padding': '0px',
         },
       },
       {
         selector: 'node:selected',
         style: {
-          'border-width': 3,
-          'border-color': '#983327',
-          'width': 'mapData(degree, 0, 30, 14, 32)',
-          'height': 'mapData(degree, 0, 30, 14, 32)',
+          'background-opacity': 0.18,
+          'background-color': '#983327',
         },
       },
       {
@@ -1003,37 +1653,28 @@ async function main() {
         },
       },
     ],
-    layout: dagreOpts(),
+    layout: elkOpts(),
   });
 
   // Precompute degree so mapData(degree, …) in the stylesheet has data to bind.
   cy.nodes().forEach(n => n.data('degree', n.degree()));
 
+  // ---------- HTML cards as node labels ----------
+  // Renders a real DOM card on top of each cytoscape node, scaling with
+  // the canvas pan/zoom. Inside each card: kind chip, name, docstring
+  // excerpt, and a KaTeX-rendered type signature.
+  if (cy.nodeHtmlLabel) {
+    cy.nodeHtmlLabel([{
+      query: 'node',
+      halign: 'center',
+      valign: 'center',
+      halignBox: 'center',
+      valignBox: 'center',
+      tpl: data => renderNodeCard(data),
+    }]);
+  }
+
   // ---------- Layout options ----------
-  function dagreOpts() {
-    const align = document.getElementById('dagre-align')?.value || '';
-    const opts = {
-      name: 'dagre',
-      ranker: document.getElementById('dagre-ranker')?.value || 'network-simplex',
-      rankDir: document.getElementById('dagre-rankdir')?.value || 'BT',
-      nodeSep: +(document.getElementById('dagre-nodesep')?.value || 30),
-      rankSep: +(document.getElementById('dagre-ranksep')?.value || 60),
-      edgeSep: +(document.getElementById('dagre-edgesep')?.value || 10),
-      animate: true, animationDuration: 350,
-      fit: true, padding: 40,
-    };
-    if (align) opts.align = align;
-    return opts;
-  }
-  function coseOpts() {
-    return {
-      name: 'cose',
-      animate: false,
-      nodeRepulsion: +(document.getElementById('cose-repulsion')?.value || 8000),
-      idealEdgeLength: +(document.getElementById('cose-edgelen')?.value || 100),
-      fit: true, padding: 50,
-    };
-  }
   function elkOpts() {
     return {
       name: 'elk',
@@ -1041,9 +1682,9 @@ async function main() {
         algorithm: document.getElementById('elk-algorithm')?.value || 'layered',
         'elk.direction': document.getElementById('elk-direction')?.value || 'UP',
         'elk.spacing.nodeNode':
-            +(document.getElementById('elk-nodenode')?.value || 60),
+            +(document.getElementById('elk-nodenode')?.value || 240),
         'elk.layered.spacing.nodeNodeBetweenLayers':
-            +(document.getElementById('elk-betweenlayers')?.value || 100),
+            +(document.getElementById('elk-betweenlayers')?.value || 520),
         'elk.layered.nodePlacement.strategy':
             document.getElementById('elk-strategy')?.value || 'NETWORK_SIMPLEX',
       },
@@ -1084,30 +1725,69 @@ async function main() {
 
       ${d.type_pp ? `
         <div class="type-block">
-          <div class="type-label">Type signature</div>
-          <pre>${escapeHtml(d.type_pp)}</pre>
+          <div class="type-label">
+            <span>Type signature</span>
+            <button class="type-toggle" data-mode="tex" type="button">show source</button>
+          </div>
+          <div class="type-rendered" id="type-rendered"></div>
+          <pre class="type-source" id="type-source" hidden>${escapeHtml(d.type_pp)}</pre>
+        </div>` : ''}
+
+      ${(d.source_html || d.source) ? `
+        <div class="source-block">
+          <div class="type-label">
+            <span>Declaration source</span>
+            ${d.line_start ? `<span class="src-locus">${escapeHtml(d.file || '')}:${d.line_start}</span>` : ''}
+          </div>
+          <pre class="src-pre"><code>${d.source_html ? d.source_html : escapeHtml(d.source)}</code></pre>
         </div>` : ''}
 
       <div class="legend">
         <div class="legend-title">Atlas legend</div>
         <ul>
-          <li><span class="swatch shape-circle" style="background:#1c1410"></span> theorem</li>
-          <li><span class="swatch shape-circle" style="background:#2c4f50"></span> definition</li>
-          <li><span class="swatch shape-diamond" style="background:#b08229"></span> axiom</li>
-          <li><span class="swatch shape-circle" style="background:#7a6852"></span> opaque</li>
-          <li><span class="swatch shape-ring" style="background:#983327"></span> contains <em>sorry</em></li>
-          <li><span class="swatch" style="background:transparent;border:1px solid #1c1410">&nbsp;</span> selected</li>
+          <li><span class="glyph">∎</span> theorem</li>
+          <li><span class="glyph">ƒ</span> definition</li>
+          <li><span class="glyph">◆</span> axiom</li>
+          <li><span class="glyph">·</span> opaque</li>
+          <li><span class="swatch shape-sorry" title="oxblood border"></span> contains <em>sorry</em></li>
         </ul>
       </div>
     `;
   }
 
   cy.on('tap', 'node', e => {
-    showNode(e.target.data());
+    const data = e.target.data();
+    showNode(data);
+
+    // Render the type via KaTeX after the new DOM is in place.
+    if (data.type_pp) {
+      const target = document.getElementById('type-rendered');
+      if (target) renderTypeKatex(target, data.type_pp);
+
+      // Hook up the "show source" / "show math" toggle.
+      const btn = info.querySelector('.type-toggle');
+      const src = document.getElementById('type-source');
+      if (btn && src && target) {
+        btn.addEventListener('click', () => {
+          const showingTex = btn.dataset.mode === 'tex';
+          if (showingTex) {
+            target.hidden = true;
+            src.hidden = false;
+            btn.textContent = 'show math';
+            btn.dataset.mode = 'src';
+          } else {
+            target.hidden = false;
+            src.hidden = true;
+            btn.textContent = 'show source';
+            btn.dataset.mode = 'tex';
+          }
+        });
+      }
+    }
+
     // Highlight 1-hop neighbourhood.
     cy.elements().removeClass('related');
-    const node = e.target;
-    const neighborhood = node.closedNeighborhood();
+    const neighborhood = e.target.closedNeighborhood();
     neighborhood.addClass('related');
   });
 
@@ -1141,34 +1821,14 @@ async function main() {
     cy.fit(matches, 60);
   };
 
-  // ---------- Engine switcher ----------
-  let lastEngine = 'dagre';
-  const optsFor = { dagre: dagreOpts, elk: elkOpts, cose: coseOpts };
-  const buttons = {
-    dagre: document.getElementById('layout-dagre'),
-    elk:   document.getElementById('layout-elk'),
-    cose:  document.getElementById('layout-cose'),
-  };
-
-  function setEngine(name) {
-    lastEngine = name;
-    Object.entries(buttons).forEach(([k, b]) =>
-      b.classList.toggle('active', k === name));
-    document.getElementById('figure-engine').textContent = name;
-  }
+  // ---------- Layout runner ----------
   function runLayout() {
-    const opts = optsFor[lastEngine]();
-    cy.layout(opts).run();
-  }
-  buttons.dagre.onclick = () => { setEngine('dagre'); runLayout(); };
-  buttons.elk.onclick   = () => {
     if (typeof cytoscapeElk === 'undefined') {
       alert('ELK plugin failed to load — check network access to unpkg.');
       return;
     }
-    setEngine('elk'); runLayout();
-  };
-  buttons.cose.onclick  = () => { setEngine('cose'); runLayout(); };
+    cy.layout(elkOpts()).run();
+  }
 
   document.getElementById('layout-apply').onclick = runLayout;
   document.getElementById('reset').onclick = () => cy.fit(60);

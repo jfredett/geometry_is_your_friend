@@ -4,12 +4,19 @@ build-web:
 
 # Rebuild the theorem graph database from a clean Lean build.
 # Requires `nix develop` so `kuzu` (CLI + Python) and venv are on PATH.
+#
+# The dumptactics pass is the heavy one — every `Geometry/**.lean` is
+# re-elaborated with a full Mathlib import. We dispatch that via
+# `scripts/run_dumptactics.py`, which spawns one subprocess per module
+# (so RAM is fully released between modules) with per-subprocess
+# `nice`/`ionice` and a `ulimit -v` cap so a runaway elaboration gets
+# killed by the kernel before it can hang the machine. Per-module
+# mtime cache means second runs only re-do touched files.
 graph:
     lake build
     lake exe dumpdecls
     lake exe dumpimports
-    # Tactic dump may not exist yet; tolerate failure during initial bring-up.
-    -lake exe dumptactics
+    -python scripts/run_dumptactics.py
     python scripts/ingest.py
     python scripts/export_graph.py
 

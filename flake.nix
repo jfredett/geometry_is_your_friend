@@ -21,8 +21,11 @@
         pythonFlake = nixpkgs-python.packages.${system};
         pythonInterp = pythonFlake."3.13.1";
         pip = pkgs.python3Packages;
+        # Native libraries that pip-installed wheels (e.g. `kuzu`) need to
+        # `dlopen` at import time. `pkgs.stdenv.cc.cc.lib` is the lib-output
+        # of gcc that actually contains libstdc++; `.cc` alone does not.
         ld_deps = [
-          pkgs.stdenv.cc.cc
+          pkgs.stdenv.cc.cc.lib
         ];
         deps = with pkgs; {
           python = {
@@ -97,10 +100,12 @@
               source ./$VENV/bin/activate
               export PYTHONPATH=`pwd`/$VENV/${pkgs.python3.sitePackages}/:$PYTHONPATH
               pip install -r requirements.txt
-            '';
 
-            postShellHook = /* bash */ ''
-              export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}"
+              # Make libstdc++ (and other native deps) discoverable for
+              # dlopen-at-import-time wheels like `kuzu`. `mkShell` does
+              # not honour a `postShellHook` field, so the export has to
+              # live here.
+              export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
             '';
           };
         };

@@ -36,7 +36,7 @@ macro_rules (kind := onNotation)
 
 ---- COLLINEARITY (FINITE) AND POINTWISE (INFINITE)
 
--- Collinear: finite set of points on a common line
+/-- Collinear: finite set of points on a common line -/
 def Collinear (points : Finset Point) : Prop := ∃ L : Line, ∀ p ∈ points, p ∈ L
 
 -- Syntax: collinear A B C (space-separated)
