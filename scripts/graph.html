@@ -1619,6 +1619,15 @@ function leanToLatex(raw) {
   ];
   for (const [re, repl] of geom) s = s.replace(re, repl);
 
+  // 5a-cleanup. Strip redundant parens around atomic geometry
+  // constructs. After Segment A B → \overline{AB}, the surrounding
+  // `(segment A B)` parens (added by the parent call) are
+  // pointless — `(\overline{AB})` renders as `(AB)` with overline,
+  // we want just the overlined AB.
+  s = s.replace(
+    /\(\s*(\\(?:overleftrightarrow|overrightarrow|overline)\{[^{}]*\})\s*\)/g,
+    '$1');
+
   // 5b. Thin-space between juxtaposed single letters so binders like
   //     `{A B C P : Point}` don't look cramped in math mode. Lookahead
   //     so the regex consumes only the letter + whitespace, leaving
@@ -1925,10 +1934,11 @@ async function main() {
         <div class="type-block">
           <div class="type-label">
             <span>Type signature</span>
-            <button class="type-toggle" data-mode="tex" type="button">show source</button>
+            <button class="type-toggle" data-mode="math" type="button">show lean</button>
           </div>
           <div class="type-rendered" id="type-rendered"></div>
           <pre class="type-source" id="type-source" hidden>${escapeHtml(d.type_pp)}</pre>
+          <pre class="type-source" id="type-latex" hidden>${escapeHtml(leanToLatex(d.type_pp))}</pre>
         </div>` : ''}
 
       ${(d.source_html || d.source) ? `
@@ -1962,23 +1972,27 @@ async function main() {
       const target = document.getElementById('type-rendered');
       if (target) renderTypeKatex(target, data.type_pp);
 
-      // Hook up the "show source" / "show math" toggle.
+      // Three-state cycle: math → lean source → latex source → math.
+      // The button text shows the NEXT state, so the user always knows
+      // what they'll get by clicking.
       const btn = info.querySelector('.type-toggle');
       const src = document.getElementById('type-source');
-      if (btn && src && target) {
+      const tex = document.getElementById('type-latex');
+      if (btn && src && tex && target) {
+        const cycle = [
+          { name: 'math',  show: target, label: 'show lean'  },
+          { name: 'lean',  show: src,    label: 'show latex' },
+          { name: 'latex', show: tex,    label: 'show math'  },
+        ];
         btn.addEventListener('click', () => {
-          const showingTex = btn.dataset.mode === 'tex';
-          if (showingTex) {
-            target.hidden = true;
-            src.hidden = false;
-            btn.textContent = 'show math';
-            btn.dataset.mode = 'src';
-          } else {
-            target.hidden = false;
-            src.hidden = true;
-            btn.textContent = 'show source';
-            btn.dataset.mode = 'tex';
-          }
+          const cur = cycle.findIndex(s => s.name === btn.dataset.mode);
+          const next = cycle[(cur + 1) % cycle.length];
+          [target, src, tex].forEach(el => { el.hidden = true; });
+          next.show.hidden = false;
+          btn.dataset.mode = next.name;
+          // Label shows what the NEXT click will switch to.
+          const after = cycle[(cycle.indexOf(next) + 1) % cycle.length];
+          btn.textContent = after.label;
         });
       }
     }
