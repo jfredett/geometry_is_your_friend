@@ -244,7 +244,12 @@ private def expandAtlasTheorem
     : MacroM (TSyntax `command) := do
   let kindLit := Syntax.mkStrLit kind
   let numLit  := Syntax.mkStrLit numStr
-  let ident   := mkIdent (Name.mkSimple title.getString)
+  -- Preserve the source range of `title` on the generated identifier
+  -- so downstream tooling (e.g. SubVerso highlighter) sees a real
+  -- definition-site token rather than a synthetic one. `mkIdent` alone
+  -- produces a positionless ident, which `SubVerso.Highlighted.definedNames`
+  -- treats as not-a-def-site and so omits from the per-decl extraction.
+  let ident   := mkIdentFrom title.raw (Name.mkSimple title.getString)
   match doc? with
   | some doc =>
     `($doc:docComment
@@ -259,7 +264,12 @@ private def expandAtlasAxiom
     : MacroM (TSyntax `command) := do
   let kindLit := Syntax.mkStrLit kind
   let numLit  := Syntax.mkStrLit numStr
-  let ident   := mkIdent (Name.mkSimple title.getString)
+  -- Preserve the source range of `title` on the generated identifier
+  -- so downstream tooling (e.g. SubVerso highlighter) sees a real
+  -- definition-site token rather than a synthetic one. `mkIdent` alone
+  -- produces a positionless ident, which `SubVerso.Highlighted.definedNames`
+  -- treats as not-a-def-site and so omits from the per-decl extraction.
+  let ident   := mkIdentFrom title.raw (Name.mkSimple title.getString)
   match doc? with
   | some doc =>
     `($doc:docComment
@@ -274,7 +284,12 @@ private def expandAtlasDef
     : MacroM (TSyntax `command) := do
   let kindLit := Syntax.mkStrLit kind
   let numLit  := Syntax.mkStrLit numStr
-  let ident   := mkIdent (Name.mkSimple title.getString)
+  -- Preserve the source range of `title` on the generated identifier
+  -- so downstream tooling (e.g. SubVerso highlighter) sees a real
+  -- definition-site token rather than a synthetic one. `mkIdent` alone
+  -- produces a positionless ident, which `SubVerso.Highlighted.definedNames`
+  -- treats as not-a-def-site and so omits from the per-decl extraction.
+  let ident   := mkIdentFrom title.raw (Name.mkSimple title.getString)
   match doc? with
   | some doc =>
     `($doc:docComment

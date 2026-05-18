@@ -21,6 +21,7 @@ trade-off for getting real syntactic info instead of regex tokenizing.
 -/
 
 import Lean
+import Atlas
 import SubVerso.Compat
 import SubVerso.Examples.Env
 import SubVerso.Module
@@ -242,13 +243,48 @@ unsafe def processModuleAt (modName : Name) (srcPath : System.FilePath)
                   liftTermElabM <|
                   Highlighting.highlightFrontendResult res (suppressNamespaces := []))
                  pctx cmdSt
+    -- Filter scope = atlas tagging (same constraint as `DumpDecls.lean`).
+    --
+    -- We can't use `hl.definedNames` because subverso doesn't mark
+    -- macro-emitted decl identifiers as definition sites — the atlas
+    -- command's expansion creates a synthetic-position ident for the
+    -- title, and `isDefinition` rejects those. Instead, query the
+    -- post-elaboration env for every atlas-tagged decl declared in
+    -- THIS module and grab its line range. We then build one
+    -- `DeclEntry` per atlas decl with html = (the full module HTML —
+    -- subverso renders per-command and we concatenate) and tactics
+    -- filtered to the decl's line range.
+    let finalSt ← cmdSt.get
+    let finalEnv := finalSt.commandState.env
+    let importedAtlasSt := Atlas.atlasStateFromImports finalEnv
+    let liveAtlasSt     := Atlas.atlasExt.getState finalEnv
     let posToLine (p : Nat) : Nat := (fm.toPosition ⟨p⟩).line
+    -- Atlas decls added by commands in THIS module = (live state) − (imported state).
+    -- `liveAtlasSt` is the combined live+imported view; `importedAtlasSt`
+    -- is what the imports contributed. The difference is what THIS
+    -- module's commands added.
+    let atlasNamesHere : Array Lean.Name :=
+      liveAtlasSt.byName.toArray.filterMap fun (n, _) =>
+        if importedAtlasSt.byName.contains n then none else some n
+    -- Run inside the elaborator context so `findDeclarationRanges?` works.
+    let coreCtx : Lean.Core.Context := { fileName := srcPath.toString, fileMap := fm }
+    let coreState : Lean.Core.State := { env := finalEnv }
+    let collectRanges : Lean.CoreM (Array (Lean.Name × Nat × Nat)) := do
+      let mut out : Array (Lean.Name × Nat × Nat) := #[]
+      for n in atlasNamesHere do
+        if let some r ← Lean.findDeclarationRanges? n then
+          out := out.push (n, r.range.pos.line, r.range.endPos.line)
+      return out
+    let (nameRanges, _) ← collectRanges.toIO coreCtx coreState
+    -- Pre-render the full module's HTML and tactic list once.
+    let allHtml := String.intercalate "" (hls.map renderHtml).toList
+    let allTactics : Array (String × Nat) :=
+      hls.foldl (init := #[]) fun acc hl => acc ++ collectTactics posToLine hl
+    -- Emit one entry per atlas decl, slicing tactics by line range.
     let mut out : Array DeclEntry := #[]
-    for hl in hls do
-      let html := renderHtml hl
-      let tactics := collectTactics posToLine hl
-      for declName in hl.definedNames.toArray do
-        out := out.push { name := declName.toString, html, tactics }
+    for (name, lo, hi) in nameRanges do
+      let tactics := (allTactics.filter (fun (_, ln) => lo ≤ ln && ln ≤ hi)).toList
+      out := out.push { name := name.toString, html := allHtml, tactics }
     return out
   catch e =>
     IO.eprintln s!"[dumptactics] {modName}: {e}"

@@ -2,82 +2,50 @@ import Lean
 import Geometry
 import Atlas
 
-/-- Filter out compiler-generated / parser-machinery declarations so the graph
-    contains user-authored content. -/
-def isUserDecl (n : Lean.Name) : Bool :=
-  let s := n.toString
-  -- Final dotted component, with French quote markers (`«` / `»`) stripped
-  -- so the prefix check below sees the underlying name. Used to filter the
-  -- auto-emitted `term*` / `tactic*` / `inst*` stubs from `syntax` /
-  -- `notation` / `instance` declarations.
-  let lastDotted := (s.splitOn ".").getLast? |>.getD s
-  let lastComponent :=
-    lastDotted.replace "«" "" |>.replace "»" ""
-  let containsDenylist := [
-    "_simp_", "._aux_", "«_aux_", "_auto_",
-    ".match_", ".extract", "._eq_", ".eq_", "._uniq",
-    "_flat_ctor", "_sparseCasesOn", "_unsafe_rec",
-    ".quot", "_binder.quot"
-  ]
-  let endsWithDenylist := [
-    ".inj", ".inj_iff", ".sizeOf_spec",
-    ".rec", ".recOn", ".casesOn", ".brecOn",
-    ".noConfusion", ".noConfusionType",
-    ".proof_1", ".proof_2", ".proof_3",
-    ".unexpander"
-  ]
-  let kindDenylist := [
-    "ParserDescr", "TrailingParserDescr", "Parser", "Macro", "Unexpander"
-  ]
-  -- Last-component prefix denylist. Catches the names Lean auto-emits for
-  -- `syntax "..." : tactic` (→ `tactic<kind>`), `notation` (→ `term<kind>`),
-  -- and `instance` declarations (→ `inst<...>`).
-  let lastStartsWithDenylist := [
-    "term", "tactic", "instance", "inst"
-  ]
-  !containsDenylist.any (fun sub => s.contains sub) &&
-  !endsWithDenylist.any (fun suffix => s.endsWith suffix) &&
-  !kindDenylist.any (fun k => s.contains k) &&
-  !lastStartsWithDenylist.any (fun pre => lastComponent.startsWith pre)
+/-! Dump every atlas-tagged declaration to `blueprint/decls.json`.
 
-/-- Constants referenced in a decl's value (proof body for theorems, RHS for
-    defs), filtered to project-local `Geometry.*` names. -/
-def getProofDeps (info : Lean.ConstantInfo) : List String :=
-  let expr := match info with
-    | .thmInfo  t => some t.value
-    | .defnInfo d => some d.value
-    | _ => none
-  match expr with
-  | none => []
-  | some e =>
-    e.getUsedConstants.toList
-      |>.map Lean.Name.toString
-      |>.filter (·.startsWith "Geometry")
+    Filter scope = atlas tagging. A declaration only appears in the
+    output if it carries an `@[atlas …]` attribute (i.e. was introduced
+    via the `atlas <kind> …` command in `Atlas.lean`). Untagged
+    declarations — Mathlib helpers, structural projections like
+    `Collinear.on_line`, compiler-emitted `match_*` / `proof_*` /
+    `rec` / `casesOn` stubs — are ignored entirely. This replaces the
+    earlier heuristic denylist with a single explicit signal.
+
+    Edge scope = atlas tagging. For each atlas-tagged decl we walk its
+    proof/def body, collect referenced constants, and keep only the
+    ones that are themselves atlas-tagged. Concretely this means a
+    `ref lemma 1.0.31` (which elaborates to the title-named constant
+    `Geometry.…«Pointed intersection is symmetric …»`) shows up as a
+    dependency edge, while a reference to `Eq.symm` or `tauto` does
+    not. -/
+
+namespace DumpDecls
+
+open Lean Meta
 
 /-- Module path of the declaration, e.g. `Geometry.Ch3.Prop.P4`. -/
-def declModule? (env : Lean.Environment) (name : Lean.Name) : Option String := do
+def declModule? (env : Environment) (name : Name) : Option String := do
   let idx ← env.getModuleIdxFor? name
   let modName := env.allImportedModuleNames[idx]?
-  modName.map Lean.Name.toString
+  modName.map Name.toString
 
 /-- Convert a module name `Geometry.Ch3.Prop.P4` to a path `Geometry/Ch3/Prop/P4.lean`. -/
 def moduleToFile (m : String) : String :=
   m.replace "." "/" ++ ".lean"
 
-/-- Transitive has-sorry detector. Walks the proof term collecting used
-    constants, recursively visits each, and reports `true` if any visited
-    expression directly references `sorryAx`. This is needed because Lean
-    sometimes factors out sorry-bearing subterms into `_proof_N` auxiliaries,
-    so a one-shot check on the outer value misses sorries that live in them. -/
+/-- Transitive `sorry` detector. Lean factors sorry-bearing subterms into
+    `_proof_N` auxiliaries, so a one-shot check on the outer value
+    misses sorries that live inside them. -/
 partial def hasSorryTransitive
-    (env : Lean.Environment) (visited : Std.HashSet Lean.Name) (name : Lean.Name)
-    : Std.HashSet Lean.Name × Bool := Id.run do
+    (env : Environment) (visited : Std.HashSet Name) (name : Name)
+    : Std.HashSet Name × Bool := Id.run do
   if visited.contains name then return (visited, false)
   let visited := visited.insert name
   match env.find? name with
   | none => return (visited, false)
   | some info =>
-    let exprs : List Lean.Expr := match info with
+    let exprs : List Expr := match info with
       | .thmInfo  t => [t.value, t.type]
       | .defnInfo d => [d.value, d.type]
       | _ => [info.type]
@@ -91,9 +59,24 @@ partial def hasSorryTransitive
         if found then return (visited, true)
     return (visited, false)
 
-/-- Wrapper: drop the visited-set, just return the boolean. -/
-def hasSorry (env : Lean.Environment) (name : Lean.Name) : Bool :=
+def hasSorry (env : Environment) (name : Name) : Bool :=
   (hasSorryTransitive env {} name).2
+
+/-- Constants referenced in a decl's body, filtered to only those that
+    are themselves atlas-tagged. The atlas tag is the membership signal
+    for the graph — non-atlas refs (Mathlib lemmas, projections,
+    structural lemmas like `Collinear.on_line`) are dropped on purpose. -/
+def atlasDeps (atlasNames : NameSet) (info : ConstantInfo) : List String :=
+  let expr := match info with
+    | .thmInfo  t => some t.value
+    | .defnInfo d => some d.value
+    | _ => none
+  match expr with
+  | none => []
+  | some e =>
+    e.getUsedConstants.toList
+      |>.filter atlasNames.contains
+      |>.map Name.toString
 
 /-- Escape for JSON. -/
 def jsonEscape (s : String) : String :=
@@ -103,12 +86,14 @@ def jsonEscape (s : String) : String :=
     |>.replace "\r" "\\r"
     |>.replace "\t" "\\t"
 
-open Lean Meta
-
-/-- Build one JSON record (without braces) for a single declaration. Runs in
-    `MetaM` so `ppExpr` and `isProp` are available. -/
-def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
+/-- Build one JSON record for an atlas-tagged declaration. -/
+def buildEntry (env : Environment) (atlasNames : NameSet)
+    (name : Name) (info : ConstantInfo) (atlasEntry : Atlas.AtlasEntry) :
     MetaM String := do
+  -- Lean's intrinsic decl kind (axiom/def/theorem/opaque). Kept as
+  -- `kind` for schema compat with `scripts/schema.cypher` and
+  -- `scripts/ingest.py`; the atlas kind is a separate `atlas_kind`
+  -- field below.
   let kind := match info with
     | .axiomInfo  _ => "axiom"
     | .defnInfo   _ => "def"
@@ -120,7 +105,7 @@ def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
   let typeRaw := jsonEscape (toString info.type)
   let typePp ← try (·.pretty) <$> ppExpr info.type catch _ => pure (toString info.type)
   let typePpStr := jsonEscape typePp
-  let deps := getProofDeps info
+  let deps := atlasDeps atlasNames info
   let depsJson := "[" ++
     (deps.map (fun d => "\"" ++ d ++ "\"") |> String.intercalate ",") ++ "]"
   let ns := jsonEscape name.getPrefix.toString
@@ -136,24 +121,12 @@ def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
   let isProp ← try isProp info.type catch _ => pure false
   let propFlag := if isProp then "true" else "false"
   let nc := if Lean.isNoncomputable env name then "true" else "false"
-  -- Atlas metadata: emitted as a string when present, JSON `null` otherwise.
-  -- The `@[atlas …]` attribute is auto-applied by the `atlas <kind>` command
-  -- macros in `Atlas.lean`; see `Atlas.atlasEntry?` for the lookup.
-  let atlasEntry := Atlas.atlasEntry? env name
-  let (atlasKindField, atlasNumberField, atlasTitleField) := match atlasEntry with
-    | some e =>
-      ( s!"\"atlas_kind\":\"{jsonEscape e.kind}\""
-      , s!"\"atlas_number\":\"{jsonEscape e.number}\""
-      , s!"\"atlas_title\":\"{jsonEscape e.title}\""
-      )
-    | none =>
-      ( "\"atlas_kind\":null"
-      , "\"atlas_number\":null"
-      , "\"atlas_title\":null"
-      )
   let fields : Array String := #[
-    s!"\"name\":\"{name}\"",
+    s!"\"name\":\"{jsonEscape name.toString}\"",
     s!"\"kind\":\"{kind}\"",
+    s!"\"atlas_kind\":\"{jsonEscape atlasEntry.kind}\"",
+    s!"\"atlas_number\":\"{jsonEscape atlasEntry.number}\"",
+    s!"\"atlas_title\":\"{jsonEscape atlasEntry.title}\"",
     s!"\"namespace\":\"{ns}\"",
     s!"\"module\":\"{modStr}\"",
     s!"\"file\":\"{fileStr}\"",
@@ -165,17 +138,13 @@ def buildEntry (env : Environment) (name : Name) (info : ConstantInfo) :
     s!"\"has_sorry\":{sorryFlag}",
     s!"\"is_proposition\":{propFlag}",
     s!"\"is_noncomputable\":{nc}",
-    s!"\"deps\":{depsJson}",
-    atlasKindField,
-    atlasNumberField,
-    atlasTitleField
+    s!"\"deps\":{depsJson}"
   ]
   return "{" ++ String.intercalate "," fields.toList ++ "}"
 
-/-- Discover every `Geometry/**/*.lean` file (relative to the project root)
-    and convert each to its module name. Used to populate the import list so
-    decls not transitively reached by `Geometry.lean` (in-progress work, etc.)
-    still show up in the dump. -/
+/-- Every `Geometry/**/*.lean` we can find with a built `.olean`. Used
+    to import work-in-progress files that aren't transitively reached
+    from `Geometry.lean` yet but have nonetheless been compiled. -/
 partial def discoverGeometryModules (root : String) : IO (Array Name) := do
   let mut out : Array Name := #[]
   let entries ← System.FilePath.readDir root
@@ -191,12 +160,12 @@ partial def discoverGeometryModules (root : String) : IO (Array Name) := do
       out := out.push dotted.toName
   return out
 
+end DumpDecls
+
+open Lean Meta DumpDecls
+
 def main : IO Unit := do
   initSearchPath (← findSysroot)
-  -- Import the umbrella plus every `Geometry/**/*.lean` we can find with a
-  -- built `.olean`, so the dump includes work-in-progress files that aren't
-  -- transitively reached from `Geometry.lean` yet but have nonetheless been
-  -- compiled (e.g. via `lake build Geometry.Ch3.Prop.Pasch`).
   let discovered ← discoverGeometryModules "Geometry"
   let oleanRoot := ".lake/build/lib/lean"
   let buildable ← discovered.filterM fun n => do
@@ -207,20 +176,38 @@ def main : IO Unit := do
     buildable.map fun n => { module := n : Import }
   let env ← importModules imports {}
 
-  let decls := env.constants.toList.filter fun (n, _) =>
-    n.toString.startsWith "Geometry" && isUserDecl n
+  -- Merge the current and imported atlas state into a single
+  -- `NameMap AtlasEntry`. (`addImportedFn` is unreliable across module
+  -- boundaries, hence the manual `getModuleEntries` walk in
+  -- `Atlas.atlasStateFromImports`.)
+  let importedSt := Atlas.atlasStateFromImports env
+  let liveSt     := Atlas.atlasExt.getState env
+  let byName : NameMap Atlas.AtlasEntry :=
+    importedSt.byName.foldl (init := liveSt.byName) fun acc n e =>
+      match acc.find? n with
+      | some _ => acc
+      | none   => acc.insert n e
 
-  -- Drive the per-decl entry construction inside MetaM via CoreM scaffolding.
+  let atlasNames : NameSet :=
+    byName.foldl (init := {}) fun acc n _ => acc.insert n
+
+  -- One entry per atlas-tagged decl, in stable name order.
+  let entriesIn : Array (Name × Atlas.AtlasEntry) :=
+    byName.toArray.qsort (fun (a, _) (b, _) => a.toString < b.toString)
+
   let coreCtx : Core.Context := { fileName := "<dumpdecls>", fileMap := default }
   let coreState : Core.State := { env := env }
   let metaAction : MetaM (Array String) := do
     let mut entries : Array String := #[]
-    for (name, info) in decls do
-      entries := entries.push (← buildEntry env name info)
+    for (name, atlasEntry) in entriesIn do
+      match env.find? name with
+      | none => continue   -- atlas tag references a name that no longer resolves
+      | some info =>
+        entries := entries.push (← buildEntry env atlasNames name info atlasEntry)
     return entries
   let (entries, _) ← metaAction.run'.toIO coreCtx coreState
 
   let json := "[\n" ++ String.intercalate ",\n" entries.toList ++ "\n]"
   IO.FS.createDirAll "blueprint"
   IO.FS.writeFile "blueprint/decls.json" json
-  IO.eprintln s!"Wrote {entries.size} declarations to blueprint/decls.json"
+  IO.eprintln s!"Wrote {entries.size} atlas-tagged declarations to blueprint/decls.json"
