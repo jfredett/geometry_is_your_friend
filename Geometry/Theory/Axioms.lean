@@ -241,14 +241,14 @@ elab_rules : tactic
       let symIdent := mkIdent (if isEq then ``Eq.symm else ``Ne.symm)
       evalTactic (← `(tactic| replace $hIdent:ident := $symIdent:ident $hIdent:ident))
 
--- `register_simp_attr obvious_simp` lives in `Geometry/Tactics.lean`
+-- `register_simp_attr obvious` lives in `Geometry/Tactics.lean`
 -- (Lean requires the registration to be in a different file from the
--- first `attribute [obvious_simp]` use). This block tags the
+-- first `attribute [obvious]` use). This block tags the
 -- chapter-0 / axiom-level lemmas that count as Greenberg's
 -- minimum-standard intuition. Tag conservatively: a bad simp rule
 -- here propagates to every `obvious` invocation downstream.
 
-attribute [obvious_simp]
+attribute [obvious]
   -- set
   Set.mem_setOf_eq Set.mem_union Set.mem_inter_iff Set.mem_singleton_iff
   -- finset
@@ -258,7 +258,7 @@ attribute [obvious_simp]
   true_and and_true false_and and_false and_self
   not_true_eq_false not_false_eq_true not_or not_and not_not
 
-attribute [obvious_simp]
+attribute [obvious]
   -- line parts (unfolded forms)
   Segment Ray Extension LineThrough
   -- betweenness normalizing (title form — `ref axiom` doesn't
@@ -275,20 +275,20 @@ attribute [obvious_simp]
  `normalize_eq` runs first to canonicalize `=` / `≠` orientations so `simp_all` can
  close hypotheses regardless of which side they were originally written on.
 
- The simp set is the `obvious_simp` attribute — each chapter tags its
+ The simp set is the `obvious` attribute — each chapter tags its
  own canonical normalizations and they accumulate progressively. -/
 macro "obvious" : tactic =>
   `(tactic| (
       normalize_eq
       first
       -- Pure rewrite closes the goal entirely (definitional only).
-      | (simp_all only [obvious_simp]; done)
-      -- Rewrite hyps and goal via `obvious_simp`, then let `tauto` do
+      | (simp_all only [obvious]; done)
+      -- Rewrite hyps and goal via `obvious`, then let `tauto` do
       -- the propositional closing. This handles patterns like:
       --   hyp: `A - P - B`  ⊢  `P ∈ LineThrough B A`
       -- where the rewrite turns the hyp into a form that matches one
       -- disjunct of the unfolded goal, and `tauto` picks it.
-      | (simp_all only [obvious_simp]; tauto)
+      | (simp_all only [obvious]; tauto)
       -- Goal-only unfold + propositional close (some sites have hyps
       -- in normalized form already).
       | (simp only [Segment, Ray, Extension, LineThrough]; tauto)

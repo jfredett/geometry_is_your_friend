@@ -18,8 +18,12 @@ import Mathlib.Data.List.Basic
     macro that uses it. Tag chapter-by-chapter as you encounter
     canonical normalizations that Greenberg treats as background.
 
-    Lean requires `register_simp_attr` and `attribute [obvious_simp]`
-    to be in *separate* files, hence the registration lives here while
-    the actual tagging happens in `Axioms.lean` and downstream. -/
-register_simp_attr obvious_simp
+    Lean requires `register_simp_attr` and `attribute [obvious]` to
+    live in *separate* files, hence the registration lives here while
+    the actual tagging happens in `Axioms.lean` and downstream.
+
+    The attribute name `obvious` deliberately shadows nothing: tactics
+    and attributes live in disjoint namespaces, so `@[obvious]` on a
+    decl and `obvious` in tactic mode coexist without ambiguity. -/
+register_simp_attr obvious
 

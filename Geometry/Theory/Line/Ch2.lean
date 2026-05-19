@@ -206,7 +206,7 @@ atlas lemma 2.0.13 "Segment Commutativity"
   rcases hPinSegAB with APB | AeqP | BeqP
   all_goals obvious
 
-attribute [obvious_simp] «Segment Commutativity»
+attribute [obvious] «Segment Commutativity»
 
 
 /-- The endpoint B is in common here. -/

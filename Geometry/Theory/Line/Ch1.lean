@@ -113,7 +113,7 @@ atlas lemma 1.0.28 "Line Extensionality"
      have ABeqM := ABuniq M ABonM
      rw [ABeqL, ABeqM]
 
-attribute [obvious_simp] «Line Extensionality»
+attribute [obvious] «Line Extensionality»
 
 
 /-- Two lines are distinct iff they have at least one point not in common -/
