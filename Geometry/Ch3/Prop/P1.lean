@@ -23,24 +23,15 @@ atlas proposition 3.1 "Two rays from common endpoints intersect in their segment
   : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
   intro AneB
   apply Subset.antisymm
-  · /- "Proof of (i):
-       (1) By the definition of segment and ray, the segment A B ⊆ the ray A B [and ⊆ ray B A],
-       so by definition of intersection, the segment AB ⊆ (ray A B ∩ ray B A)." -/
+  · quoting (1) "By the definition of segment and ray, the segment A B ⊆ the ray A B [and ⊆ ray B A], so by definition of intersection, the segment AB ⊆ (ray A B ∩ ray B A)."
     exact subset_inter ref lemma 2.0.4 ref lemma 2.0.14
-  · /- (2) Conversely, let the point C belong to the intersection, `(ray A B ∩ ray B A)`; we wish
-        to show that C belongs to the segment A B. -/
+  · quoting (2) "Conversely, let the point C belong to the intersection, (ray A B ∩ ray B A); we wish to show that C belongs to the segment A B."
     intro C CinInt
-    /- (3) If C = A or C = B, C is an endpoint of the segment A B ..." -/
+    quoting (3) "If C = A or C = B, C is an endpoint of the segment A B" ...
     by_cases suppose : C = A ∨ C = B
     · tauto
-    · /- "... Otherwise, A B and C are three collinear points (by the definition of ray and Axiom B-1)..." -/
-      have distinctABC : distinct A B C := by
-        push_neg at suppose
-        obtain ⟨CneA, CneB⟩ := suppose
-        refine ⟨?_⟩
-        simp only [Finset.card_insert_eq_ite, Finset.card_singleton,
-                   Finset.mem_insert, Finset.mem_singleton,
-                   AneB, CneA.symm, CneB.symm, if_false, or_false]
+    · quoting ... "Otherwise, A B and C are three collinear points (by the definition of ray and Axiom B-1)" ...
+      have distinctABC : distinct A B C := by separate; obvious
       have colABC : collinear A B C := by
         use ray A B
         intro P PinABC
@@ -49,20 +40,19 @@ atlas proposition 3.1 "Two rays from common endpoints intersect in their segment
         · rw [eq]; exact ref lemma 1.0.21
         · rw [eq]; exact ref lemma 1.0.22
         · rw [eq]; exact CinInt.left
-      /- "so exactly one of A - C - B, A - B - C, or C - A - B holds (Axiom B-3). ..." -/
+      quoting ... "so exactly one of A - C - B, A - B - C, or C - A - B holds (Axiom B-3)." ...
       have ⟨ConAB, ConBA⟩ : C on ray A B ∧ C on ray B A := by tauto
       rcases ref axiom B.3 A B C ⟨distinctABC, colABC⟩ with ⟨ABC, _, _⟩ | ⟨_, CAB, _⟩ | ⟨_, _ACB⟩
-      · /- "... (4) If A - B - C holds, then C is not on the ray B A; ..." -/
+      · quoting (4) "If A - B - C holds, then C is not on the ray B A" ...
         exfalso
         have CoffBA : C off ray B A := by obvious
         contradiction
-      · /- "... if C - A - B holds, then C is not on the ray A B. ..." -/
+      · quoting ... "if C - A - B holds, then C is not on the ray A B." ...
         exfalso
         have CoffAB : C off ray A B := by obvious
         contradiction
-      · /- "... In either case, C does not belong to both rays.
-          (5) Hence, the relation A - C - B must hold, so C belongs to the segment A B (definition of the segment A B, proof by
-          cases)." -/
+      · quoting ... "In either case, C does not belong to both rays."
+        quoting (5) "Hence, the relation A - C - B must hold, so C belongs to the segment A B (definition of the segment A B, proof by cases)."
         tauto
 
 
@@ -97,6 +87,5 @@ atlas proposition 3.1 "Two rays from common endpoints union to their line"
     -- here too, P is on the other extension
     · have PonExtBA : P on extension B A := obvious
       right; right; exact PonExtBA
-
 
 end Geometry.Ch3.Prop
