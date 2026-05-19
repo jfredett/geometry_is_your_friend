@@ -199,6 +199,55 @@ def pageBreakMarkerJson (m : Atlas.PageBreakMarker) : String :=
   ]
   "{" ++ String.intercalate "," fields.toList ++ "}"
 
+/-- JSON-encode an `Option String` as a JSON string or `null`. -/
+def optStr (s? : Option String) : String :=
+  match s? with
+  | some s => s!"\"{jsonEscape s}\""
+  | none   => "null"
+
+/-- JSON for one `CommentaryBlock`, with target decl resolved via
+    the atlas state. `targetKind` / `targetNum` are looked up; the
+    resulting decl name (or names, in the paired-decl case) is
+    emitted as `decl`. If lookup fails the entry still goes out with
+    `decl: null` so the viewer/dev can see something went wrong. -/
+def commentaryBlockJson (declByKindNum : String → List Name) (cb : Atlas.CommentaryBlock)
+    : String :=
+  let key := cb.targetKind ++ "/" ++ cb.targetNum
+  let hits := declByKindNum key
+  let declStr := match hits with
+    | []     => "null"
+    | [n]    => s!"\"{jsonEscape n.toString}\""
+    | _      =>
+      -- Paired decls or other multi-match. Emit the array of decl
+      -- names; the viewer can warn or pick. 1:1-by-ref is the design,
+      -- so the user should resolve this at the source.
+      "[" ++ (hits.map (fun (n : Name) => s!"\"{jsonEscape n.toString}\"")
+              |> String.intercalate ",") ++ "]"
+  let aliasesJson :=
+    "[" ++ (cb.aliasList.toList.map (fun n => s!"\"{jsonEscape n.toString}\"")
+            |> String.intercalate ",") ++ "]"
+  let tagsJson :=
+    "[" ++ (cb.tagList.toList.map (fun t => s!"\"{jsonEscape t}\"")
+            |> String.intercalate ",") ++ "]"
+  let fields : Array String := #[
+    s!"\"target_kind\":\"{jsonEscape cb.targetKind}\"",
+    s!"\"target_num\":\"{jsonEscape cb.targetNum}\"",
+    s!"\"decl\":{declStr}",
+    s!"\"page\":{optStr cb.bookPage?}",
+    s!"\"page_end\":{optStr cb.bookEnd?}",
+    s!"\"name\":{optStr cb.displayName?}",
+    s!"\"aliases\":{aliasesJson}",
+    s!"\"preface\":{optStr cb.bookPreface?}",
+    s!"\"notes\":{optStr cb.authorNotes?}",
+    s!"\"tags\":{tagsJson}"
+  ]
+  "{" ++ String.intercalate "," fields.toList ++ "}"
+
+/-- Walk imported entries of the commentary extension, return a flat
+    array of all `CommentaryBlock`s across modules. -/
+def commentaryBlocksFromImports (env : Environment) : Array Atlas.CommentaryBlock :=
+  markersFromImports Atlas.atlasCommentaryExt env
+
 /-- Every `Geometry/**/*.lean` we can find with a built `.olean`. Used
     to import work-in-progress files that aren't transitively reached
     from `Geometry.lean` yet but have nonetheless been compiled. -/
@@ -292,3 +341,21 @@ def main : IO Unit := do
     "\n}"
   IO.FS.writeFile "blueprint/markers.json" markersJson
   IO.eprintln s!"Wrote {quotingMarkers.size} quoting / {commentMarkers.size} comment / {pageBreakMarkers.size} page-break markers to blueprint/markers.json"
+
+  -- Commentary blocks (per-decl atlas metadata). Target resolved
+  -- here by walking the merged atlas state.
+  let commentaryBlocks :=
+    commentaryBlocksFromImports env ++ Atlas.atlasCommentaryExt.getState env
+  let declByKindNum : String → List Name := fun key =>
+    let liveSt     := Atlas.atlasExt.getState env
+    let importedSt := Atlas.atlasStateFromImports env
+    let liveNs := liveSt.byKindNumber.get? key |>.getD []
+    let impNs  := importedSt.byKindNumber.get? key |>.getD []
+    -- de-dup
+    liveNs ++ impNs.filter (fun n => !liveNs.contains n)
+  let commentaryJson :=
+    "[\n" ++ String.intercalate ",\n"
+              ((commentaryBlocks.map (commentaryBlockJson declByKindNum)).toList)
+            ++ "\n]"
+  IO.FS.writeFile "blueprint/commentary.json" commentaryJson
+  IO.eprintln s!"Wrote {commentaryBlocks.size} commentary blocks to blueprint/commentary.json"

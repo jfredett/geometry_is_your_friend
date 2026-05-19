@@ -863,6 +863,192 @@ def elabPageBreak : Tactic := fun stx =>
       recordPageBreak stx
   | _ => throwUnsupportedSyntax
 
+
+/-! ## Commentary block: `atlas commentary := by …`
+
+Top-level metadata holder per atlas decl. Tactic-block-style layout
+(re-uses Lean's parser for sequential statement parsing without an
+actual proof obligation). Each "tactic" inside is one field setter.
+
+```
+atlas commentary := by
+  ref proposition 3.4
+  page 131                       -- or `pages 109..113`
+  name "Line separation property"
+  aliases [Line.separation, P3_4_via_betweenness]
+  preface "If C - A - B and l is the line through A, B, and C, …"
+  notes "Editorial commentary about the structure of this proof."
+  tags ["separation", "B-3", "ray"]
+```
+
+The fields can appear in any order; only `ref` is required. The
+viewer reads commentary out of `blueprint/commentary.json` (or
+merged into the existing markers/decls dump) and renders the
+metadata on the corresponding card.
+-/
+
+/-- A commentary block's resolved contents. One per `atlas commentary`.
+    Field names deliberately avoid the syntax keywords (`name`,
+    `aliases`, `notes`, `preface`, `tags`, `page`, `pages`) since
+    declaring those as `syntax` tokens reserves them at the parser
+    level and shadows struct-field LHS in literal initialization.
+
+    The target is stored as `(targetKind, targetNum)` rather than
+    a resolved `decl : Name` so commentary blocks can appear *before*
+    their target's `atlas <kind> N` decl. Resolution happens at dump
+    time (DumpDecls walks atlas state and pairs each commentary to
+    its target decl). Each ref is intended 1:1 — if `(kind, num)`
+    resolves to multiple decls at dump time (paired propositions),
+    that's an error the user resolves by being more specific. -/
+structure CommentaryBlock where
+  targetKind  : String            -- e.g. "proposition"
+  targetNum   : String            -- e.g. "3.4"
+  bookPage?   : Option String     -- "131" (single page) or first of a range
+  bookEnd?    : Option String     -- set when `pages 109..113` form was used
+  displayName?: Option String     -- long-form title; viewer prefers this over decl title
+  aliasList   : Array Name        -- alternate identifier names for the decl
+  bookPreface?: Option String     -- book statement / intro, free-form prose
+  authorNotes?: Option String     -- editorial decl-level notes
+  tagList     : Array String      -- cross-cutting category tags
+  deriving Inhabited
+
+-- State stores all commentary blocks in source order. Lookup by
+-- target decl happens at dump time (since commentary may appear
+-- before its target's `atlas <kind> N` decl, we can't resolve eagerly).
+initialize atlasCommentaryExt :
+    SimplePersistentEnvExtension CommentaryBlock (Array CommentaryBlock) ←
+  registerSimplePersistentEnvExtension {
+    name          := `Atlas.atlasCommentaryExt
+    addEntryFn    := fun s e => s.push e
+    addImportedFn := fun arr =>
+      arr.foldl (init := (#[] : Array CommentaryBlock)) Array.append
+    asyncMode     := .sync
+  }
+
+-- Field-grammar for the commentary block. A separate syntax category
+-- AND `scoped` so the field keywords don't pollute global identifiers.
+--
+-- `scoped` means the tokens (`name`, `aliases`, `notes`, `tags`,
+-- `preface`, `page`, `pages`) are only reserved when `Atlas` is open
+-- — otherwise files that use `let tags := …` as variable names blow
+-- up. Users of `atlas commentary` need `open Atlas` in scope (or do
+-- `open Atlas in atlas commentary := by …`).
+declare_syntax_cat atlasCommentaryField
+
+scoped syntax (name := acRef)     "ref"     rawIdent atlasNum  : atlasCommentaryField
+scoped syntax (name := acPage)    "page"    num                : atlasCommentaryField
+scoped syntax (name := acPages)   "pages"   num ".." num       : atlasCommentaryField
+scoped syntax (name := acName)    "name"    str                : atlasCommentaryField
+scoped syntax (name := acAliases) "aliases" "[" ident,* "]"    : atlasCommentaryField
+scoped syntax (name := acPreface) "preface" str                : atlasCommentaryField
+scoped syntax (name := acNotes)   "notes"   str                : atlasCommentaryField
+scoped syntax (name := acTags)    "tags"    "[" str,* "]"      : atlasCommentaryField
+
+-- Top-level command. `:= by` is purely cosmetic — re-uses Lean's
+-- visual idiom for "indented block of statements." There's no actual
+-- `by` tactic block being parsed; we declare the literal tokens and
+-- then a list of our own field-category statements.
+scoped syntax (name := atlasCommentary)
+  "atlas" "commentary" ":=" "by" (ppLine atlasCommentaryField)* : command
+
+end Atlas
+
+
+namespace Atlas
+
+/-- Convert an `atlasNum` syntax to its canonical string key. -/
+private def atlasNumToStringCmt (num : TSyntax `atlasNum) : MetaM String := do
+  match num with
+  | `(atlasNum| $s:scientific) =>
+    match scientificAtomText s with
+    | some str => pure str
+    | none     => throwError "atlas commentary: malformed number reference (scientific)"
+  | `(atlasNum| $s:scientific . $n:num) =>
+    match scientificAtomText s with
+    | some str => pure s!"{str}.{n.getNat}"
+    | none     => throwError "atlas commentary: malformed number reference (scientific.num)"
+  | `(atlasNum| $i:ident - $n:num $j:ident) => pure s!"{i.getId}-{n.getNat}{j.getId}"
+  | `(atlasNum| $i:ident . $n:num) => pure s!"{i.getId}.{n.getNat}"
+  | `(atlasNum| [ $s:str ]) => pure s.getString
+  | _ => throwError "atlas commentary: malformed number reference"
+
+open Lean Elab Command in
+@[command_elab atlasCommentary]
+def elabAtlasCommentary : CommandElab := fun stx => do
+  -- stx[4] is the `(ppLine atlasCommentaryField)*` group of fields.
+  let fields := stx[4].getArgs
+  -- Accumulate fields. Order-independent; later occurrences of the
+  -- same field overwrite earlier ones (per-field "last write wins").
+  --
+  -- Local names deliberately avoid the field keywords (`aliases`,
+  -- `tags`, `name`, `notes`, `preface`, `page`, `pages`) — declaring
+  -- those as `syntax` tokens reserves them at the parser level, which
+  -- can shadow same-named identifiers when Lean re-parses the body.
+  let mut tgtKind? : Option String      := none
+  let mut tgtNum?  : Option String      := none
+  let mut pg?      : Option String      := none
+  let mut pgEnd?   : Option String      := none
+  let mut nm?      : Option String      := none
+  let mut aliasNs  : Array Name         := #[]
+  let mut pref?    : Option String      := none
+  let mut nt?      : Option String      := none
+  let mut tagStrs  : Array String       := #[]
+  for fld in fields do
+    -- Each field's outer node has one of the named kinds we declared
+    -- above. Match on kind, then destructure the args.
+    match fld with
+    | `(atlasCommentaryField| ref $k:ident $n:atlasNum) =>
+      tgtKind? := some k.getId.toString
+      tgtNum?  := some (← liftTermElabM (atlasNumToStringCmt n))
+    | `(atlasCommentaryField| page $p:num) =>
+      pg? := some (toString p.getNat)
+    | `(atlasCommentaryField| pages $a:num .. $b:num) =>
+      pg? := some (toString a.getNat)
+      pgEnd? := some (toString b.getNat)
+    | `(atlasCommentaryField| name $s:str) =>
+      nm? := some s.getString
+    | `(atlasCommentaryField| aliases [ $ids,* ]) =>
+      for id in ids.getElems do
+        aliasNs := aliasNs.push id.getId
+    | `(atlasCommentaryField| preface $s:str) =>
+      pref? := some s.getString
+    | `(atlasCommentaryField| notes $s:str) =>
+      nt? := some s.getString
+    | `(atlasCommentaryField| tags [ $ts,* ]) =>
+      for t in ts.getElems do
+        tagStrs := tagStrs.push t.getString
+    | _ =>
+      throwErrorAt fld "atlas commentary: unrecognized field"
+  let some kind := tgtKind? |
+    throwError "atlas commentary: missing `ref <kind> <num>` field — every commentary block must declare its target"
+  let some num := tgtNum? |
+    throwError "atlas commentary: missing `ref <kind> <num>` field — every commentary block must declare its target"
+  -- Push the commentary block to the env extension. Target lookup
+  -- happens at dump time, not here — commentary may appear before
+  -- the matching atlas decl is elaborated.
+  let block : CommentaryBlock :=
+    { targetKind   := kind
+      targetNum    := num
+      bookPage?    := pg?
+      bookEnd?     := pgEnd?
+      displayName? := nm?
+      aliasList    := aliasNs
+      bookPreface? := pref?
+      authorNotes? := nt?
+      tagList      := tagStrs }
+  modifyEnv (atlasCommentaryExt.addEntry · block)
+  -- NOTE: in v1 we record alias names in the commentary block but
+  -- *don't* generate Lean-level decls for them. Several attempts to
+  -- emit `abbrev`/`def`/`notation` either fought the target's
+  -- implicit arguments or Lean's antiquotation system; sidestepping
+  -- the entire question is fine for the immediate goal (viewer can
+  -- display aliases as chips). If you want `Line_separation` to be a
+  -- usable identifier inside proofs, add `abbrev Line_separation :=
+  -- @«Line separation by an interior point...»` manually for now;
+  -- a future pass can automate this once we settle on the right
+  -- decl-emission shape.
+  pure ()
+
 end Atlas
 
 -- Mark the four marker tactics as legitimately-unused per the linter.

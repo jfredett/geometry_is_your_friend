@@ -736,6 +736,91 @@ body::after {
   overflow-x: auto;
 }
 
+/* ---------- Commentary block (`atlas commentary := by …`) ---------- */
+.cb-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 0.7em 0.9em;
+  background: rgba(238, 232, 213, 0.4);
+  border-radius: 3px;
+  border: 1px solid rgba(101, 123, 131, 0.2);
+}
+.cb-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+.cb-name {
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-size: 1.15em;
+  font-weight: 600;
+  color: #073642;
+}
+.cb-page {
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-size: 0.85em;
+  color: #586e75;
+  white-space: nowrap;
+}
+.cb-aliases {
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-size: 0.85em;
+  color: #586e75;
+}
+.cb-alias-chip {
+  display: inline-block;
+  padding: 0.05em 0.45em;
+  margin-right: 0.2em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  background: rgba(181, 137, 0, 0.12);
+  border: 1px solid rgba(181, 137, 0, 0.3);
+  border-radius: 2px;
+  color: #586e75;
+}
+.cb-tags { font-size: 0.82em; }
+.cb-tag-chip {
+  display: inline-block;
+  padding: 0.05em 0.45em;
+  margin-right: 0.2em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+  background: rgba(38, 139, 210, 0.1);
+  border: 1px solid rgba(38, 139, 210, 0.25);
+  border-radius: 2px;
+  color: #586e75;
+}
+.cb-preface {
+  margin: 0;
+  padding: 0.5em 0.8em;
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-size: 0.95em;
+  line-height: 1.45;
+  color: #073642;
+  border-left: 3px solid rgba(181, 137, 0, 0.6);
+  background: rgba(238, 232, 213, 0.5);
+}
+.cb-notes {
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-size: 0.86em;
+  color: #586e75;
+  padding: 0.3em 0.5em;
+  background: rgba(255, 230, 200, 0.4);
+  border-left: 2px solid #cb4b16;
+}
+.cb-notes-label {
+  font-weight: 700;
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cb4b16;
+  margin-right: 0.4em;
+}
+
 /* ---------- Book ⟷ Proof side-by-side (`quoting`/`comment`/`page break`) ---------- */
 .bn-grid {
   display: flex;
@@ -800,6 +885,15 @@ body::after {
   flex-shrink: 0;
 }
 .bn-step-cont { color: #93a1a1; font-weight: 400; font-size: 1em; }
+.bn-page {
+  display: inline-block;
+  font-family: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  font-size: 0.75em;
+  color: #586e75;
+  margin-left: 0.2em;
+  margin-right: 0.3em;
+  flex-shrink: 0;
+}
 .bn-chip {
   display: inline-block;
   font-size: 0.7em;
@@ -1780,6 +1874,50 @@ function renderTypeHtml(rawType) {
   return texToKatexHtml(tex, { displayMode: false });
 }
 
+// Render the commentary block section for a decl, if it has one.
+// Returns an empty string when there's no commentary attached. Layout
+// is intentionally simple (v1) — visual polish deferred until the
+// data shape is settled.
+function renderCommentarySection(declId) {
+  const cb = (typeof window !== 'undefined' && window.commentaryByDecl)
+    ? window.commentaryByDecl[declId] : null;
+  if (!cb) return '';
+
+  const pageChip = cb.page
+    ? `<span class="cb-page">📖 p.${escapeHtml(cb.page)}${cb.page_end ? '–' + escapeHtml(cb.page_end) : ''}</span>`
+    : '';
+  const nameLine = cb.name
+    ? `<div class="cb-name">${escapeHtml(cb.name)}</div>`
+    : '';
+  const aliasesChips = (cb.aliases && cb.aliases.length)
+    ? `<div class="cb-aliases">aka: ${cb.aliases.map(a =>
+        `<span class="cb-alias-chip">${escapeHtml(a)}</span>`).join(' ')}</div>`
+    : '';
+  const tagsChips = (cb.tags && cb.tags.length)
+    ? `<div class="cb-tags">${cb.tags.map(t =>
+        `<span class="cb-tag-chip">#${escapeHtml(t)}</span>`).join(' ')}</div>`
+    : '';
+  const preface = cb.preface
+    ? `<blockquote class="cb-preface">${escapeHtml(cb.preface)}</blockquote>`
+    : '';
+  const notes = cb.notes
+    ? `<div class="cb-notes"><span class="cb-notes-label">Ed.</span> ${escapeHtml(cb.notes)}</div>`
+    : '';
+
+  return `
+    <div class="node-section node-commentary-block">
+      <div class="node-section-label">commentary</div>
+      <div class="node-section-body cb-body">
+        <div class="cb-head">${nameLine}${pageChip}</div>
+        ${aliasesChips}
+        ${tagsChips}
+        ${preface}
+        ${notes}
+      </div>
+    </div>`;
+}
+window.renderCommentarySection = renderCommentarySection;
+
 // Render one marker's left-column content.
 function renderMarkerLeft(m) {
   if (m._kind === 'quoting') {
@@ -1791,9 +1929,12 @@ function renderMarkerLeft(m) {
     const stepChip = isExplicit
       ? `<span class="bn-step">(${m.step})</span>`
       : `<span class="bn-step bn-step-cont">…</span>`;
+    const pageChip = (isExplicit && m.resolvedPage != null)
+      ? `<span class="bn-page">p.${m.resolvedPage}</span>`
+      : '';
     const trail = m.trailing ? '<span class="bn-ellipsis">…</span>' : '';
     return `<div class="bn-marker bn-marker-quoting">
-      ${stepChip}<span class="bn-text">${escapeHtml(m.text)}${trail}</span>
+      ${stepChip}${pageChip}<span class="bn-text">${escapeHtml(m.text)}${trail}</span>
     </div>`;
   }
   if (m._kind === 'comment') {
@@ -1973,6 +2114,7 @@ function renderNodeCard(d) {
             <div class="node-type${typeHtml ? '' : ' empty'}">${typeHtml}</div>
           </div>
           ${commentarySection}
+          ${renderCommentarySection(d.id)}
           ${sourceSection}
         </div>
         ${metaFooter}
@@ -2399,6 +2541,32 @@ async function main() {
     if (mresp.ok) markers = await mresp.json();
   } catch (e) { /* tolerable — markers are a v2 enrichment */ }
 
+  // Top-level commentary blocks (`atlas commentary := by …`) — emitted
+  // to `blueprint/commentary.json`. Indexed by target decl FQN for O(1)
+  // lookup in renderers. `cb.decl` shape:
+  //   - string : single-match resolved name (the common case)
+  //   - array  : paired-decl multi-match (every match gets the block)
+  //   - null   : couldn't resolve `(target_kind, target_num)` at dump
+  //              time. Stored under "<kind>/<num>" as a fallback so a
+  //              future dev can spot the orphan.
+  let commentaryByDecl = {};
+  try {
+    const cresp = await fetch('../blueprint/commentary.json');
+    if (cresp.ok) {
+      const arr = await cresp.json();
+      for (const cb of arr) {
+        if (typeof cb.decl === 'string') {
+          commentaryByDecl[cb.decl] = cb;
+        } else if (Array.isArray(cb.decl)) {
+          for (const d of cb.decl) commentaryByDecl[d] = cb;
+        } else {
+          commentaryByDecl[`${cb.target_kind}/${cb.target_num}`] = cb;
+        }
+      }
+    }
+  } catch (e) { /* same tolerance — optional v2 metadata */ }
+  window.commentaryByDecl = commentaryByDecl;
+
   // Index markers by their enclosing decl (the atlas decl name as a
   // string, identical to the graph node id). Each entry is the
   // chronologically-ordered sequence of all three marker kinds, tagged
@@ -2430,6 +2598,24 @@ async function main() {
   }
   // Expose for `renderNodeCard` / `showNode` (defined at module scope).
   window.markersByDecl = markersByDecl;
+
+  // Page resolution: for each `quoting` marker, attach `resolvedPage`
+  // = commentary.page + (count of `page_break` markers before it in
+  // source order). Falls back to commentary.page if no page_breaks,
+  // or remains null if neither commentary nor page is set.
+  for (const id in markersByDecl) {
+    const cb = commentaryByDecl[id];
+    const basePage = cb && cb.page ? parseInt(cb.page, 10) : null;
+    if (basePage == null || isNaN(basePage)) continue;
+    let pageOffset = 0;
+    for (const m of markersByDecl[id]) {
+      if (m._kind === 'page_break') {
+        pageOffset += 1;
+      } else if (m._kind === 'quoting') {
+        m.resolvedPage = basePage + pageOffset;
+      }
+    }
+  }
 
   const nodes = data.nodes;
   const edges = data.edges;
@@ -2781,6 +2967,8 @@ async function main() {
       </dl>
 
       ${d.doc ? `<blockquote class="doc-block">${escapeHtmlBlock(d.doc)}</blockquote>` : ''}
+
+      ${renderCommentarySection(d.id)}
 
       ${d.type_pp ? `
         <div class="type-block">

@@ -35,11 +35,10 @@ atlas proposition 3.1 "Two rays from common endpoints intersect in their segment
       have colABC : collinear A B C := by
         use ray A B
         intro P PinABC
-        simp only [Finset.mem_insert, Finset.mem_singleton] at PinABC
-        rcases PinABC with eq | eq | eq
-        · rw [eq]; exact ref lemma 1.0.21
-        · rw [eq]; exact ref lemma 1.0.22
-        · rw [eq]; exact CinInt.left
+        by_exhaustion PinABC
+        · rw [PeqA]; exact ref lemma 1.0.21
+        · rw [PeqB]; exact ref lemma 1.0.22
+        · rw [PeqC]; exact CinInt.left
       quoting ... "so exactly one of A - C - B, A - B - C, or C - A - B holds (Axiom B-3)." ...
       have ⟨ConAB, ConBA⟩ : C on ray A B ∧ C on ray B A := by tauto
       rcases ref axiom B.3 A B C ⟨distinctABC, colABC⟩ with ⟨ABC, _, _⟩ | ⟨_, CAB, _⟩ | ⟨_, _ACB⟩
