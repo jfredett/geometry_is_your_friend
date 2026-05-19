@@ -19,8 +19,8 @@ atlas proposition 2.3 "Every line has at least one point not on it"
   : ∀ L : Line, ∃ P : Point, (P off L) := by
       intro L
       by_contra! hNeg
-      -- idea: There exist three non-colinear points, but if all points are on L (hNeg), then
-      -- those points are colinear
+      idea "There exist three non-colinear points, but if all points are on L (hNeg), then
+      those points are colinear"
       have ⟨A,B,C, hDistinct, hNC⟩ := ref axiom I.3
       have AonL := hNeg A
       have BonL := hNeg B

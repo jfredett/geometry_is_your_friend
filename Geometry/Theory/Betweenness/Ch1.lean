@@ -54,11 +54,11 @@ atlas lemma 1.0.38 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
   repeat contradiction
 
 
--- TODO: use the `distinct` condition here
 atlas commentary := by
   ref lemma 1.0.39
   name "Betweenness A-B-C implies the three points are distinct"
   preface "betweeness implies distinctness"
+  notes "TODO: use the `distinct` condition here"
 
 atlas lemma 1.0.39 "Betweenness A-B-C implies the three points are distinct"
   : A - B - C -> distinct A B C := by

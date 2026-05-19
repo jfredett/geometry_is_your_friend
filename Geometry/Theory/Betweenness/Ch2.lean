@@ -15,13 +15,12 @@ open Atlas
 
 namespace Betweenness
 
--- TODO: For this and other commutative properties, I think there is a class to instantiate to get that .symm thing to
--- work.
-
 atlas commentary := by
   ref lemma 2.0.30
   name "Guarding is symmetric in its two point arguments"
   preface "a line doesn't care about the order of the points it guards"
+  notes "TODO: For this and other commutative properties, I think there is a class to instantiate to get that .symm thing to
+work."
 
 atlas lemma 2.0.30 "Guarding is symmetric in its two point arguments"
   : (L guards A and B) -> (L guards B and A) := by

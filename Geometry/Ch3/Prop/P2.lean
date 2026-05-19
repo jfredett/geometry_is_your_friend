@@ -55,7 +55,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     specialize parCondition O OonL
     contradiction
   have BoffL : B off L := by
-    -- idea: since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension.
+    idea "since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension."
     have ⟨distinctBOA, colBOA⟩ := ref axiom B-1a bBOA
     separate at distinctBOA
     have LintAOatO : L intersects segment A O at O := by

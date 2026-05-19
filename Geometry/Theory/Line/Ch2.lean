@@ -94,9 +94,9 @@ atlas commentary := by
   ref lemma 2.0.4
   name "Segment A B is a subset of ray A B"
   preface "pXX By the definition of segment and ray, `the segment A B ⊆ the ray A B`"
+  notes "FIXME: this is a quote but I didn't write the page #
+FIXME: if it's obvious here, it's obvious at the callsite, so inline it"
 
--- FIXME: this is a quote but I didn't write the page #
--- FIXME: if it's obvious here, it's obvious at the callsite, so inline it
 atlas lemma 2.0.4 "Segment A B is a subset of ray A B"
   : segment A B ⊆ ray A B := obvious
 
@@ -125,7 +125,7 @@ atlas lemma 2.0.6 "Line Points are Collinear"
   intro PonAB
   simp only [mem_setOf_eq] at PonAB
   rcases PonAB with PeqA | PeqB | tween | tween | tween
-  -- TODO: These should be reducible to a single invocation, maybe a suffices?
+  todo "These should be reducible to a single invocation, maybe a suffices?"
   · rw [<- PeqA];
     apply (ref lemma 1.0.17 B P).mpr
     by_cases suppose: B = P
@@ -219,11 +219,11 @@ atlas lemma 2.0.12 "A ray A B is never equal to any line L"
   : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
   intro L A B AneB
   by_contra ABeqL
-  -- idea: construct a point X - A - B, X is on L, by definition, but off AB, also by def. but under the hypothesis L = AB, -><-
+  idea "construct a point X - A - B, X is on L, by definition, but off AB, also by def. but under the hypothesis L = AB, -><-"
   have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.5 A B AneB
   separate at distinctXAB;
   have XonL : X on L := by
-    -- idea, L = AB, and L = colXAB.line by the ref lemma 2.0.2
+    idea "L = AB, and L = colXAB.line by the ref lemma 2.0.2"
     have LeqXAB : L = colXAB.line := by
       have ABeqXAB := ref lemma 2.0.2 AneB ⟨ref lemma 1.0.21, colXAB.mem A, ref lemma 1.0.22, colXAB.mem B⟩
       rw [<- ABeqXAB]; exact ABeqL.symm

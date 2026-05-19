@@ -152,8 +152,8 @@ atlas lemma 1.0.28 "Line Extensionality"
         have AonM := hAllPonLonM A
         have BonM := hAllPonLonM B
         tauto
-     -- Idea: Above, we show that under this case, A,B are on M, so let's construct the unique line AB from AB
-     -- This is obviously equal to both L and M, since it's uniquely defined by A and B
+     idea "Above, we show that under this case, A,B are on M, so let's construct the unique line AB from AB
+     This is obviously equal to both L and M, since it's uniquely defined by A and B"
      obtain ⟨AB, ⟨AonAB, BonAB⟩, ABuniq⟩ := ref axiom I.1 A B AneB
      have ABeqL := ABuniq L ⟨AonL, BonL⟩
      have ABeqM := ABuniq M ABonM

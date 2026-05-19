@@ -48,11 +48,11 @@ atlas proposition 3.3.i "Betweenness from shared outer pair: B-C-D from A-B-C an
   have ⟨E, EoffcL⟩ := proposition 2.3 cL
   quoting (3) "Consider line EC. Since (by hypothesis) AD meets this line in point C," ...
   let EC := line E C
-  -- {Ed} Missing these simple conditions
-  -- NOTE: have to be specific here to avoid coercion issues.
+  comment "Missing these simple conditions"
+  detail "have to be specific here to avoid coercion issues."
   have BonAB : B on cL.line := cL.mem B
   have DonAB : D on cL.line := cL.mem D
-  -- TODO: I need better tools for proving lines different from each other
+  todo "I need better tools for proving lines different from each other"
   have LneEC : cL ≠ EC := by
     have EonEC : E on EC := ref lemma 1.0.23
     by_contra! hNeg; rw [hNeg] at EoffcL; contradiction
@@ -67,11 +67,10 @@ atlas proposition 3.3.i "Betweenness from shared outer pair: B-C-D from A-B-C an
   have AoffEC : A off EC := (ref lemma 2.0.26 AneC LintECatC).resolve_left (not_not.mpr (cL.mem A))
   have BoffEC : B off EC := (ref lemma 2.0.26 BneC LintECatC).resolve_left (not_not.mpr (cL.mem B))
   have DoffEC : D off EC := (ref lemma 2.0.26 CneD.symm LintECatC).resolve_left (not_not.mpr (cL.mem D))
-  -- {/Ed}
   quoting ... "points A and D are on opposite sides of EC"
-  -- TODO[refactor]: nested ref-in-ref ("Demeter violation for proofs") — `ref lemma
-  -- 2.0.25 _ ((ref lemma 1.0.31).mpr _)` chains two atlas refs through a `.mpr`. Lift
-  -- the inner symm-application out into a `have`, or introduce a small adapter lemma.
+  todo "[refactor] nested ref-in-ref (\"Demeter violation for proofs\") — `ref lemma
+  2.0.25 _ ((ref lemma 1.0.31).mpr _)` chains two atlas refs through a `.mpr`. Lift
+  the inner symm-application out into a `have`, or introduce a small adapter lemma."
   have ECsplitsAandD : EC splits A and D := ref lemma 2.0.25 ACD ((ref lemma 1.0.31).mpr LintECatC)
   quoting (4) "We claim A and B are on the same side of EC. Assume on the contrary that A and B are on opposite sides of EC
      (RAA Hypothesis)"
@@ -175,7 +174,7 @@ atlas proposition 3.3.ii "Betweenness from shared outer pair: A-B-D from A-B-C a
   have AoffEB := (ref lemma 2.0.26 AneB LintEBatB).resolve_left (not_not.mpr (cL.mem A))
   have CoffEB := (ref lemma 2.0.26 BneC.symm LintEBatB).resolve_left (not_not.mpr (cL.mem C))
   have DoffEB := (ref lemma 2.0.26 BneD.symm LintEBatB).resolve_left (not_not.mpr (cL.mem D))
-  -- TODO[refactor]: same ref-in-ref pattern as `ECsplitsAandD` above.
+  todo "[refactor] same ref-in-ref pattern as `ECsplitsAandD` above."
   have EBsplitsAC := ref lemma 2.0.25 ABC ((ref lemma 1.0.31).mpr LintEBatB)
   have BCD : B - C - D := via proposition 3.3.i ⟨ABC, ACD⟩
   have notCBD : ¬(C - B - D) := fun CBD => ref lemma 1.0.36 ⟨BCD, CBD⟩
@@ -202,7 +201,7 @@ atlas corollary 3.3.i "Corollary: A-B-D from chained betweenness A-B-C and B-C-D
   have AoffEB := (ref lemma 2.0.26 AneB LintEBatB).resolve_left (not_not.mpr (cL.mem A))
   have CoffEB := (ref lemma 2.0.26 BneC.symm LintEBatB).resolve_left (not_not.mpr (cL.mem C))
   have DoffEB := (ref lemma 2.0.26 BneD.symm LintEBatB).resolve_left (not_not.mpr (cL.mem D))
-  -- TODO[refactor]: same ref-in-ref pattern as `ECsplitsAandD` above.
+  todo "[refactor] same ref-in-ref pattern as `ECsplitsAandD` above."
   have EBsplitsAC := ref lemma 2.0.25 ABC ((ref lemma 1.0.31).mpr LintEBatB)
   have notCBD : ¬(C - B - D) := fun CBD => ref lemma 1.0.36 ⟨BCD, CBD⟩
   have EBguardsCD := ref lemma 2.0.29 BneC.symm BneD.symm LintEBatB ⟨cL.mem C, cL.mem D⟩ notCBD

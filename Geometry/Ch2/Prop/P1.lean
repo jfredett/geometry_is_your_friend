@@ -30,7 +30,7 @@ atlas alternate 2.1 "Distinct non-parallel lines share a unique point (direct pr
     -- uniqueness
     intro Q
     by_contra! ⟨hQonLM, hNeg⟩
-    -- idea, PQ = L, PQ = M, but L != M
+    idea "PQ = L, PQ = M, but L != M"
     obtain ⟨PQ, _, hPQUniq⟩ := ref axiom I.1 P Q hNeg.symm
     have hLisPQ := hPQUniq L ⟨hPonLM.left, hQonLM.left⟩
     have hMisPQ := hPQUniq M ⟨hPonLM.right, hQonLM.right⟩

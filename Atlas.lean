@@ -882,6 +882,150 @@ def elabPageBreak : Tactic := fun stx =>
   | _ => throwUnsupportedSyntax
 
 
+/-! ## Extended inline markers — reader-cue and code-state vocabulary
+
+These ten no-op tactics extend the marker family with kinds the design
+doc plans for: reader-cue annotations (`idea`, `intuition`, `motivation`,
+`caution`, `aside`, `cf` / `see also`) and code-state annotations
+(`todo`, `fixme`, `detail`).
+
+All share a uniform schema (`InlineMarker`) — kind, source position,
+text — and record into a single env extension `atlasInlineMarkerExt`.
+The kind discriminates rendering on the viewer side. `cf` and `see also`
+are surface aliases; both record under the same kind (`cf`).
+
+Each marker is `pure ()` semantically; the side effect is the env-
+extension push. Linter exemption via `#allow_unused_tactic!` below.
+
+Examples:
+```
+idea "The trick is to split on `Classical.em (P on ray A B)` first."
+intuition "Think of L as a wall separating two halfplanes."
+motivation "We need this lemma before tackling Pasch."
+caution "Don't apply ref lemma 2.0.4 to the wrong endpoint."
+aside "Greenberg revisits this in Ch. 7."
+cf "Pasch's Postulate (3.7)"
+see also "Greenberg p.121, where this is revisited."
+todo "Refactor the ref-in-ref chain on line 88."
+fixme "Sorry'd; needs a B-3 case split."
+detail "Why does `obvious` not close this? Coercion mismatch?"
+```
+-/
+
+/-- Source-position-anchored generic inline marker. `kind` discriminates
+    among `idea`, `intuition`, `motivation`, `caution`, `aside`, `cf`,
+    `todo`, `fixme`, `detail`. -/
+structure InlineMarker where
+  kind    : Name
+  decl    : Name
+  modName : Name
+  line    : Nat
+  column  : Nat
+  text    : String
+  deriving Inhabited
+
+initialize atlasInlineMarkerExt :
+    SimplePersistentEnvExtension InlineMarker (Array InlineMarker) ←
+  registerSimplePersistentEnvExtension {
+    name          := `Atlas.atlasInlineMarkerExt
+    addEntryFn    := fun s e => s.push e
+    addImportedFn := fun arr =>
+      arr.foldl (init := (#[] : Array InlineMarker)) Array.append
+    asyncMode     := .sync
+  }
+
+private def recordInlineMarker (kind : Name) (stx : Syntax) (text : String)
+    : Lean.Elab.Term.TermElabM Unit := do
+  let (line, column) ← markerPos stx
+  let decl ← markerDecl
+  let modName := (← getEnv).mainModule
+  modifyEnv (atlasInlineMarkerExt.addEntry · { kind, decl, modName, line, column, text })
+
+-- Tactic-mode syntaxes for each kind. `see also` parses as a two-token
+-- keyword (mirroring `page break`); records under kind `cf` so the
+-- viewer treats the two surface forms uniformly.
+syntax (name := ideaMarker)       "idea"        str : tactic
+syntax (name := intuitionMarker)  "intuition"   str : tactic
+syntax (name := motivationMarker) "motivation"  str : tactic
+syntax (name := cautionMarker)    "caution"     str : tactic
+syntax (name := asideMarker)      "aside"       str : tactic
+syntax (name := cfMarker)         "cf"          str : tactic
+syntax (name := seeAlsoMarker)    "see" "also"  str : tactic
+syntax (name := todoMarker)       "todo"        str : tactic
+syntax (name := fixmeMarker)      "fixme"       str : tactic
+syntax (name := detailMarker)     "detail"      str : tactic
+
+open Lean Elab Tactic in
+@[tactic ideaMarker]
+def elabIdea : Tactic := fun stx =>
+  match stx with
+  | `(tactic| idea $t:str) => recordInlineMarker `idea stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic intuitionMarker]
+def elabIntuition : Tactic := fun stx =>
+  match stx with
+  | `(tactic| intuition $t:str) => recordInlineMarker `intuition stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic motivationMarker]
+def elabMotivation : Tactic := fun stx =>
+  match stx with
+  | `(tactic| motivation $t:str) => recordInlineMarker `motivation stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic cautionMarker]
+def elabCaution : Tactic := fun stx =>
+  match stx with
+  | `(tactic| caution $t:str) => recordInlineMarker `caution stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic asideMarker]
+def elabAside : Tactic := fun stx =>
+  match stx with
+  | `(tactic| aside $t:str) => recordInlineMarker `aside stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic cfMarker]
+def elabCf : Tactic := fun stx =>
+  match stx with
+  | `(tactic| cf $t:str) => recordInlineMarker `cf stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic seeAlsoMarker]
+def elabSeeAlso : Tactic := fun stx =>
+  match stx with
+  | `(tactic| see also $t:str) => recordInlineMarker `cf stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic todoMarker]
+def elabTodo : Tactic := fun stx =>
+  match stx with
+  | `(tactic| todo $t:str) => recordInlineMarker `todo stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic fixmeMarker]
+def elabFixme : Tactic := fun stx =>
+  match stx with
+  | `(tactic| fixme $t:str) => recordInlineMarker `fixme stx t.getString
+  | _ => throwUnsupportedSyntax
+
+open Lean Elab Tactic in
+@[tactic detailMarker]
+def elabDetail : Tactic := fun stx =>
+  match stx with
+  | `(tactic| detail $t:str) => recordInlineMarker `detail stx t.getString
+  | _ => throwUnsupportedSyntax
+
+
 /-! ## Commentary block: `atlas commentary := by …`
 
 Top-level metadata holder per atlas decl. Tactic-block-style layout
@@ -1073,9 +1217,14 @@ def elabAtlasCommentary : CommandElab := fun stx => do
 
 end Atlas
 
--- Mark the four marker tactics as legitimately-unused per the linter.
+-- Mark the marker tactics as legitimately-unused per the linter.
 -- They look like no-ops to the linter (don't touch goals) but are
 -- meaningful side-effect recordings into env extensions. The `!`
 -- makes the allowance persist across importing modules.
 #allow_unused_tactic! Atlas.quotingExplicit Atlas.quotingContinuation
                        Atlas.commentMarker Atlas.pageBreakMarker
+                       Atlas.ideaMarker Atlas.intuitionMarker
+                       Atlas.motivationMarker Atlas.cautionMarker
+                       Atlas.asideMarker Atlas.cfMarker
+                       Atlas.seeAlsoMarker Atlas.todoMarker
+                       Atlas.fixmeMarker Atlas.detailMarker

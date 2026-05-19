@@ -135,8 +135,8 @@ atlas commentary := by
   ref lemma 2.0.21
   name "A line intersecting a segment intersects its containing ray at the same point"
   preface "If a line intersects a segment, then it intersects the ray containing that segment"
+  notes "TODO: I think some of the non-equality conditions are provable in general."
 
--- TODO: I think some of the non-equality conditions are provable in general.
 atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray at the same point"
   : (A ≠ B) -> (L intersects segment A B at X) -> (L intersects ray A B at X) := by
   intro AneB LintABatX

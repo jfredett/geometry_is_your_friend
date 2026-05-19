@@ -873,6 +873,45 @@ body::after {
   color: #93a1a1;
   text-transform: uppercase;
 }
+
+/* ---- Extended marker vocabulary — dummy styling ----
+   Reader-cue kinds (idea/intuition/motivation/caution/aside/cf) get
+   warm-tinted chips that read as "for the reader." Code-state kinds
+   (todo/fixme/detail) get cooler/grey chips that read as "for the
+   formalizer." Final visual design lives in `project_card_visual_polish_deferred.md`. */
+.bn-marker[class*="bn-marker-idea"] .bn-text,
+.bn-marker[class*="bn-marker-intuition"] .bn-text,
+.bn-marker[class*="bn-marker-motivation"] .bn-text,
+.bn-marker[class*="bn-marker-caution"] .bn-text,
+.bn-marker[class*="bn-marker-aside"] .bn-text,
+.bn-marker[class*="bn-marker-cf"] .bn-text,
+.bn-marker[class*="bn-marker-todo"] .bn-text,
+.bn-marker[class*="bn-marker-fixme"] .bn-text,
+.bn-marker[class*="bn-marker-detail"] .bn-text {
+  color: #586e75;
+  font-size: 0.85em;
+}
+.bn-chip {
+  display: inline-block;
+  padding: 0.05em 0.45em;
+  border-radius: 0.4em;
+  font-size: 0.66em;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  background: rgba(147, 161, 161, 0.18);
+  color: #586e75;
+  vertical-align: 0.08em;
+}
+.bn-chip-idea       { background: rgba(181, 137,   0, 0.22); color: #93570a; }
+.bn-chip-intuition  { background: rgba(108, 113, 196, 0.18); color: #4a4e88; }
+.bn-chip-motivation { background: rgba(133, 153,   0, 0.20); color: #677500; }
+.bn-chip-caution    { background: rgba(203,  75,  22, 0.22); color: #a23a0e; }
+.bn-chip-aside      { background: rgba(147, 161, 161, 0.18); color: #657b83; }
+.bn-chip-cf         { background: rgba( 38, 139, 210, 0.18); color: #1a5f96; }
+.bn-chip-todo       { background: rgba(147, 161, 161, 0.18); color: #586e75; }
+.bn-chip-fixme      { background: rgba(220,  50,  47, 0.22); color: #93222b; }
+.bn-chip-detail     { background: rgba(108, 113, 196, 0.12); color: #6c71c4; font-style: italic; }
 .bn-step {
   display: inline-block;
   min-width: 1.6em;
@@ -1947,6 +1986,19 @@ function renderMarkerLeft(m) {
       <span class="bn-rule"></span><span class="bn-pagebreak-label">page break</span><span class="bn-rule"></span>
     </div>`;
   }
+  // Extended vocabulary — dummy render. Each kind gets a kind-named
+  // chip plus the text body. Per-kind colours are CSS-driven via the
+  // `bn-marker-<kind>` class. Distinguishes reader-cue from code-state
+  // visually but doesn't yet do the foregrounding the design plans.
+  const extendedKinds = new Set([
+    'idea', 'intuition', 'motivation', 'caution', 'aside', 'cf',
+    'todo', 'fixme', 'detail'
+  ]);
+  if (extendedKinds.has(m._kind)) {
+    return `<div class="bn-marker bn-marker-${m._kind}">
+      <span class="bn-chip bn-chip-${m._kind}">${m._kind}</span><span class="bn-text">${escapeHtml(m.text)}</span>
+    </div>`;
+  }
   return '';
 }
 
@@ -2532,10 +2584,17 @@ async function main() {
   }
   document.getElementById('loading').remove();
 
-  // Inline commentary markers (`quoting`, `comment`, `page break`) —
-  // emitted by `lake exe dumpdecls` to `blueprint/markers.json`. Optional:
-  // if the file is missing, just skip the book-narrative section.
-  let markers = { quoting: [], comment: [], page_break: [] };
+  // Inline commentary markers — emitted by `lake exe dumpdecls` to
+  // `blueprint/markers.json`. Optional: if the file is missing, just
+  // skip the book-narrative section. Buckets cover the original three
+  // (`quoting`, `comment`, `page_break`) plus the extended vocabulary
+  // (`idea`, `intuition`, `motivation`, `caution`, `aside`, `cf`,
+  // `todo`, `fixme`, `detail`).
+  let markers = {
+    quoting: [], comment: [], page_break: [],
+    idea: [], intuition: [], motivation: [], caution: [], aside: [], cf: [],
+    todo: [], fixme: [], detail: []
+  };
   try {
     const mresp = await fetch('../blueprint/markers.json');
     if (mresp.ok) markers = await mresp.json();
@@ -2583,6 +2642,14 @@ async function main() {
   pushSortedMarkers(markers.quoting || [], 'quoting');
   pushSortedMarkers(markers.comment || [], 'comment');
   pushSortedMarkers(markers.page_break || [], 'page_break');
+  // Extended vocabulary — pushed alongside the originals so they share
+  // the per-decl index and get filtered out of the right-column code
+  // chunk automatically. Distinct `_kind` tags let `renderMarkerLeft`
+  // dispatch to a per-kind chip.
+  for (const k of ['idea', 'intuition', 'motivation', 'caution', 'aside',
+                   'cf', 'todo', 'fixme', 'detail']) {
+    pushSortedMarkers(markers[k] || [], k);
+  }
   for (const id in markersByDecl) {
     markersByDecl[id].sort((a, b) =>
       (a.line - b.line) || (a.column - b.column));

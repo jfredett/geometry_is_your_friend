@@ -199,6 +199,26 @@ def pageBreakMarkerJson (m : Atlas.PageBreakMarker) : String :=
   ]
   "{" ++ String.intercalate "," fields.toList ++ "}"
 
+/-- JSON for one `InlineMarker` (kind, position, text). The kind field
+    is implicit in the bucketing done by `inlineMarkersByKind`; this
+    emitter omits it to mirror the per-kind array shape used in
+    `markers.json`. -/
+def inlineMarkerJson (m : Atlas.InlineMarker) : String :=
+  let fields : Array String := #[
+    s!"\"decl\":\"{jsonEscape m.decl.toString}\"",
+    s!"\"module\":\"{jsonEscape m.modName.toString}\"",
+    s!"\"file\":\"{jsonEscape (moduleToFile m.modName.toString)}\"",
+    s!"\"line\":{m.line}",
+    s!"\"column\":{m.column}",
+    s!"\"text\":\"{jsonEscape m.text}\""
+  ]
+  "{" ++ String.intercalate "," fields.toList ++ "}"
+
+/-- Bucket inline markers by kind, returning the per-kind subarray. -/
+def inlineMarkersOfKind (markers : Array Atlas.InlineMarker) (kind : Name)
+    : Array Atlas.InlineMarker :=
+  markers.filter (fun m => m.kind == kind)
+
 /-- JSON-encode an `Option String` as a JSON string or `null`. -/
 def optStr (s? : Option String) : String :=
   match s? with
@@ -322,19 +342,36 @@ def main : IO Unit := do
                       ++ Atlas.atlasCommentExt.getState env
   let pageBreakMarkers := markersFromImports Atlas.atlasPageBreakExt env
                         ++ Atlas.atlasPageBreakExt.getState env
+  -- Extended inline markers — `idea`, `intuition`, `motivation`,
+  -- `caution`, `aside`, `cf`, `todo`, `fixme`, `detail`. All flow
+  -- through one extension and get bucketed by `kind` at emit time.
+  let inlineMarkers := markersFromImports Atlas.atlasInlineMarkerExt env
+                     ++ Atlas.atlasInlineMarkerExt.getState env
   let quotingJson :=
     "[\n" ++ String.intercalate ",\n" (quotingMarkers.map quotingMarkerJson).toList ++ "\n]"
   let commentJson :=
     "[\n" ++ String.intercalate ",\n" (commentMarkers.map commentMarkerJson).toList ++ "\n]"
   let pageBreakJson :=
     "[\n" ++ String.intercalate ",\n" (pageBreakMarkers.map pageBreakMarkerJson).toList ++ "\n]"
+  let kindArrayJson (kind : Name) : String :=
+    let bucket := inlineMarkersOfKind inlineMarkers kind
+    "[\n" ++ String.intercalate ",\n" (bucket.map inlineMarkerJson).toList ++ "\n]"
   let markersJson :=
     "{\n  \"quoting\": " ++ quotingJson ++
     ",\n  \"comment\": " ++ commentJson ++
     ",\n  \"page_break\": " ++ pageBreakJson ++
+    ",\n  \"idea\": " ++ kindArrayJson `idea ++
+    ",\n  \"intuition\": " ++ kindArrayJson `intuition ++
+    ",\n  \"motivation\": " ++ kindArrayJson `motivation ++
+    ",\n  \"caution\": " ++ kindArrayJson `caution ++
+    ",\n  \"aside\": " ++ kindArrayJson `aside ++
+    ",\n  \"cf\": " ++ kindArrayJson `cf ++
+    ",\n  \"todo\": " ++ kindArrayJson `todo ++
+    ",\n  \"fixme\": " ++ kindArrayJson `fixme ++
+    ",\n  \"detail\": " ++ kindArrayJson `detail ++
     "\n}"
   IO.FS.writeFile "blueprint/markers.json" markersJson
-  IO.eprintln s!"Wrote {quotingMarkers.size} quoting / {commentMarkers.size} comment / {pageBreakMarkers.size} page-break markers to blueprint/markers.json"
+  IO.eprintln s!"Wrote {quotingMarkers.size} quoting / {commentMarkers.size} comment / {pageBreakMarkers.size} page-break / {inlineMarkers.size} inline markers to blueprint/markers.json"
   -- Commentary blocks (per-decl atlas metadata). Target resolved
   -- here by walking the merged atlas state.
   let commentaryBlocks :=

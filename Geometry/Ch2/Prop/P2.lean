@@ -21,8 +21,8 @@ atlas commentary := by
 
 atlas proposition 2.2 "Three distinct lines exist that are not concurrent"
   : ∃ L M N : Line, (L ≠ M ∧ M ≠ N ∧ L ≠ N) ∧ ¬Concurrent L M N := by
-    -- Idea: Use the 3 non-collinear points to build three lines, we can prove they're distinct with
-    -- some RAA, and then use the lemma to do the rest.
+    idea "Use the 3 non-collinear points to build three lines, we can prove they're distinct with
+    some RAA, and then use the lemma to do the rest."
     obtain ⟨A, B, C, hDistinct, hNC⟩ := ref axiom I.3
     rcases hDistinct with ⟨hAneB, hAneC, hBneC⟩
     obtain ⟨AB, ⟨hAonAB, hBonAB⟩, hABUniq⟩ := ref axiom I.1 A B hAneB
@@ -58,12 +58,12 @@ atlas proposition 2.2 "Three distinct lines exist that are not concurrent"
     have hABnotparBC : (AB ∦ BC) := ref lemma 1.0.27 hPonAB hPonBC
     have hABnotparAC : (AB ∦ AC) := ref lemma 1.0.27 hPonAB hPonAC
     have hBCnotparAC : (BC ∦ AC) := ref lemma 1.0.27 hPonBC hPonAC
-    -- Idea: If P is on AB and BC, then P must be the intersection of those two lines, we already know B is on
-    -- both AB and BC, and by P1, we know the intersection is unique, so P = B, but that means B is on AC, which
-    -- which is false.
+    idea "If P is on AB and BC, then P must be the intersection of those two lines, we already know B is on
+    both AB and BC, and by P1, we know the intersection is unique, so P = B, but that means B is on AC, which
+    which is false."
     -- We can use 2.1 to find the unique intersection, we mostly care about the uniqueness condition, not the
     -- incidence on.
-    -- Note: FIXME: Using the direct proof version of prop 2.1 since this predates the `.. intersects .. at ..` notation
+    fixme "Note: Using the direct proof version of prop 2.1 since this predates the `.. intersects .. at ..` notation"
     obtain ⟨X, _, hXUniq⟩ := alternate 2.1 hABneBC hABnotparBC
     -- This condition makes proving this a matter of plug and chug
     have hPeqB : P = B := by
