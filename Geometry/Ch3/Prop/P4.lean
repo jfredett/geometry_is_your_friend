@@ -77,27 +77,28 @@ atlas proposition 3.4 "Line separation by an interior point: points on the line 
       obvious
     · quoting ... "so assume P ≠ C; then exactly one of the relations C-A-P, C-P-A, or P-C-A holds (Betweeness Axiom 3 again)."
       have hCAP := ref axiom B.3 C A P ⟨distinctABCP forgetting B, colABCP forgetting B⟩
-      /- (4) Suppose the relation C-A-P holds (RAA Hypothesis) -/
+      quoting (4) "Suppose the relation C-A-P holds (RAA Hypothesis)"
       rcases Classical.em (C - A - P) with CAP | nCAP
-      · /- (5) We know (by Betweenness Axiom 3) that exactly one of the relations P-C-B, C-P-B, or C-B-P holds. -/
+      · quoting (5) "We know (by Betweenness Axiom 3) that exactly one of the relations P-C-B, C-P-B, or C-B-P holds."
         have hPBC := ref axiom B.3 P B C ⟨distinctABCP forgetting A, colABCP forgetting A⟩
         rcases hPBC with ⟨PBC,_,_⟩ | ⟨_,BPC,_⟩ | ⟨_, _, PCB⟩
-        · /- (6) If P-B-C, then combining this with P-A-B (step 2) gives A-B-C (Proposition 3.3), contradiction the
-              hypothesis. -/
+        · quoting (6) "If P-B-C, then combining this with P-A-B (step 2) gives A-B-C (Proposition 3.3), contradiction the
+              hypothesis."
           exfalso
-          exact ref lemma 1.0.38 ⟨via proposition 3.3 ⟨PAB, PBC⟩, CAB⟩
-        · /- (7) If C-P-B, then combining this with C-A-P (step 4) gives A-P-B (Proposition 3.3), contradiction step 2. -/
+          exact ref lemma 1.0.38 ⟨via proposition 3.3.i ⟨PAB, PBC⟩, CAB⟩
+        · quoting (7) "If C-P-B, then combining this with C-A-P (step 4) gives A-P-B (Proposition 3.3), contradiction step 2."
           exfalso
-          exact ref lemma 1.0.36 ⟨via proposition 3.3 ⟨CAP, (BPC.symm)⟩, PAB⟩
-        · /- (8) If B-C-P, then combining this with B-A-C (hypothesis and Betweenness Axiom 1) gives A-C-P (Proposition 3.3),
-             contradicting step 4. -/
+          exact ref lemma 1.0.36 ⟨via proposition 3.3.i ⟨CAP, (BPC.symm)⟩, PAB⟩
+        · quoting (8) "If B-C-P, then combining this with B-A-C (hypothesis and Betweenness Axiom 1) gives A-C-P (Proposition 3.3),
+             contradicting step 4."
           exfalso
-          exact ref lemma 1.0.36 ⟨via proposition 3.3 ⟨CAB.symm, PCB.symm⟩, CAP⟩
-      · /- (9) Since we obtain a contradiction in all three cases, C-A-P does not hold (RAA conclusion). -/
-        -- Ed. this is covered by the above .em elimination
-        /- (10) Therefore, C-P-A or P-C-A (step 3), which means that P lies on the opposite ray A C. ∎ -/
+          exact ref lemma 1.0.36 ⟨via proposition 3.3.i ⟨CAB.symm, PCB.symm⟩, CAP⟩
+      · quoting (9) "Since we obtain a contradiction in all three cases, C-A-P does not hold (RAA conclusion)."
+        comment "this is covered by the above .em elimination"
+        quoting (10) "Therefore, C-P-A or P-C-A (step 3), which means that P lies on the opposite ray A C. ∎"
         rcases hCAP with ⟨CAP,_,_⟩ | ⟨_,ACP,_⟩ | ⟨_,_,CPA⟩
-        · contradiction -- covered above
+        · comment "covered above"
+          contradiction
         · have PonRayAC : P on ray A C := by obvious
           right; trivial
         · have PonSegAB : P on segment A C := by obvious
@@ -186,18 +187,18 @@ atlas proposition 3.4
           If P-B-C, then combining this with P-A-B (step 2) gives A-B-C (Proposition 3.3), contradiction the hypothesis.
           """
           exfalso
-          exact ref lemma 1.0.38 ⟨via proposition 3.3 ⟨PAB, PBC⟩, CAB⟩
+          exact ref lemma 1.0.38 ⟨via proposition 3.3.i ⟨PAB, PBC⟩, CAB⟩
         · quoting (7) """
           If C-P-B, then combining this with C-A-P (step 4) gives A-P-B (Proposition 3.3), contradiction step 2.
           """
           exfalso
-          exact ref lemma 1.0.36 ⟨via proposition 3.3 ⟨CAP, (BPC.symm)⟩, PAB⟩
+          exact ref lemma 1.0.36 ⟨via proposition 3.3.i ⟨CAP, (BPC.symm)⟩, PAB⟩
         · quoting (8) """
           If B-C-P, then combining this with B-A-C (hypothesis and Betweenness Axiom 1) gives A-C-P (Proposition 3.3),
           contradicting step 4.
           """
           exfalso
-          exact ref lemma 1.0.36 ⟨via proposition 3.3 ⟨CAB.symm, PCB.symm⟩, CAP⟩
+          exact ref lemma 1.0.36 ⟨via proposition 3.3.i ⟨CAB.symm, PCB.symm⟩, CAP⟩
       · quoting (9) "Since we obtain a contradiction in all three cases, C-A-P does not hold (RAA conclusion)."
         comment Ed. this is covered by the above .em elimination
         quoting (10) "Therefore, C-P-A or P-C-A (step 3), which means that P lies on the opposite ray A C." ...

@@ -7,8 +7,14 @@ import Atlas
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
+open Atlas
 
-/-- p71. "For every point, there is at least one line not passing through it." -/
+atlas commentary := by
+  ref proposition 2.4
+  page 71
+  name "Every point has at least one line not through it"
+  preface "For every point, there is at least one line not passing through it."
+
 atlas proposition 2.4 "Every point has at least one line not through it"
   (P : Point) : ∃ L : Line, (P off L) := by
     -- Similar to 2.3, but using 2.2's configuration.

@@ -16,13 +16,18 @@ namespace Geometry.Theory
 open Set
 open Geometry.Theory
 open Geometry.Ch2.Prop
+open Atlas
 
 set_option maxRecDepth 5000
 
 namespace Line
 
 
-/-- An intersection is either empty, a singleton, or the lines are equal. -/
+atlas commentary := by
+  ref lemma 2.0.1
+  name "Two lines either share no points share one point or are equal"
+  preface "An intersection is either empty, a singleton, or the lines are equal."
+
 atlas lemma 2.0.1 "Two lines either share no points share one point or are equal"
   : ∀ L M : Set Point, (L ∩ M = ∅) ∨ (∃! X, L ∩ M = {X}) ∨ L = M := by
   intro L M
@@ -44,13 +49,17 @@ atlas lemma 2.0.1 "Two lines either share no points share one point or are equal
       · tauto
 
 
-/-- If two distinct points are found on two lines, those lines are equal. -/
+atlas commentary := by
+  ref lemma 2.0.2
+  name "Two distinct points on two lines force the lines to coincide"
+  preface "If two distinct points are found on two lines, those lines are equal."
+
 atlas lemma 2.0.2 "Two distinct points on two lines force the lines to coincide"
   {L M : Line} {A B : Point} : A ≠ B -> ((A on L) ∧ (A on M) ∧ (B on L) ∧ (B on M) -> L = M) := by
   intro AneB ⟨AonL, AonM, BonL, BonM⟩
   have Aexists : A ∈ L ∩ M := by tauto
   have Bexists : B ∈ L ∩ M := by tauto
-  -- Ed. This is a _sweet_ use of trichotomy. This proof was much longer prior to this.
+  comment "This is a _sweet_ use of trichotomy. This proof was much longer prior to this."
   rcases ref lemma 2.0.1 L M with LparM | LintMatX | LeqM
   · -- the intersection is nonempty by assumption
     exfalso
@@ -81,14 +90,22 @@ atlas lemma 2.0.3 "Line Commutativity"
   all_goals obvious
 
 
-/-- pXX "By the definition of segment and ray, `the segment A B ⊆ the ray A B`" -/
+atlas commentary := by
+  ref lemma 2.0.4
+  name "Segment A B is a subset of ray A B"
+  preface "pXX By the definition of segment and ray, `the segment A B ⊆ the ray A B`"
+
 -- FIXME: this is a quote but I didn't write the page #
 -- FIXME: if it's obvious here, it's obvious at the callsite, so inline it
 atlas lemma 2.0.4 "Segment A B is a subset of ray A B"
   : segment A B ⊆ ray A B := obvious
 
 
-/-- A segment is a subset of the line A B -/
+atlas commentary := by
+  ref lemma 2.0.5
+  name "Segment A B is a subset of line A B"
+  preface "A segment is a subset of the line A B"
+
 atlas lemma 2.0.5 "Segment A B is a subset of line A B"
   : segment A B ⊆ line A B := by
   have h₁ : segment A B ⊆ ray A B := ref lemma 2.0.4
@@ -97,7 +114,11 @@ atlas lemma 2.0.5 "Segment A B is a subset of line A B"
   rcases PonSeg with APB | AorBeqP
   repeat tauto
 
-/-- All points on a line are collinear -/
+atlas commentary := by
+  ref lemma 2.0.6
+  name "Line Points are Collinear"
+  preface "All points on a line are collinear"
+
 atlas lemma 2.0.6 "Line Points are Collinear"
   {AneB : A ≠ B} : P on line A B -> collinear A B P := by
   -- Direct Proof
@@ -125,14 +146,22 @@ lemma extension_has_endpoints.left : A off extension A B := by sorry
 lemma extension_excludes_endpoints.right : B off extension A B := by sorry
 -/
 
-/-- All points on a extension are collinear -/
+atlas commentary := by
+  ref lemma 2.0.7
+  name "Every point on extension A B is collinear with A and B"
+  preface "All points on a extension are collinear"
+
 atlas lemma 2.0.7 "Every point on extension A B is collinear with A and B"
   {A B : Point} : P on extension A B -> collinear A B P := by
   intro PonExtAB
   exact ref lemma 1.0.40 PonExtAB.left
 
 
-/-- All points on a segment are collinear -/
+atlas commentary := by
+  ref lemma 2.0.8
+  name "Every point on segment A B is collinear with A and B"
+  preface "All points on a segment are collinear"
+
 atlas lemma 2.0.8 "Every point on segment A B is collinear with A and B"
   {AneB : A ≠ B} : P on segment A B -> collinear A B P := by
   intro PonSegAB
@@ -142,7 +171,11 @@ atlas lemma 2.0.8 "Every point on segment A B is collinear with A and B"
   exact @«Line Points are Collinear» A B P AneB PonSegAB
 
 
-/-- All points on a ray are collinear -/
+atlas commentary := by
+  ref lemma 2.0.9
+  name "Ray Points are Collinear"
+  preface "All points on a ray are collinear"
+
 atlas lemma 2.0.9 "Ray Points are Collinear"
   {AneB : A ≠ B} : P on ray A B -> collinear A B P := by
   intro PonAB
@@ -165,7 +198,11 @@ atlas lemma 2.0.10 "Segment A B and extension A B are disjoint"
   · intro _ absurdity; exfalso; contradiction
 
 
-/-- A line is the set of all points on it -/
+atlas commentary := by
+  ref lemma 2.0.11
+  name "A line equals the set of all points lying on it"
+  preface "A line is the set of all points on it"
+
 atlas lemma 2.0.11 "A line equals the set of all points lying on it"
   : ∀ L : Line, L = {P : Point | P on L} := by
   intro L
@@ -173,7 +210,11 @@ atlas lemma 2.0.11 "A line equals the set of all points lying on it"
   repeat tauto
 
 
-/-- A line is 'bigger' than a ray in the same way that a line is bigger than a segment -/
+atlas commentary := by
+  ref lemma 2.0.12
+  name "A ray A B is never equal to any line L"
+  preface "A line is 'bigger' than a ray in the same way that a line is bigger than a segment"
+
 atlas lemma 2.0.12 "A ray A B is never equal to any line L"
   : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
   intro L A B AneB
@@ -197,7 +238,11 @@ atlas lemma 2.0.12 "A ray A B is never equal to any line L"
     exact ref lemma 1.0.38 ⟨ABX, XAB⟩
 
 
-/- It helps to be able to commute these around, when we get to congruence this will make part of it trivial -/
+atlas commentary := by
+  ref lemma 2.0.13
+  name "Segment Commutativity"
+  preface "It helps to be able to commute these around, when we get to congruence this will make part of it trivial"
+
 atlas lemma 2.0.13 "Segment Commutativity"
   : segment A B = segment B A := by
   suffices subset : ∀ A B : Point, segment A B ⊆ segment B A by
@@ -209,7 +254,11 @@ atlas lemma 2.0.13 "Segment Commutativity"
 attribute [obvious] «Segment Commutativity»
 
 
-/-- The endpoint B is in common here. -/
+atlas commentary := by
+  ref lemma 2.0.14
+  name "Segment A B is a subset of ray B A (the swapped-endpoint ray)"
+  preface "The endpoint B is in common here."
+
 atlas lemma 2.0.14 "Segment A B is a subset of ray B A (the swapped-endpoint ray)"
   : segment A B ⊆ ray B A := by
   intro P hPinSegAB

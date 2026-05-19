@@ -23,11 +23,16 @@ open Geometry.Theory
 open Geometry.Ch2.Prop
 open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
+open Atlas
 
-/-- p146. Given A-B-C and A-C-D:
-  (a) Prove that A,B,C, and D are four distinct points (the proof requires an axiom)
--/
-atlas exercise 3.1 "Exercise 1(a): four points from chained betweenness are distinct"
+atlas commentary := by
+  ref exercise 3.1.a
+  page 146
+  name "Exercise 1(a): four points from chained betweenness are distinct"
+  preface "Given A-B-C and A-C-D:
+  (a) Prove that A,B,C, and D are four distinct points (the proof requires an axiom)"
+
+atlas exercise 3.1.a "Exercise 1(a): four points from chained betweenness are distinct"
   : A - B - C ∧ A - C - D -> distinct A B C D := by
   intro ⟨ABC, ACD⟩
   have distinctABC := ref lemma 1.0.39 ABC
@@ -44,12 +49,17 @@ atlas exercise 3.1 "Exercise 1(a): four points from chained betweenness are dist
         AneB, AneC, AneD, BneC, BneD, CneD]
 
 
-/-- (b) Prove that A,B,C, and D are collinear -/
-atlas exercise 3.1 "Exercise 1(b): four points from chained betweenness are collinear"
+atlas commentary := by
+  ref exercise 3.1.b
+  page 146
+  name "Exercise 1(b): four points from chained betweenness are collinear"
+  preface "(b) Prove that A,B,C, and D are collinear"
+
+atlas exercise 3.1.b "Exercise 1(b): four points from chained betweenness are collinear"
   : A - B - C ∧ A - C - D -> collinear A B C D := by
   intro ⟨ABC, ACD⟩
   -- We only end up needing A ≠ C, but easy to get the whole thing.
-  have distinctABCD : distinct A B C D := via exercise 3.1 ⟨ABC, ACD⟩
+  have distinctABCD : distinct A B C D := via exercise 3.1.a ⟨ABC, ACD⟩
   have AneC : A ≠ C := by distinguish
   have colABC := ref lemma 1.0.40 ABC
   have colACD := ref lemma 1.0.40 ACD
@@ -69,7 +79,11 @@ atlas exercise 3.1 "Exercise 1(b): four points from chained betweenness are coll
 
 /- (c) Prove the corollary to B-4 — covered by the `B.4.iii` corollary in its own file. -/
 
-/-- Ed. These (Ex1 a' and b') are not in the exercise but are quite convenient elsewhere -/
+atlas commentary := by
+  ref lemma 3.0.3
+  name "Distinct four points from shifted chained betweenness (A-B-C and B-C-D)"
+  notes "These (Ex1 a' and b') are not in the exercise but are quite convenient elsewhere"
+
 atlas lemma 3.0.3 "Distinct four points from shifted chained betweenness (A-B-C and B-C-D)"
   : (A - B - C) ∧ (B - C - D) → distinct A B C D := by
   intro ⟨ABC, BCD⟩

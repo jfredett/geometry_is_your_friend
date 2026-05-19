@@ -11,20 +11,29 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Betweenness
 
 -- TODO: For this and other commutative properties, I think there is a class to instantiate to get that .symm thing to
 -- work.
 
-/-- a line doesn't care about the order of the points it guards -/
+atlas commentary := by
+  ref lemma 2.0.30
+  name "Guarding is symmetric in its two point arguments"
+  preface "a line doesn't care about the order of the points it guards"
+
 atlas lemma 2.0.30 "Guarding is symmetric in its two point arguments"
   : (L guards A and B) -> (L guards B and A) := by
     intro LguardsAB
     unfold SameSide at *; rw [<- ref lemma 2.0.13] ; tauto
 
 
-/-- a line doesn't care about the order of the points it splits -/
+atlas commentary := by
+  ref lemma 2.0.31
+  name "Splitting is symmetric in its two point arguments"
+  preface "a line doesn't care about the order of the points it splits"
+
 atlas lemma 2.0.31 "Splitting is symmetric in its two point arguments"
   : (L splits A and B) -> (L splits B and A) := by
     intro LsplitsAB

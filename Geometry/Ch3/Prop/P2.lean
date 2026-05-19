@@ -17,22 +17,26 @@ open Set
 open Geometry.Theory
 open Geometry.Ch2.Prop
 open Geometry.Ch3.Prop
+open Atlas
 
-/-- p112. "Every line bounds exactly two half-planes, and these half-planes have no point in common."
+atlas commentary := by
+  ref proposition 3.2
+  page 112
+  name "Every line bounds exactly two disjoint half-planes"
+  preface "Every line bounds exactly two half-planes, and these half-planes have no point in common."
+  notes "B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
+I've chosen to notate the halfplanes in the theorem as 'Hl' and 'Hr' for 'left' and 'right' half-plane, respectively."
 
-B4 is the plane-separation axiom, 3.2 here is on the path toward proving the more useful line-separation property later in 3.4.
-I've chosen to notate the halfplanes in the theorem as 'Hl' and 'Hr' for 'left' and 'right' half-plane, respectively.
--/
 atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
   : ∀ L : Line, L = line A B -> A ≠ B -> ∃ Hl Hr : Set Point,
   (∀ P : Point, (P on L) -> (P ∉ Hl) ∧ (P ∉ Hr)) ∧ (Hl ∩ Hr = ∅)
 := by
-  /- p.112 "(1) There is a point A not lying on l, (Proposition 2.3 [proposition 2.3])." -/
+  quoting (1) "There is a point A not lying on l, (Proposition 2.3 [proposition 2.3])."
   intro L LeqLineAB AneB
   obtain ⟨A, AoffL⟩ := proposition 2.3 L
-  /- "(2) There is a point O lying on l (Incidence Axiom 2 [ref axiom I.2])."-/
+  quoting (2) "There is a point O lying on l (Incidence Axiom 2 [ref axiom I.2])."
   obtain ⟨O, _, _, OonL, _⟩ := ref axiom I.2 L
-  /- "(3) There is a point B such that B * O * A (Betweenness Axiom 2 [ref axiom B.2])"-/
+  quoting (3) "There is a point B such that B * O * A (Betweenness Axiom 2 [ref axiom B.2])"
   have AneO : A ≠ O := by -- author omits this step
     by_contra!; rw [this] at AoffL; tauto
   have ⟨B, _, _, colBOA, distinctBOA, bBOA, _, _⟩ := ref axiom B.2 O A AneO.symm
@@ -69,40 +73,38 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     rw [h] at BonInt
     have BeqO : B = O := by tauto
     contradiction
-  /- "(4) Then A and B are on opposite sides of l (by definition), ..." -/
+  quoting (4) "Then A and B are on opposite sides of l (by definition)," ...
   have LsplitsAB : L splits A and B := by
     unfold SameSide
     push_neg
     intro AoffL BoffL
     refine ⟨AneB, O, ?_, OonL⟩
     obvious
-  /- "so L has at least two sides." -/
-  /- "(5) Let C be any point distinct from A and B not lying on l..."
-
-  Ed. Construct point C off L and distinct from A and B as follows.
+  quoting ... "so L has at least two sides."
+  quoting (5) "Let C be any point distinct from A and B not lying on l" ...
+  comment "Construct point C off L and distinct from A and B as follows.
 
   1. Take AB and find it's intersection by L, call it O (since that's where it is)
   2. Examine segment A O with ref axiom B.2, we want C with A - C - O
-  3. Use C.
-  -/
-  /- Here are the sets we require -/
+  3. Use C."
+  comment "Here are the sets we require"
   let Hl : Set Point := {P | L guards A and P}
   let Hr : Set Point := {P | L guards B and P}
   let PsoffL : Set Point := {P | P off L}
-  /- Use our sets -/
+  comment "Use our sets"
   use Hl
   use Hr
-  /- "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B."
-      Ed. Note, to formalize this, we need to state the claim first. -/
+  quoting ... "So the set of points not on L is the union of side Hₐ of A and the side Hₐ of B."
+  comment "Note, to formalize this, we need to state the claim first."
   have claim : PsoffL = Hl ∪ Hr := by
     apply Subset.antisymm
     · intro C CinPsoffL
       have CoffL : C off L := by tauto
       simp only [mem_union]
-      /- "If C and B are not on the same side of L, -/
+      quoting ... "If C and B are not on the same side of L,"
       have AseparatefromB : (L splits B and C) -> (L guards A and C) := by
         intro LsplitsBC
-        /- then C and A are on the same side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))." -/
+        quoting ... "then C and A are on the same side of L (by the law of the excluded middle and Betweenness Axiom 4(ii))."
         by_contra LsplitsAC
         have LguardsAB := ref axiom B-4ii ⟨AoffL, CoffL, BoffL⟩ ⟨LsplitsAC, ref lemma 2.0.31 LsplitsBC⟩
         contradiction
@@ -123,9 +125,9 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
           contradiction
       · obtain ⟨BoffL, CoffL, hOpts⟩ := CinHr
         tauto
-  /- "(6) If C were on both sides (RAA Hypothesis), then A and B would be on the
+  quoting (6) "If C were on both sides (RAA Hypothesis), then A and B would be on the
   same side (Axiom 4(i) [ref axiom B-4i]), contradicting step 4; hence the two sides are
-  disjoint." -/
+  disjoint."
   have HlintHrempty : Hl ∩ Hr = ∅ := by
     apply Subset.antisymm
     · intro P PinInt
@@ -139,8 +141,8 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     · intro P PinEmpty
       contradiction
   refine ⟨?g, HlintHrempty⟩
-  /- Ed. this last section is perhaps not _quite_ what the author had, but it works
-  and I've been working on formalizing this for a while now, so call it good enough. -/
+  comment "this last section is perhaps not _quite_ what the author had, but it works
+  and I've been working on formalizing this for a while now, so call it good enough."
   intro C ConL
   by_cases CinHl : C ∈ Hl
   · exfalso;

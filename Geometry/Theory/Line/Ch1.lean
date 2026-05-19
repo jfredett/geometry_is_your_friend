@@ -11,8 +11,13 @@ namespace Geometry.Theory.Line
 
 open Set
 open Geometry.Theory
+open Atlas
 
-/-- A ray A B is a subset of the line A B -/
+atlas commentary := by
+  ref lemma 1.0.18
+  name "A ray A B is a subset of the line A B"
+  preface "A ray A B is a subset of the line A B"
+
 atlas lemma 1.0.18 "A ray A B is a subset of the line A B"
   : ray A B ⊆ line A B := by
   intro P PonRay
@@ -24,38 +29,71 @@ atlas lemma 1.0.18 "A ray A B is a subset of the line A B"
     right; right; right; left; assumption
 
 
-/-- A segment contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.19
+  name "A segment contains its left-hand defining endpoint"
+  preface "A segment contains the points that define it"
+
 atlas lemma 1.0.19 "A segment contains its left-hand defining endpoint"
   : A on segment A B := by tauto
 
-/-- A segment contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.20
+  name "A segment contains its right-hand defining endpoint"
+  preface "A segment contains the points that define it"
+
 atlas lemma 1.0.20 "A segment contains its right-hand defining endpoint"
   : B on segment A B := by tauto
 
-/-- A ray contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.21
+  name "A ray contains its left-hand defining endpoint"
+  preface "A ray contains the points that define it"
+
 atlas lemma 1.0.21 "A ray contains its left-hand defining endpoint"
   : A on ray A B := by
   simp only [mem_union, mem_setOf_eq, true_or, or_true, ne_eq, not_true_eq_false, false_and, and_false, or_false]
 
-/-- A ray contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.22
+  name "A ray contains its right-hand defining endpoint"
+  preface "A ray contains the points that define it"
+
 atlas lemma 1.0.22 "A ray contains its right-hand defining endpoint"
   : B on ray A B := by
   simp only [mem_union, mem_setOf_eq, or_true, ne_eq, not_true_eq_false, and_false, or_false]
 
-/-- A line contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.23
+  name "A line contains its left-hand defining endpoint"
+  preface "A line contains the points that define it"
+
 atlas lemma 1.0.23 "A line contains its left-hand defining endpoint"
   : A on line A B := (ref lemma 1.0.18) (ref lemma 1.0.21)
 
-/-- A line contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.24
+  name "A line contains its right-hand defining endpoint"
+  preface "A line contains the points that define it"
+
 atlas lemma 1.0.24 "A line contains its right-hand defining endpoint"
   : B on line A B := (ref lemma 1.0.18) (ref lemma 1.0.22)
 
-/-- A line contains the points that define it -/
+atlas commentary := by
+  ref lemma 1.0.25
+  name "A line contains both of its defining endpoints"
+  preface "A line contains the points that define it"
+
 atlas lemma 1.0.25 "A line contains both of its defining endpoints"
   : A on line A B ∧ B on line A B := ⟨ref lemma 1.0.23, ref lemma 1.0.24⟩
 
-/-- Author suggests a lemma, "... to prove it, I could first prove a lemma that if three lines
-are concurrent, the point at which they meet is unique." p.71 -/
+atlas commentary := by
+  ref lemma 1.0.26
+  page 71
+  name "Three pairwise-distinct concurrent lines meet at a unique point"
+  preface "Author suggests a lemma, \"... to prove it, I could first prove a lemma that if three lines
+are concurrent, the point at which they meet is unique.\""
+
 atlas lemma 1.0.26 "Three pairwise-distinct concurrent lines meet at a unique point"
   : L ≠ M ∧ M ≠ N ∧ L ≠ N ->
         Concurrent L M N ->
@@ -80,7 +118,11 @@ atlas lemma 1.0.26 "Three pairwise-distinct concurrent lines meet at a unique po
     contradiction
 
 
-/-- We need to be able to establish that two intersecting lines are never parallel -/
+atlas commentary := by
+  ref lemma 1.0.27
+  name "Two lines sharing a common point are not parallel"
+  preface "We need to be able to establish that two intersecting lines are never parallel"
+
 atlas lemma 1.0.27 "Two lines sharing a common point are not parallel"
   {L M : Line} {P : Point} : (P on L) -> (P on M) -> (L ∦ M) := by
       intros hPonM hPonL
@@ -89,7 +131,11 @@ atlas lemma 1.0.27 "Two lines sharing a common point are not parallel"
       use P
 
 
-/-- Two lines are coincident iff every point on one is on the other. -/
+atlas commentary := by
+  ref lemma 1.0.28
+  name "Line Extensionality"
+  preface "Two lines are coincident iff every point on one is on the other."
+
 atlas lemma 1.0.28 "Line Extensionality"
   : ∀ L M : Line,
      L = M ↔ ∀ P : Point, (P on L) ↔ (P on M) := by
@@ -116,7 +162,11 @@ atlas lemma 1.0.28 "Line Extensionality"
 attribute [obvious] «Line Extensionality»
 
 
-/-- Two lines are distinct iff they have at least one point not in common -/
+atlas commentary := by
+  ref lemma 1.0.29
+  name "Two lines are distinct iff some point lies on exactly one"
+  preface "Two lines are distinct iff they have at least one point not in common"
+
 atlas lemma 1.0.29 "Two lines are distinct iff some point lies on exactly one"
   : ∀ L M : Line,
     L ≠ M ↔ ∃ P, ((P on L) ∧ (P off M)) ∨ ((P off L) ∧ (P on M)) := by

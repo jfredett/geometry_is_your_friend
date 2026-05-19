@@ -250,6 +250,12 @@ declare_syntax_cat atlasNum
 syntax scientific  : atlasNum
 syntax ident "." num : atlasNum
 syntax scientific "." num : atlasNum
+-- `scientific "." ident` handles sub-letter / Roman-numeral disambiguators
+-- on book-numbered decls: `3.1.i`, `3.1.ii` for Greenberg's paired
+-- propositions, `3.1.a`, `3.1.b` for paired exercises. Distinct from the
+-- `scientific "." num` form because the trailing token is an ident (not
+-- a num); Lean's longest-match handles the choice.
+syntax scientific "." ident : atlasNum
 -- `ident "-" num ident` handles compound book labels like `B-1a` /
 -- `B-4ii` (matching Greenberg's notation). The hyphen separator is
 -- critical: a `.` variant would make `B.2 B D` greedy-match as
@@ -273,6 +279,10 @@ def atlasNumToString : TSyntax `atlasNum → MacroM String
   | `(atlasNum| $s:scientific . $n:num) =>
     match scientificAtomText s with
     | some str => return s!"{str}.{n.getNat}"
+    | none     => Macro.throwUnsupported
+  | `(atlasNum| $s:scientific . $i:ident) =>
+    match scientificAtomText s with
+    | some str => return s!"{str}.{i.getId}"
     | none     => Macro.throwUnsupported
   | `(atlasNum| $s:scientific) =>
     match scientificAtomText s with
@@ -423,6 +433,10 @@ private def elabAtlasRefAux (kind : String) (num : TSyntax `atlasNum)
       match scientificAtomText s with
       | some str => pure s!"{str}.{n.getNat}"
       | none     => throwError "atlas: malformed number reference (scientific.num)"
+    | `(atlasNum| $s:scientific . $i:ident) =>
+      match scientificAtomText s with
+      | some str => pure s!"{str}.{i.getId}"
+      | none     => throwError "atlas: malformed number reference (scientific.ident)"
     | `(atlasNum| $i:ident - $n:num $j:ident) => pure s!"{i.getId}-{n.getNat}{j.getId}"
     | `(atlasNum| $i:ident . $n:num) => pure s!"{i.getId}.{n.getNat}"
     | `(atlasNum| [ $s:str ]) => pure s.getString
@@ -606,6 +620,10 @@ def elabAtlasViaTerm : Lean.Elab.Term.TermElab := fun stx expectedType? => do
           match scientificAtomText s with
           | some str => pure s!"{str}.{m.getNat}"
           | none     => throwError "atlas: malformed number reference (scientific.num)"
+        | `(atlasNum| $s:scientific . $i:ident) =>
+          match scientificAtomText s with
+          | some str => pure s!"{str}.{i.getId}"
+          | none     => throwError "atlas: malformed number reference (scientific.ident)"
         | `(atlasNum| $i:ident - $m:num $j:ident) => pure s!"{i.getId}-{m.getNat}{j.getId}"
         | `(atlasNum| $i:ident . $m:num) => pure s!"{i.getId}.{m.getNat}"
         | `(atlasNum| [ $s:str ]) => pure s.getString
@@ -967,6 +985,10 @@ private def atlasNumToStringCmt (num : TSyntax `atlasNum) : MetaM String := do
     match scientificAtomText s with
     | some str => pure s!"{str}.{n.getNat}"
     | none     => throwError "atlas commentary: malformed number reference (scientific.num)"
+  | `(atlasNum| $s:scientific . $i:ident) =>
+    match scientificAtomText s with
+    | some str => pure s!"{str}.{i.getId}"
+    | none     => throwError "atlas commentary: malformed number reference (scientific.ident)"
   | `(atlasNum| $i:ident - $n:num $j:ident) => pure s!"{i.getId}-{n.getNat}{j.getId}"
   | `(atlasNum| $i:ident . $n:num) => pure s!"{i.getId}.{n.getNat}"
   | `(atlasNum| [ $s:str ]) => pure s.getString

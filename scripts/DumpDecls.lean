@@ -261,7 +261,7 @@ partial def discoverGeometryModules (root : String) : IO (Array Name) := do
     else if path.extension == some "lean" then
       let rel := path.toString
       let cleaned := if rel.startsWith "./" then rel.drop 2 else rel
-      let withoutExt := if cleaned.endsWith ".lean" then cleaned.dropRight 5 else cleaned
+      let withoutExt := if cleaned.endsWith ".lean" then cleaned.dropEnd 5 else cleaned
       let dotted := withoutExt.replace "/" "."
       out := out.push dotted.toName
   return out
@@ -281,7 +281,6 @@ def main : IO Unit := do
     (#[{ module := `Geometry }] : Array Import) ++
     buildable.map fun n => { module := n : Import }
   let env ← importModules imports {}
-
   -- Merge the current and imported atlas state into a single
   -- `NameMap AtlasEntry`. (`addImportedFn` is unreliable across module
   -- boundaries, hence the manual `getModuleEntries` walk in
@@ -293,14 +292,11 @@ def main : IO Unit := do
       match acc.find? n with
       | some _ => acc
       | none   => acc.insert n e
-
   let atlasNames : NameSet :=
     byName.foldl (init := {}) fun acc n _ => acc.insert n
-
   -- One entry per atlas-tagged decl, in stable name order.
   let entriesIn : Array (Name × Atlas.AtlasEntry) :=
     byName.toArray.qsort (fun (a, _) (b, _) => a.toString < b.toString)
-
   let coreCtx : Core.Context := { fileName := "<dumpdecls>", fileMap := default }
   let coreState : Core.State := { env := env }
   let metaAction : MetaM (Array String) := do
@@ -312,12 +308,10 @@ def main : IO Unit := do
         entries := entries.push (← buildEntry env atlasNames name info atlasEntry)
     return entries
   let (entries, _) ← metaAction.run'.toIO coreCtx coreState
-
   let json := "[\n" ++ String.intercalate ",\n" entries.toList ++ "\n]"
   IO.FS.createDirAll "blueprint"
   IO.FS.writeFile "blueprint/decls.json" json
   IO.eprintln s!"Wrote {entries.size} atlas-tagged declarations to blueprint/decls.json"
-
   -- Inline commentary markers: `quoting`, `comment`, `page break`.
   -- Walk imported entries explicitly (mirrors the atlas decls walk
   -- above). Combine all three into `blueprint/markers.json` since the
@@ -341,7 +335,6 @@ def main : IO Unit := do
     "\n}"
   IO.FS.writeFile "blueprint/markers.json" markersJson
   IO.eprintln s!"Wrote {quotingMarkers.size} quoting / {commentMarkers.size} comment / {pageBreakMarkers.size} page-break markers to blueprint/markers.json"
-
   -- Commentary blocks (per-decl atlas metadata). Target resolved
   -- here by walking the merged atlas state.
   let commentaryBlocks :=

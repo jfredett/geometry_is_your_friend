@@ -14,12 +14,16 @@ namespace Geometry.Ch3.Prop
 
 open Set
 open Geometry.Theory
+open Atlas
 
--- Ed. I'm inserting this `A ≠ B` condition because the author never clearly
--- states, but definitely implies, that `the ray A A` is degenerate because `A
--- - A - B` and the like are degenerate
-/-- p.109, "For any two points A and B: (i) Ray A B ∩ Ray B A = Segment A B ..." -/
-atlas proposition 3.1 "Two rays from common endpoints intersect in their segment"
+atlas commentary := by
+  ref proposition 3.1.i
+  page 109
+  name "Two rays from common endpoints intersect in their segment"
+  preface "For any two points A and B: (i) Ray A B ∩ Ray B A = Segment A B ..."
+  notes "I'm inserting this `A ≠ B` condition because the author never clearly states, but definitely implies, that `the ray A A` is degenerate because `A - A - B` and the like are degenerate"
+
+atlas proposition 3.1.i "Two rays from common endpoints intersect in their segment"
   : A ≠ B -> (segment A B) = (ray A B) ∩ (ray B A) := by
   intro AneB
   apply Subset.antisymm
@@ -55,10 +59,15 @@ atlas proposition 3.1 "Two rays from common endpoints intersect in their segment
         tauto
 
 
-/-- p.109 "... (ii) Ray A B ∪ Ray B A = LineThrough A B" -/
-atlas proposition 3.1 "Two rays from common endpoints union to their line"
-  : A ≠ B -> -- Ed. Same as above.
-  (ray A B) ∪ (ray B A) = (line A B) := by
+atlas commentary := by
+  ref proposition 3.1.ii
+  page 109
+  name "Two rays from common endpoints union to their line"
+  preface "... (ii) Ray A B ∪ Ray B A = LineThrough A B"
+  notes "similar to the above, an implied A ≠ B condition was added"
+
+atlas proposition 3.1.ii "Two rays from common endpoints union to their line"
+  : A ≠ B -> (ray A B) ∪ (ray B A) = (line A B) := by
   intro AneB
   apply Subset.antisymm
   · intro P PinUnion

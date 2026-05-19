@@ -12,9 +12,15 @@ import Geometry.Ch2.Prop.P3
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
+open Atlas
 
 
-/-- p71. "For every point P, there are at least two distinct lines through P" -/
+atlas commentary := by
+  ref proposition 2.5
+  page 71
+  name "Every point has at least two distinct lines through it"
+  preface "For every point P, there are at least two distinct lines through P"
+
 atlas proposition 2.5 "Every point has at least two distinct lines through it"
   : ∀ P : Point, ∃ L M : Line,
     L ≠ M ∧ (P on L) ∧ (P on M) := by

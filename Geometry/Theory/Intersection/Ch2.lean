@@ -17,6 +17,7 @@ namespace Geometry.Theory
 open Set
 open Geometry.Theory
 open Geometry.Ch2.Prop
+open Atlas
 
 namespace Intersection
 
@@ -26,7 +27,11 @@ instance {L M : Line} {X : Point} : Coe (Intersects L M X) (X ∈ L ∩ M) where
     rw [h]
     exact Set.mem_singleton X
 
-/-- No points are contained on the intersection of a segment and it's related extension -/
+atlas commentary := by
+  ref lemma 2.0.15
+  name "Segment A B and the related extension A B have empty intersection"
+  preface "No points are contained on the intersection of a segment and it's related extension"
+
 atlas lemma 2.0.15 "Segment A B and the related extension A B have empty intersection"
   : segment A B ∩ extension A B = ∅ := by
   unfold Segment; unfold Extension
@@ -43,7 +48,11 @@ atlas lemma 2.0.15 "Segment A B and the related extension A B have empty interse
   · simp only [mem_empty_iff_false, ne_eq, mem_inter_iff, mem_setOf_eq, IsEmpty.forall_iff]
 
 
-/-- Points on a segment are not included in the related extension -/
+atlas commentary := by
+  ref lemma 2.0.16
+  name "A point on a segment lies off the related extension"
+  preface "Points on a segment are not included in the related extension"
+
 atlas lemma 2.0.16 "A point on a segment lies off the related extension"
   : X on segment A B -> X off extension A B := by
   intro XonAB
@@ -54,7 +63,11 @@ atlas lemma 2.0.16 "A point on a segment lies off the related extension"
   contradiction
 
 
-/-- Points on an extension are off the related segment -/
+atlas commentary := by
+  ref lemma 2.0.17
+  name "A point on an extension lies off the related segment"
+  preface "Points on an extension are off the related segment"
+
 atlas lemma 2.0.17 "A point on an extension lies off the related segment"
   : X on extension A B -> X off segment A B := by
   intro XonAB
@@ -65,7 +78,11 @@ atlas lemma 2.0.17 "A point on an extension lies off the related segment"
   contradiction
 
 
-/-- If L and M are distinct, nonparallel lines, and X and Y are found in their intersection, X and Y are equal -/
+atlas commentary := by
+  ref lemma 2.0.18
+  name "Two points in the intersection of distinct nonparallel lines coincide"
+  preface "If L and M are distinct, nonparallel lines, and X and Y are found in their intersection, X and Y are equal"
+
 atlas lemma 2.0.18 "Two points in the intersection of distinct nonparallel lines coincide"
   : ∀ L M : Line, L ≠ M -> (L ∦ M) -> X ∈ L ∩ M ∧ Y ∈ L ∩ M -> X = Y := by
   intro L M LneM LnparM ⟨XonInt, YonInt⟩
@@ -78,7 +95,11 @@ atlas lemma 2.0.18 "Two points in the intersection of distinct nonparallel lines
   rw [XeqP, YeqP]
 
 
-/-- If L and M are distinct, parallel lines, their intersection is empty -/
+atlas commentary := by
+  ref lemma 2.0.19
+  name "The intersection of two distinct parallel lines is empty"
+  preface "If L and M are distinct, parallel lines, their intersection is empty"
+
 atlas lemma 2.0.19 "The intersection of two distinct parallel lines is empty"
   : ∀ L M : Line, (L ≠ M) -> (L ∥ M) -> L ∩ M = ∅ := by
   intro L M LneM LparM
@@ -87,7 +108,11 @@ atlas lemma 2.0.19 "The intersection of two distinct parallel lines is empty"
   · tauto
 
 
-/-- Intersections of distinct, nonparallel lines contain exactly one point -/
+atlas commentary := by
+  ref lemma 2.0.20
+  name "Membership in the intersection of distinct nonparallel lines is the pointed intersection"
+  preface "Intersections of distinct, nonparallel lines contain exactly one point"
+
 atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines is the pointed intersection"
   : ∀ P : Point, ∀ L M : Line, L ≠ M ∧ (L ∦ M) -> (P ∈ L ∩ M ↔ L intersects M at P) := by
   intro P L M ⟨LneM, LnparM⟩
@@ -106,7 +131,11 @@ atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines
     trivial
 
 
-/-- If a line intersects a segment, then it intersects the ray containing that segment -/
+atlas commentary := by
+  ref lemma 2.0.21
+  name "A line intersecting a segment intersects its containing ray at the same point"
+  preface "If a line intersects a segment, then it intersects the ray containing that segment"
+
 -- TODO: I think some of the non-equality conditions are provable in general.
 atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray at the same point"
   : (A ≠ B) -> (L intersects segment A B at X) -> (L intersects ray A B at X) := by
@@ -151,7 +180,11 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
       rw [PeqX]; trivial
 
 
-/-- If L intersects M anywhere, then L cannot be parallel to M -/
+atlas commentary := by
+  ref lemma 2.0.22
+  name "If two lines have a pointed intersection they are not parallel"
+  preface "If L intersects M anywhere, then L cannot be parallel to M"
+
 atlas lemma 2.0.22 "If two lines have a pointed intersection they are not parallel"
   : (L intersects M at P) -> (L ∦ M) := by
   intro LintMatP
@@ -163,7 +196,11 @@ atlas lemma 2.0.22 "If two lines have a pointed intersection they are not parall
   obvious
 
 
-/-- If a line intersects a ray, then it intersects the line containing the ray -/
+atlas commentary := by
+  ref lemma 2.0.23
+  name "A line intersecting a ray intersects its containing line at the same point"
+  preface "If a line intersects a ray, then it intersects the line containing the ray"
+
 atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at the same point"
   {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
@@ -219,7 +256,11 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
       trivial
 
 
-/-- If a line intersects a segment, then it intersects the line containing the segment -/
+atlas commentary := by
+  ref lemma 2.0.24
+  name "A line intersecting a segment intersects its containing line at the same point"
+  preface "If a line intersects a segment, then it intersects the line containing the segment"
+
 atlas lemma 2.0.24 "A line intersecting a segment intersects its containing line at the same point"
   {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
   intro LintSeg
@@ -229,7 +270,11 @@ atlas lemma 2.0.24 "A line intersecting a segment intersects its containing line
   exact AneB
 
 
-/-- If A - X - B, and L intersects a segment A B at X, then L splits A and B -/
+atlas commentary := by
+  ref lemma 2.0.25
+  name "If A-X-B and L meets the segment at X then L splits A and B"
+  preface "If A - X - B, and L intersects a segment A B at X, then L splits A and B"
+
 atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   {L : Line} {A X B : Point} (AXB : A - X - B) :
   (L intersects M at X) -> (L splits A and B) := by
@@ -245,7 +290,11 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   · exact ref lemma 1.0.32 LintAXBatX
 
 
-/-- If L intersect M at X, and A is not X, then either A is off L or M or both. -/
+atlas commentary := by
+  ref lemma 2.0.26
+  name "A point different from the meet of two lines lies off at least one of them"
+  preface "If L intersect M at X, and A is not X, then either A is off L or M or both."
+
 atlas lemma 2.0.26 "A point different from the meet of two lines lies off at least one of them"
   {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
   intro AneX LintMatX
@@ -256,11 +305,13 @@ atlas lemma 2.0.26 "A point different from the meet of two lines lies off at lea
 
 
 
-/-- Let L and M be lines, with A and B on L. If L intersects M at some X not A or B; and
-  if M splits A and B, then A - X - B
+atlas commentary := by
+  ref lemma 2.0.27
+  name "Crossing point of L through M between A and B forces A-X-B when M splits A B"
+  preface "Let L and M be lines, with A and B on L. If L intersects M at some X not A or B; and
+  if M splits A and B, then A - X - B"
+  notes "This extracts the common argument at the end of p3.3 and it's corollaries."
 
-  ED: This extracts the common argument at the end of p3.3 and it's corollaries.
--/
 atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B when M splits A B"
   (AneX : A ≠ X) (BneX : B ≠ X) :
   (L intersects M at X) -> (A on L ∧ B on L) -> (M splits A and B) -> (A - X - B) := by
@@ -291,10 +342,14 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
   · rw [PeqX] at BeqP ; contradiction
 
 
-/-- If X is on a line L, and E is not on L, then:
+atlas commentary := by
+  ref lemma 2.0.28
+  name "Through X on L and E off L: L and line E X are distinct, nonparallel, meet at X"
+  preface "If X is on a line L, and E is not on L, then:
   1. L and EX are distinct lines
   2. L and EX are not parallel
-  3. L intersects EX at X -/
+  3. L intersects EX at X"
+
 atlas lemma 2.0.28 "Through X on L and E off L: L and line E X are distinct, nonparallel, meet at X"
   {L : Line} {X E : Point} (XonL : X on L) (EoffL : E off L)
     : (L ≠ (line E X)) ∧ (L ∦ (line E X)) ∧ (L intersects (line E X) at X) := by
@@ -312,7 +367,11 @@ atlas lemma 2.0.28 "Through X on L and E off L: L and line E X are distinct, non
   tauto
 
 
-/-- If A, B, and Z are on L, a line M passes through L at Z, and Z is not between A and B, then M guards A and B. -/
+atlas commentary := by
+  ref lemma 2.0.29
+  name "A line crossing L at Z (not between A and B on L) guards A and B"
+  preface "If A, B, and Z are on L, a line M passes through L at Z, and Z is not between A and B, then M guards A and B."
+
 atlas lemma 2.0.29 "A line crossing L at Z (not between A and B on L) guards A and B"
   {L M : Line} {Z A B : Point}
     (AneZ : A ≠ Z) (BneZ : B ≠ Z)

@@ -18,6 +18,7 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Collinear
 
@@ -41,7 +42,11 @@ noncomputable instance collinearCoe {points : Finset Point} (h : Collinear point
     `Collinear {C, A, B}` but a consumer wants `Collinear {A, B, C}`). -/
 lemma of_eq {s t : Finset Point} (c : Collinear s) (h : s = t) : Collinear t := h ▸ c
 
-/-- There is a line between any two points, so by definition any two points are collinear -/
+atlas commentary := by
+  ref lemma 1.0.14
+  name "Any two distinct points are collinear"
+  preface "There is a line between any two points, so by definition any two points are collinear"
+
 atlas lemma 1.0.14 "Any two distinct points are collinear"
   : A ≠ B -> collinear A B := by
   intro AneB

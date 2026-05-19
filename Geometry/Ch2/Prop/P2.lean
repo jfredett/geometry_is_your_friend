@@ -10,9 +10,15 @@ import Geometry.Ch2.Prop.P1
 namespace Geometry.Ch2.Prop
 
 open Geometry.Theory
+open Atlas
 
 
-/-- p71, "There exist three distinct lines that are not concurrent." -/
+atlas commentary := by
+  ref proposition 2.2
+  page 71
+  name "Three distinct lines exist that are not concurrent"
+  preface "There exist three distinct lines that are not concurrent."
+
 atlas proposition 2.2 "Three distinct lines exist that are not concurrent"
   : ∃ L M N : Line, (L ≠ M ∧ M ≠ N ∧ L ≠ N) ∧ ¬Concurrent L M N := by
     -- Idea: Use the 3 non-collinear points to build three lines, we can prove they're distinct with

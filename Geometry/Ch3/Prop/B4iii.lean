@@ -19,20 +19,19 @@ namespace Geometry.Ch3.Prop
 -- open Set
 open Geometry.Theory
 open Geometry.Ch2.Prop
+open Atlas
 -- (open removed: P1.i/P1.ii aliases inlined to titles)
 
--- p111
-
-/-
-"Corollary. (iii) If A and B are on opposite sides of L and if B and C are on the
-same side of L, then A and C are on opposite sides of L"
-
-Ed. This gets shown here since it's a corollary and I need a lemma from the
+atlas commentary := by
+  ref corollary B-4iii
+  page 111
+  name "Corollary to B-4: splits + guards transitivity"
+  preface "Corollary. (iii) If A and B are on opposite sides of L and if B and C are on the same side of L, then A and C are on opposite sides of L"
+  notes "This gets shown here since it's a corollary and I need a lemma from the
 previous proposition
 
+FIXME: I think I need to drop the avoid hypothesis and do the by_cases argument."
 
-FIXME: I think I need to drop the avoid hypothesis and do the by_cases argument.
--/
 atlas corollary B-4iii "Corollary to B-4: splits + guards transitivity"
   : (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L splits A and B) ∧ (L guards B and C) -> (L splits A and C) := by

@@ -13,6 +13,8 @@ import Atlas
 
 namespace Geometry.Theory
 
+open Atlas
+
 /-- A point is the fundamental, opaque type we're working with. -/
 axiom Point : Type
 
@@ -90,20 +92,29 @@ notation:80 L:81 " avoids " P:81 => P ∉ L
 
 -- p. 69-70, Ed. The author provides these as very terse statements, I've tried to give informal
 -- respellings as documentation.
-/--
-For any two distinct points P and Q, there exists a unique line L which has P and Q
--/
+atlas commentary := by
+  ref axiom I.1
+  name "Two distinct points determine a unique line through them"
+  preface "For any two distinct points P and Q, there exists a unique line L which has P and Q"
+
 atlas axiom I.1 "Two distinct points determine a unique line through them"
   : ∀ P Q : Point, P ≠ Q -> ∃! L : Line, (P on L) ∧ (Q on L)
 attribute [simp] «Two distinct points determine a unique line through them»
 
-/-- For any line, there are at least two distinct points on it -/
+atlas commentary := by
+  ref axiom I.2
+  name "Every line contains at least two distinct points"
+  preface "For any line, there are at least two distinct points on it"
+
 atlas axiom I.2 "Every line contains at least two distinct points"
   : ∀ L : Line, ∃ A B : Point, A ≠ B ∧ (A on L) ∧ (B on L)
 attribute [simp] «Every line contains at least two distinct points»
 
-/-- There exists three distinct points not on any single line ("There exists
-three non-collinear points", but without mentioning the undefined notion of collinearity) -/
+atlas commentary := by
+  ref axiom I.3
+  name "There exist three points not all lying on a common line"
+  preface "There exists three distinct points not on any single line (\"There exists three non-collinear points\", but without mentioning the undefined notion of collinearity)"
+
 atlas axiom I.3 "There exist three points not all lying on a common line"
   : ∃ A B C : Point, (A ≠ B ∧ A ≠ C ∧ B ≠ C) ∧ (∀ (L : Line), (A on L) → (B on L) → (C off L))
 attribute [simp] «There exist three points not all lying on a common line»
@@ -177,22 +188,27 @@ macro_rules
 
 
 
-/--
-p.108a "If A - B - C, then A,B,C are distinct points on the same line...
--/
+atlas commentary := by
+  ref axiom B-1a
+  page 108
+  name "A-B-C implies A B C are distinct and collinear"
+  preface "If A - B - C, then A,B,C are distinct points on the same line..."
+
 atlas axiom B-1a "A-B-C implies A B C are distinct and collinear"
   {A B C : Point} : A - B - C -> distinct A B C ∧ collinear A B C
 attribute [simp] «A-B-C implies A B C are distinct and collinear»
 
 
-/--
-p.108b ... and [A - B - C iff] C - B - A.""
+atlas commentary := by
+  ref axiom B-1b
+  page 108
+  name "Betweenness Commutativity"
+  preface "... and [A - B - C iff] C - B - A.\"\""
+  notes "Note, I separated these parts of the axiom to make rewriting
+a bit easier. The author even notes, \"The second part (C * B * A) makes the obvious remark
+that 'betwen A and C' means the same as 'between C and A'\" Making it a separate axiom means
+I won't have to dig it out of the pile of parts that is 1a."
 
-Ed. Note, I separated these parts of the axiom to make rewriting
-a bit easier. The author even notes, "The second part (C * B * A) makes the obvious remark
-that 'betwen A and C' means the same as 'between C and A'" Making it a separate axiom means
-I won't have to dig it out of the pile of parts that is 1a.
--/
 atlas axiom B-1b "Betweenness Commutativity"
   {A B C : Point} : A - B - C ↔ C - B - A
 attribute [simp] «Betweenness Commutativity»
@@ -304,21 +320,27 @@ macro "obvious" : tactic =>
 macro "obvious" : term => `(by obvious)
 
 
-/--
-p.108 "Given any two distinct points B and D, there exist points A, C, and E lying on →ₗBD such that
-A * B * D, B * C * D, and B * D * E".
-
-Ed. I like to call this the 'density' axiom because, used recursively, it posits
+atlas commentary := by
+  ref axiom B.2
+  page 108
+  name "Two distinct points admit a left, middle, and right witness on their line"
+  preface "Given any two distinct points B and D, there exist points A, C, and E lying on →ₗBD such that
+A * B * D, B * C * D, and B * D * E."
+  notes "I like to call this the 'density' axiom because, used recursively, it posits
 something like the density of rationals -- for any two distinct points on a
-line, there is always a point between them.
--/
+line, there is always a point between them."
+
 atlas axiom B.2 "Two distinct points admit a left, middle, and right witness on their line"
   : ∀ B D : Point, B ≠ D ->
   ∃ A C E : Point, collinear A B C D E ∧ distinct A B C D E ∧ (A - B - D) ∧ (B - C - D) ∧ (B - D - E)
 attribute [simp] «Two distinct points admit a left, middle, and right witness on their line»
 
 
-/-- Construct a point 'to the left' of points BD on the induced line B D -/
+atlas commentary := by
+  ref lemma 1.0.5
+  name "Density axiom witness: a point left of two distinct points"
+  preface "Construct a point 'to the left' of points BD on the induced line B D"
+
 atlas lemma 1.0.5 "Density axiom witness: a point left of two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ A : Point, collinear A B D ∧ distinct A B D ∧ (A - B - D) := by
       intro B D BneD
@@ -327,7 +349,11 @@ atlas lemma 1.0.5 "Density axiom witness: a point left of two distinct points"
       obvious
 
 
-/-- Construct a point 'in between' points BD on the induced line B D -/
+atlas commentary := by
+  ref lemma 1.0.6
+  name "Density axiom witness: a point between two distinct points"
+  preface "Construct a point 'in between' points BD on the induced line B D"
+
 atlas lemma 1.0.6 "Density axiom witness: a point between two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ C : Point, collinear B C D ∧ distinct B C D ∧ (B - C - D) := by
       intro B D BneD
@@ -336,7 +362,11 @@ atlas lemma 1.0.6 "Density axiom witness: a point between two distinct points"
       obvious
 
 
-/-- Construct a point 'to the right' points BD on the induced line B D -/
+atlas commentary := by
+  ref lemma 1.0.7
+  name "Density axiom witness: a point right of two distinct points"
+  preface "Construct a point 'to the right' points BD on the induced line B D"
+
 atlas lemma 1.0.7 "Density axiom witness: a point right of two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ E : Point, collinear B D E ∧ distinct B D E ∧ (B - D - E) := by
       intro B D BneD
@@ -345,9 +375,13 @@ atlas lemma 1.0.7 "Density axiom witness: a point right of two distinct points"
       obvious
 
 
-/-- p.108 "If A, B, and C are three distinct points lying on the same line, then
+atlas commentary := by
+  ref axiom B.3
+  page 108
+  name "Three distinct collinear points have exactly one between-arrangement"
+  preface "If A, B, and C are three distinct points lying on the same line, then
  one and only one of the points is between the other two."
--/
+
 atlas axiom B.3 "Three distinct collinear points have exactly one between-arrangement"
   : ∀ A B C : Point, distinct A B C ∧ collinear A B C ->
   ( (A - B - C) ∧ ¬(B - A - C) ∧ ¬(A - C - B)) ∨
@@ -372,21 +406,27 @@ on their side of the line).
 notation:20 L " splits " A " and " B => ¬(SameSide A B L)
 notation:20 L " guards " A " and " B => SameSide A B L
 
-/--
-p.110 "Betweenness Axiom 4 (Plane Separation). For every line L and for any
+atlas commentary := by
+  ref axiom B-4i
+  page 110
+  name "Same-side is transitive across a common middle point"
+  preface "Betweenness Axiom 4 (Plane Separation). For every line L and for any
 three points A, B, and C not on L: (i) If A and B are on the same side of L and
 if B and C are on the same side of L, the A and C are on the same side of L..."
--/
+
 atlas axiom B-4i "Same-side is transitive across a common middle point"
   {A B C : Point} {L : Line} :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->
   (L guards A and B) ∧ (L guards B and C) -> (L guards A and C)
 attribute [simp] «Same-side is transitive across a common middle point»
 
-/--
-"... (ii) If A and B are on opposite sides of L and if B and C are opposite
+atlas commentary := by
+  ref axiom B-4ii
+  page 110
+  name "Two opposite-side relations chain to a same-side relation"
+  preface "... (ii) If A and B are on opposite sides of L and if B and C are opposite
 sides of L, then A and C are on the same side of L."
--/
+
 atlas axiom B-4ii "Two opposite-side relations chain to a same-side relation"
   {A B C : Point} {L : Line} :
   (L avoids A) ∧ (L avoids B) ∧ (L avoids C) ->

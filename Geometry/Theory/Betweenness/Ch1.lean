@@ -8,11 +8,16 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Betweenness
 
-/-- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
-one another -/
+atlas commentary := by
+  ref lemma 1.0.36
+  name "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
+  preface "With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
+one another"
+
 atlas lemma 1.0.36 "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
   : A - B - C ∧ B - A - C -> False := by
   intro ⟨ABC, _⟩
@@ -21,8 +26,12 @@ atlas lemma 1.0.36 "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
   repeat contradiction
 
 
-/-- With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
-one another -/
+atlas commentary := by
+  ref lemma 1.0.37
+  name "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
+  preface "With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
+one another"
+
 atlas lemma 1.0.37 "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
   : A - B - C ∧ A - C - B -> False := by
   intro ⟨ABC, _⟩
@@ -31,7 +40,11 @@ atlas lemma 1.0.37 "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
   repeat contradiction
 
 
-/-- With respect to a pair of fixed points, another point is either 'to the left' or 'to the right' of the pair -/
+atlas commentary := by
+  ref lemma 1.0.38
+  name "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
+  preface "With respect to a pair of fixed points, another point is either 'to the left' or 'to the right' of the pair"
+
 atlas lemma 1.0.38 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
   : A - B - C ∧ C - A - B -> False := by
   intro ⟨ABC, _⟩
@@ -42,7 +55,11 @@ atlas lemma 1.0.38 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
 
 
 -- TODO: use the `distinct` condition here
-/-- betweeness implies distinctness -/
+atlas commentary := by
+  ref lemma 1.0.39
+  name "Betweenness A-B-C implies the three points are distinct"
+  preface "betweeness implies distinctness"
+
 atlas lemma 1.0.39 "Betweenness A-B-C implies the three points are distinct"
   : A - B - C -> distinct A B C := by
   intro ABC
@@ -50,7 +67,11 @@ atlas lemma 1.0.39 "Betweenness A-B-C implies the three points are distinct"
   exact h
 
 
-/-- betweeness implies collinearity -/
+atlas commentary := by
+  ref lemma 1.0.40
+  name "Betweenness A-B-C implies the three points are collinear"
+  preface "betweeness implies collinearity"
+
 atlas lemma 1.0.40 "Betweenness A-B-C implies the three points are collinear"
   : A - B - C -> collinear A B C := by
   intro ABC

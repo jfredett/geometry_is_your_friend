@@ -6,8 +6,13 @@ import Atlas
 namespace Set
 
 open Set
+open Atlas
 
-/-- If S is disjoint from T and V, then S ∪ T ⊆ S ∪ V implies T ⊆ V -/
+atlas commentary := by
+  ref lemma 0.0.5
+  name "Disjoint-union subset cancellation"
+  preface "If S is disjoint from T and V, then S ∪ T ⊆ S ∪ V implies T ⊆ V"
+
 atlas lemma 0.0.5 "Disjoint-union subset cancellation"
   : ∀ S T V : Set α, S ∪ T ⊆ S ∪ V ∧ S ∩ T = ∅ ∧ S ∩ V = ∅ -> T ⊆ V := by
   intro S T V ⟨SuTsubSuV, SintTempty, SintVempty⟩ e eInT
@@ -18,11 +23,15 @@ atlas lemma 0.0.5 "Disjoint-union subset cancellation"
   · exact eInV
 
 
-/-- If S is disjoint from T and V, then S ∪ T = S ∪ V implies T = V (TODO: may be iff) -/
+atlas commentary := by
+  ref lemma 0.0.6
+  name "Disjoint-union equality cancellation"
+  preface "If S is disjoint from T and V, then S ∪ T = S ∪ V implies T = V (TODO: may be iff)"
+
 atlas lemma 0.0.6 "Disjoint-union equality cancellation"
   : ∀ S T V : Set α,  S ∪ T = S ∪ V ∧ S ∩ T = ∅ ∧ S ∩ V = ∅ -> T = V := by
   intro S T V ⟨SuTeqSuV, SintTempty, SintVempty⟩
-  -- This is a cool technique, similar to the 'by symmetry' or 'up to variable naming'.
+  comment "This is a cool technique, similar to the 'by symmetry' or 'up to variable naming'."
   suffices h : ∀ A B : Set α, S ∪ A ⊆ S ∪ B ∧ S ∩ A = ∅ ∧ S ∩ B = ∅ → A ⊆ B by
     exact Subset.antisymm
       (h T V ⟨(Eq.subset SuTeqSuV), SintTempty, SintVempty⟩)

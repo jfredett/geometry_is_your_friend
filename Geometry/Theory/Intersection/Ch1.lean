@@ -13,10 +13,15 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Intersection
 
-/-- If two lines intersect, their intersection is unique. -/
+atlas commentary := by
+  ref lemma 1.0.30
+  name "Two pointed intersections of the same line pair share their point"
+  preface "If two lines intersect, their intersection is unique."
+
 atlas lemma 1.0.30 "Two pointed intersections of the same line pair share their point"
   : (L intersects M at X) ∧ (L intersects M at Y) -> X = Y := by
   unfold Intersects
@@ -25,7 +30,11 @@ atlas lemma 1.0.30 "Two pointed intersections of the same line pair share their 
   exact singleton_eq_singleton_iff.mp LMatY
 
 
-/-- L intersects M is the same as M intersects L. -/
+atlas commentary := by
+  ref lemma 1.0.31
+  name "Pointed intersection is symmetric in its line arguments"
+  preface "L intersects M is the same as M intersects L."
+
 atlas lemma 1.0.31 "Pointed intersection is symmetric in its line arguments"
   : (L intersects M at X) ↔ (M intersects L at X) := by
   unfold Intersects
@@ -33,7 +42,11 @@ atlas lemma 1.0.31 "Pointed intersection is symmetric in its line arguments"
   exact inter_comm L M
 
 
-/-- If L intersects M at X, then X is on L -/
+atlas commentary := by
+  ref lemma 1.0.32
+  name "A pointed intersection's witness point lies on the left line"
+  preface "If L intersects M at X, then X is on L"
+
 atlas lemma 1.0.32 "A pointed intersection's witness point lies on the left line"
   : (L intersects M at X) -> (X on L) := by
   unfold Intersects
@@ -42,7 +55,11 @@ atlas lemma 1.0.32 "A pointed intersection's witness point lies on the left line
   exact mem_of_mem_inter_left XinLintM
 
 
-/-- If L intersects M at X, then X is on M -/
+atlas commentary := by
+  ref lemma 1.0.33
+  name "A pointed intersection's witness point lies on the right line"
+  preface "If L intersects M at X, then X is on M"
+
 atlas lemma 1.0.33 "A pointed intersection's witness point lies on the right line"
   : (L intersects M at X) -> (X on M) := by
   unfold Intersects
@@ -51,12 +68,20 @@ atlas lemma 1.0.33 "A pointed intersection's witness point lies on the right lin
   exact mem_of_mem_inter_right XinLintM
 
 
-/-- If L intersects M at X, then X is on L and M -/
+atlas commentary := by
+  ref lemma 1.0.34
+  name "A pointed intersection's witness point lies on both lines"
+  preface "If L intersects M at X, then X is on L and M"
+
 atlas lemma 1.0.34 "A pointed intersection's witness point lies on both lines"
   : (L intersects M at X) -> (X on L) ∧ (X on M) := by intro inter; exact ⟨ref lemma 1.0.32 inter, ref lemma 1.0.33 inter⟩
 
 
-/-- If L intersects M at X, then forall P not equal to X, if P on L, then P off M. -/
+atlas commentary := by
+  ref lemma 1.0.35
+  name "On distinct lines crossing at X every other point on L is off M"
+  preface "If L intersects M at X, then forall P not equal to X, if P on L, then P off M."
+
 atlas lemma 1.0.35 "On distinct lines crossing at X every other point on L is off M"
   : (L ≠ M) ∧ (L intersects M at X) -> (∀ P : Point, (P ≠ X) ∧ (P on L) -> (P off M)) := by
   intro ⟨LneM, LintMatX⟩ P ⟨PneX, PonL⟩

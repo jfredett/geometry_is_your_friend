@@ -127,7 +127,7 @@ partial def discoverGeometryModules (root : String) : IO (Array Name) := do
       let rel := path.toString
       let cleaned := if rel.startsWith "./" then rel.drop 2 else rel
       let withoutExt :=
-        if cleaned.endsWith ".lean" then cleaned.dropRight 5 else cleaned
+        if cleaned.endsWith ".lean" then cleaned.dropEnd 5 else cleaned
       let dotted := withoutExt.replace "/" "."
       out := out.push dotted.toName
   return out

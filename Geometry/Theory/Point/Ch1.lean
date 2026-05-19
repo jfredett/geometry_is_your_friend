@@ -8,10 +8,15 @@ namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Point
 
-/-- For every Point, there is at least one point that isn't that point. -/
+atlas commentary := by
+  ref lemma 1.0.11
+  name "For every Point there exists at least one distinct Point"
+  preface "For every Point, there is at least one point that isn't that point."
+
 atlas lemma 1.0.11 "For every Point there exists at least one distinct Point"
   : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
     intro P

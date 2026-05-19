@@ -7,9 +7,14 @@ namespace Geometry.Ch2.Prop
 
 open Set
 open Geometry.Theory
+open Atlas
 
-/-- pp. 71: If `l` and `m` are distinct lines that are not parallel, then `l` and
- `m` have a unique point in common -/
+atlas commentary := by
+  ref alternate 2.1
+  page 71
+  name "Distinct non-parallel lines share a unique point (direct proof)"
+  preface "If `l` and `m` are distinct lines that are not parallel, then `l` and `m` have a unique point in common"
+
 atlas alternate 2.1 "Distinct non-parallel lines share a unique point (direct proof)"
   {L M : Line} :
   L ≠ M → (L ∦ M) → ∃! P : Point,
@@ -35,7 +40,11 @@ atlas alternate 2.1 "Distinct non-parallel lines share a unique point (direct pr
 
 -- Compatibility aliases: original names were `alternate 2.1` and `P1`.
 
-/-- A corrolary of the main theorem that is more useful since it uses the syntax directly. -/
+atlas commentary := by
+  ref proposition 2.1
+  name "Distinct non-parallel lines share a unique point"
+  preface "A corrolary of the main theorem that is more useful since it uses the syntax directly."
+
 atlas proposition 2.1 "Distinct non-parallel lines share a unique point"
   (LneM : L ≠ M) (LnoparM : L ∦ M) : ∃! X : Point, L intersects M at X := by
     obtain ⟨P, ⟨PonL, PonM⟩, Puniq⟩ := alternate 2.1 LneM LnoparM
