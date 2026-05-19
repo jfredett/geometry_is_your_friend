@@ -35,7 +35,7 @@ atlas commentary := by
   page 113
   name "Line Separation Property"
   aliases [
-    Geometry.Theory.Line.Separation
+    Geometry.Theory.Line.separation
   ]
   preface "If C - A - B and l is the line through A, B, and C (Betweenness Axiom 1), then for every point P lying on l, P lies either on ray A B or on the opposite ray A C."
 
