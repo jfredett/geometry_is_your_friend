@@ -106,6 +106,14 @@
               # not honour a `postShellHook` field, so the export has to
               # live here.
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+              # Prefer elan-managed lean/lake (via home-manager shims) over
+              # whatever lean4 the dev-shell-env transitively brings in.
+              # elan reads the project's `lean-toolchain` file and dispatches
+              # to the right version per-project. Without this prepend, the
+              # dev-shell-env's stale lean4-4.27.0/bin wins on PATH and elan
+              # never gets a chance.
+              export PATH="$HOME/.elan/bin:/etc/profiles/per-user/$USER/bin:$PATH"
             '';
           };
         };

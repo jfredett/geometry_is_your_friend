@@ -1,10 +1,38 @@
 import Lake
 open Lake DSL
 
--- Dependencies
+-- Dependencies — order matters: project-specific deps first, Mathlib
+-- LAST so its transitive versions of aesop/batteries/plausible/etc. win
+-- the manifest resolution. Lake will warn otherwise ("project pins
+-- different versions of some dependencies than Mathlib").
+--
+-- We don't `require aesop` explicitly — it comes transitively from
+-- Mathlib. Adding it here would re-introduce the version-skew warning.
+
+-- Verso pinned to a recent main HEAD (the reservoir-default revision
+-- 4abb984 shipped with duplicate `root := Main` on several `lean_exe`s
+-- and Lake errors trying to build it). Keep this aligned with atlas's
+-- pin so the manifests resolve consistently.
+require verso from git
+  "https://github.com/leanprover/verso.git" @ "c004fc5a02584e08def4bfe5c0632d7e208efb58"
+
+-- Atlas is now an external dep — path-based while extraction is in
+-- progress. Standalone repo lives at ~/angband/human/curu/atlas/.
+-- Once that repo's manifest is stable and committed, swap this for
+-- a git+subDir require pointing at the angband monorepo
+-- (~/angband-style: `from git "ssh://git.arda/.../angband.git" @ "main"
+-- / "human/curu/atlas"`).
+require atlas from "../../angband/human/curu/atlas"
+
+require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
+
+meta if get_config? env = some "dev" then
+require «doc-gen4» from git
+  "https://github.com/leanprover/doc-gen4" @ "main"
+
+-- Mathlib LAST — its transitive pins (aesop/batteries/plausible/etc.)
+-- now take precedence over anything declared above.
 require "leanprover-community" / "mathlib"
-require "leanprover" / "verso"
-require aesop from git "https://github.com/leanprover-community/aesop"
 
 -- mostly borrowed from mathlib
 abbrev opts : Array LeanOption := #[
@@ -51,23 +79,8 @@ lean_lib «Geometry» where
   -- You can also specify includeDirs if needed, e.g., for diagrams
   -- includeDirs := #[ "geometry/**/diagrams" ]
 
--- Atlas is a top-level library so it can be extracted into its own
--- package later without touching the Geometry namespace. For now it
--- lives in this same repo with its own `lean_lib`.
-lean_lib «Atlas» where
-  srcDir := "."
-  roots := #[`Atlas]
-
--- Smoke test for Atlas. Separate library so the test file doesn't
--- accidentally get pulled into Geometry's transitive closure.
-lean_lib «AtlasTest» where
-  srcDir := "."
-  roots := #[`AtlasTest]
-
-require checkdecls from git "https://github.com/PatrickMassot/checkdecls.git"
-
-meta if get_config? env = some "dev" then
-require «doc-gen4» from git
-  "https://github.com/leanprover/doc-gen4" @ "main"
+-- (Atlas + AtlasTest lean_libs removed — now provided by the
+-- `require atlas` dependency above. Local Atlas.lean / AtlasTest.lean
+-- deleted; `import Atlas` resolves to the dep.)
 
 
