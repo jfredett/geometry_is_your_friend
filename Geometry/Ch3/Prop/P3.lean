@@ -127,7 +127,7 @@ atlas proposition 3.3.i "Betweenness from shared outer pair: B-C-D from A-B-C an
     have ACB : A - C - B := CeqX.symm ▸ AXB
     exfalso; exact ref lemma 1.0.37 ⟨ABC, ACB⟩
   · quoting (8) "Hence, A and B are on the same side of EC (RAA conclusion)"
-    push_neg at raa
+    push Not at raa
     quoting (9) "B and D are on opposite sides of EC (steps 3 and 8 and the corrolary to Betweenness Axiom 4)."
     have ECsplitsBandD : EC splits B and D := by
       by_contra! ECguardsBandD
@@ -136,7 +136,7 @@ atlas proposition 3.3.i "Betweenness from shared outer pair: B-C-D from A-B-C an
     quoting (10) "Hence, the point C of intersection of lines EC and BD lies between B and D (definition of \"opposite sides\";
        Proposition 2.1, i.e., that the point of intersection is unique)."
     unfold SameSide at ECsplitsBandD
-    push_neg at ECsplitsBandD
+    push Not at ECsplitsBandD
     specialize ECsplitsBandD BoffEC DoffEC
     have ⟨BneD, P, ⟨PonSegBD, PonEC⟩⟩ := ECsplitsBandD
     have PinBDintEC : P ∈ line B D ∩ EC := ⟨(ref lemma 2.0.5 PonSegBD), PonEC⟩

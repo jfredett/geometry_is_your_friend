@@ -50,7 +50,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     by_contra! hNeg
     unfold Parallel at hNeg
     have ⟨LneAO, parCondition⟩ := hNeg
-    push_neg at parCondition
+    push Not at parCondition
     have OonAO : O on segment A O := ref lemma 1.0.20
     specialize parCondition O OonL
     contradiction
@@ -76,7 +76,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
   quoting (4) "Then A and B are on opposite sides of l (by definition)," ...
   have LsplitsAB : L splits A and B := by
     unfold SameSide
-    push_neg
+    push Not
     intro AoffL BoffL
     refine ⟨AneB, O, ?_, OonL⟩
     obvious
@@ -112,7 +112,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
       · specialize AseparatefromB suppose
         have CinHl : C ∈ Hl := by tauto
         tauto
-      · push_neg at suppose
+      · push Not at suppose
         have CinHr : C ∈ Hr := by tauto
         tauto
     · intro C CinUnion

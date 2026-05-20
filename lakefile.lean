@@ -46,7 +46,14 @@ abbrev opts : Array LeanOption := #[
   ⟨`maxSynthPendingDepth, false⟩,
   ⟨`weak.linter.style.longLine, false⟩,
   -- (`weak.linter.style.emptyLine, false),
-  ⟨`weak.linter.style.multiGoal, false⟩ -- FIXME: I don't know why this fires
+  ⟨`weak.linter.style.multiGoal, false⟩, -- FIXME: I don't know why this fires
+  -- `linter.style.header` covers Mathlib's three header checks: copyright
+  -- format, module-docstring-first, and a re-parse of the imports area.
+  -- The re-parse stumbles into every `atlas commentary := by` block
+  -- ("unexpected token ':='; expected atlasNum") and also flags the
+  -- absence of a Mathlib-shaped copyright block + module docstring. None
+  -- of these are real problems for us — disable.
+  ⟨`weak.linter.style.header, false⟩
 ]
 
 

@@ -21,7 +21,7 @@ atlas proposition 2.4 "Every point has at least one line not through it"
     obtain ⟨L, M, N, hDistinct, hNC⟩ := proposition 2.2
     unfold Concurrent at hNC
     by_contra! hNeg
-    push_neg at *
+    push Not at *
     specialize hNC P
     have PonN := hNeg N
     have PoffN := hNC (hNeg L) (hNeg M)

@@ -21,7 +21,7 @@ atlas alternate 2.1 "Distinct non-parallel lines share a unique point (direct pr
      (P on L) ∧ (P on M)
 := by
     intro hDistinctLines
-    unfold Parallel; push_neg
+    unfold Parallel; push Not
     intro hypP; specialize hypP hDistinctLines
     obtain ⟨P, hPonLM⟩ := hypP
     refine ⟨P, ?cEx, ?cUniq⟩

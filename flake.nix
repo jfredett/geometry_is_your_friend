@@ -107,13 +107,17 @@
               # live here.
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-              # Prefer elan-managed lean/lake (via home-manager shims) over
-              # whatever lean4 the dev-shell-env transitively brings in.
-              # elan reads the project's `lean-toolchain` file and dispatches
-              # to the right version per-project. Without this prepend, the
-              # dev-shell-env's stale lean4-4.27.0/bin wins on PATH and elan
-              # never gets a chance.
-              export PATH="$HOME/.elan/bin:/etc/profiles/per-user/$USER/bin:$PATH"
+              # Prefer the elan-managed toolchain over whatever lean4 the
+              # dev-shell-env transitively brings in. The Nix-packaged elan
+              # doesn't drop shims into ~/.elan/bin, so prepending that
+              # directory is a no-op. Instead, ask elan which toolchain
+              # `lean-toolchain` resolves to and put that bin/ on PATH.
+              if command -v elan >/dev/null 2>&1; then
+                LEAN_BIN="$(elan which lean 2>/dev/null || true)"
+                if [ -n "$LEAN_BIN" ] && [ -x "$LEAN_BIN" ]; then
+                  export PATH="$(dirname "$LEAN_BIN"):$PATH"
+                fi
+              fi
             '';
           };
         };

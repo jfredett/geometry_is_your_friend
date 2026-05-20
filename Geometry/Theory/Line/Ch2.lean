@@ -37,7 +37,7 @@ atlas lemma 2.0.1 "Two lines either share no points share one point or are equal
   · simp only [not_and_or, not_not] at suppose
     rcases suppose with LeqM | other
     · right; right; exact LeqM
-    · left; push_neg at *
+    · left; push Not at *
       obtain ⟨_, LparM⟩ := other
       apply Subset.antisymm
       · intro e eInInt

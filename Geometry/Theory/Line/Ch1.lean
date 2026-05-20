@@ -126,7 +126,7 @@ atlas commentary := by
 atlas lemma 1.0.27 "Two lines sharing a common point are not parallel"
   {L M : Line} {P : Point} : (P on L) -> (P on M) -> (L ∦ M) := by
       intros hPonM hPonL
-      unfold Parallel; push_neg
+      unfold Parallel; push Not
       intro hLMDistinct
       use P
 

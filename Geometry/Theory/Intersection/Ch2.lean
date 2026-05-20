@@ -168,7 +168,7 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
     rw [LintRayABatP] at XinInter
     have XeqP : P = X := by tauto
     contradiction
-  · push_neg at counter
+  · push Not at counter
     apply Subset.antisymm
     · intro P PonLintRay
       have XonLintRay : X ∈ L ∩ ray A B := by tauto
@@ -189,7 +189,7 @@ atlas lemma 2.0.22 "If two lines have a pointed intersection they are not parall
   : (L intersects M at P) -> (L ∦ M) := by
   intro LintMatP
   unfold Parallel
-  push_neg
+  push Not
   intro LneM
   use P
   unfold Intersects at LintMatP
@@ -214,7 +214,7 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
   have LnparRayAB : L ∦ ray A B := ref lemma 2.0.22 LintRay
   have LnparLineAB : L ∦ line A B := by
     unfold Parallel
-    push_neg
+    push Not
     intro LneLineAB
     use X
   have LneRayAB := Ne.symm (ref lemma 2.0.12 L A B AneB)
@@ -246,7 +246,7 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
       trivial
     have PeqX : P = X := ref lemma 2.0.18 L (line A B) LneLineAB LnparLineAB ⟨PinInter, XinInter⟩
     contradiction
-  · push_neg at counter
+  · push Not at counter
     apply Subset.antisymm
     · intro P PinInter
       exact counter P ((ref lemma 2.0.20 P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
@@ -280,7 +280,7 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   (L intersects M at X) -> (L splits A and B) := by
   intro LintAXBatX
   unfold SameSide
-  push_neg
+  push Not
   intro AoffL BoffL
   have distinctAXB := ref lemma 1.0.39 AXB
   distinguish
@@ -320,7 +320,7 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
     have hA := ref lemma 2.0.26 AneX LintMatX
     have hB := ref lemma 2.0.26 BneX LintMatX
     tauto
-  unfold SameSide at MsplitsAB; push_neg at MsplitsAB
+  unfold SameSide at MsplitsAB; push Not at MsplitsAB
   specialize MsplitsAB AoffM BoffM
   obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
   -- L and line A B are the same thing since two points determine a line.

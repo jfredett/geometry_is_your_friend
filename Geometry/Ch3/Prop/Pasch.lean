@@ -77,24 +77,17 @@ atlas proposition 3.7 "Pasch's Postulate"
       · left; trivial
       · contrapose!; intro _; exact ConL
     quoting (2) "A and B do not lie on L," ...
-    detail "Do I need to dispatch both at once? is that easier than one or the other? This argument is
-    kinda messy"
+    fixme "Do I need to dispatch both at once? is that easier than one or the other? This argument is kinda messy"
     comment "Author asserts without proof, but it is obvious that these result in true instances for Pasch."
     clearly A off L := by
       idea "if A on L, then L intersects segment A C at A, and L does not intersect B C at all, since A is off BC"
-      have AonAC : A on segment A C := obvious
-      have AinInt : A ∈ L ∩ segment A C := obvious
       have LintAC : L intersects segment A C := obvious
       have LintACatA : L intersects segment A C at A := by sorry
-      intuition "if L intersects AC at A, then L can either be 'tangent' to the triangle (just touches A)
-      or passes through and is subject to pasch
-      so either \"L avoids AB and BC\" xor \"L enters the triangle and is subject to pasch."
       by_contra! hNeg
       obtain ⟨_, _, LintBC⟩ := hNeg (Or.inl LintAC)
       intuition "we now have L int AB, BC, AC, which means the triangle must be a point and A = B = C."
-    
+ 
       sorry
-      
       /-
       clearly A off segment B C := by
         -- triABC is the play here; have collinear B C (via segment B C), so since ¬ collinear {A,B,C}, contra
