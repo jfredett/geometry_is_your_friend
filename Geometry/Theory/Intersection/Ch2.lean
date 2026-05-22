@@ -289,6 +289,18 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   · unfold Segment; simp only [mem_setOf_eq]; left; exact AXB
   · exact ref lemma 1.0.32 LintAXBatX
 
+atlas corrolary 2.0.25 "If L intersects segment A B at X, then L splits A and B"
+  {L : Line} {A B X : Point} :
+  (L intersects (segment A B) at X) -> (L splits A and B) := by
+    intro LintABatX
+    have XonL : X on L := ref lemma 1.0.32 LintABatX
+    -- X ∈ Segment A B is the closed-segment trichotomy.
+    have hX : (A - X - B) ∨ A = X ∨ B = X := ref lemma 1.0.33 LintABatX
+    rcases hX with AXB | AeqX | BeqX
+    · exact ref lemma 2.0.25 AXB LintABatX
+    · intro Hsame; apply Hsame.1; rw [AeqX]; exact XonL
+    · intro Hsame; apply Hsame.2.1; rw [BeqX]; exact XonL
+
 
 atlas commentary := by
   ref lemma 2.0.26
