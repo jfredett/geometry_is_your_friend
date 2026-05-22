@@ -67,7 +67,7 @@ atlas proposition 3.4 "Line separation by an interior point: points on the line 
       rcases h with ⟨PAB,_,_⟩ | ⟨_,APB,_⟩ | ⟨_, _, ABP⟩
       · exact PAB
       · have PonSegAB : P on segment A B := obvious
-        apply ref lemma 2.0.4 at PonSegAB
+        apply (obvious : segment A B ⊆ ray A B) at PonSegAB
         contradiction
       · have PonRayAB : P on ray A B := obvious
         contradiction
@@ -102,7 +102,7 @@ atlas proposition 3.4 "Line separation by an interior point: points on the line 
         · have PonRayAC : P on ray A C := by obvious
           right; trivial
         · have PonSegAB : P on segment A C := by obvious
-          apply ref lemma 2.0.4 at PonSegAB
+          apply (obvious : segment A C ⊆ ray A C) at PonSegAB
           right; trivial
 
 
@@ -166,7 +166,7 @@ atlas proposition 3.4
       rcases h with ⟨PAB,_,_⟩ | ⟨_,APB,_⟩ | ⟨_, _, ABP⟩
       · exact PAB
       · have PonSegAB : P on segment A B := obvious
-        apply ref lemma 2.0.4 at PonSegAB
+        apply (obvious : segment A B ⊆ ray A B) at PonSegAB
         contradiction
       · have PonRayAB : P on ray A B := obvious
         contradiction
@@ -207,7 +207,7 @@ atlas proposition 3.4
         · have PonRayAC : P on ray A C := by obvious
           right; trivial
         · have PonSegAB : P on segment A C := by obvious
-          apply ref lemma 2.0.4 at PonSegAB
+          apply obvious at PonSegAB
           right; trivial
         quoting ... "∎"
 -/

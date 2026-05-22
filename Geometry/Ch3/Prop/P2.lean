@@ -51,7 +51,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     unfold Parallel at hNeg
     have ⟨LneAO, parCondition⟩ := hNeg
     push Not at parCondition
-    have OonAO : O on segment A O := ref lemma 1.0.20
+    have OonAO : O on segment A O := obvious
     specialize parCondition O OonL
     contradiction
   have BoffL : B off L := by

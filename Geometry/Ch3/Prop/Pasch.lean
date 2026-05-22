@@ -79,15 +79,15 @@ atlas proposition 3.7 "Pasch's Postulate"
       constructor
       · rw [LeqSegAC]; left; exact ref lemma 3.0.2
       · intro CoffL; rw [LeqSegAC] at CoffL
-        exact absurd ref lemma 1.0.20 CoffL
+        exact absurd obvious CoffL
     clearly L ≠ segment B C := by
       constructor
       · rw [LeqSegBC]; right; exact ref lemma 3.0.2
       · intro CoffL; rw [LeqSegBC] at CoffL
-        exact absurd ref lemma 1.0.20 CoffL
+        exact absurd obvious CoffL
     quoting (1) "Either C lies on L or it does not; if it does, the theorem holds (law the excluded middle)"
     clearly C off L := by
-      have ConAC : C on segment A C := ref lemma 1.0.20
+      have ConAC : C on segment A C := obvious
       have CinInt : C ∈ L ∩ segment A C := by tauto
       have LintersectsAC : L intersects segment A C := by use C
       constructor
