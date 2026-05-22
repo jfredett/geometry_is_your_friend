@@ -1,4 +1,6 @@
 {
+  description = "Geometry is Your Friend";
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -7,9 +9,20 @@
       url = "github:cachix/nixpkgs-python";
       inputs = { nixpkgs.follows = "nixpkgs"; };
     };
+
+    lean4-nix = {
+      url = "github:lenianiva/lean4-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-python, flake-parts, ... } @ inputs: 
+  # Garnix binary cache: lean4-nix's CI publishes built Lean binaries
+  nixConfig = {
+    extra-substituters = [ "https://cache.garnix.io" ];
+    extra-trusted-public-keys = [ "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g=" ];
+  };
+
+  outputs = { self, nixpkgs, nixpkgs-python, lean4-nix, flake-parts, ... } @ inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
       ];
@@ -17,17 +30,50 @@
       systems = [ "x86_64-linux" "aarch64-darwin" ];
 
       perSystem = { config, pkgs, system, ... }: with builtins; let
-        collect = f: deps: concatMap f (attrValues deps);
+        # ---- Lean toolchain (v4.30.0-rc2 binary via fetchBinaryLean) ----
+        leanToolchain = pkgs.callPackage "${lean4-nix.outPath}/lib/toolchain.nix" {};
+        leanManifest = {
+          tag = "v4.30.0-rc2";
+          toolchain = {
+            x86_64-linux = {
+              url  = "https://github.com/leanprover/lean4/releases/download/v4.30.0-rc2/lean-4.30.0-rc2-linux.tar.zst";
+              hash = "sha256-W1FiXxVPChOze9iS8dlfeen9W58NCVtBJiFe4ryNvoY=";
+            };
+            aarch64-linux = {
+              url  = "https://github.com/leanprover/lean4/releases/download/v4.30.0-rc2/lean-4.30.0-rc2-linux_aarch64.tar.zst";
+              hash = "sha256-sZb0HaI5YOhC/A/AR0nRY51Eg5/q/AQU5Tyy22sWeQ8=";
+            };
+            x86_64-darwin = {
+              url  = "https://github.com/leanprover/lean4/releases/download/v4.30.0-rc2/lean-4.30.0-rc2-darwin.tar.zst";
+              hash = "sha256-kqj9gZ002SDuWS8Ay449dEloLEsuQ6B2DCkhpuDn83A=";
+            };
+            aarch64-darwin = {
+              url  = "https://github.com/leanprover/lean4/releases/download/v4.30.0-rc2/lean-4.30.0-rc2-darwin_aarch64.tar.zst";
+              hash = "sha256-aiPSYkH9eLzD0cJL6XNBv+P0Y18ub+q8u1hjA1KQqxs=";
+            };
+          };
+        };
+        leanBin = leanToolchain.fetchBinaryLean leanManifest;
+        leanOverlay = final: prev: { lean = leanBin; };
+        pkgsLean = import nixpkgs {
+          inherit system;
+          overlays = [ leanOverlay ];
+        };
+
+        # ---- Python tooling (kept as-is, moved into its own shell) ------
+        # Skip non-attrset entries (e.g. `deps.ci = []` is a flat list
+        # consumed directly by `packages.ci.runtimeInputs`, not a
+        # dev/ci-split sub-bucket like `deps.python`/`deps.tools`).
+        collect = f: deps: concatMap f (filter isAttrs (attrValues deps));
         pythonFlake = nixpkgs-python.packages.${system};
         pythonInterp = pythonFlake."3.13.1";
         pip = pkgs.python3Packages;
-        # Native libraries that pip-installed wheels (e.g. `kuzu`) need to
-        # `dlopen` at import time. `pkgs.stdenv.cc.cc.lib` is the lib-output
-        # of gcc that actually contains libstdc++; `.cc` alone does not.
         ld_deps = [
           pkgs.stdenv.cc.cc.lib
         ];
         deps = with pkgs; {
+          ci = [];
+
           python = {
             dev = [];
             ci = [
@@ -83,14 +129,36 @@
         };
 
         devShells = {
-          default = pkgs.mkShell {
-            name = "dev shell";
+          # Single combined dev shell. `nix develop --impure` (impure
+          # required for the venvShellHook + pip flow that writes ./.venv
+          # outside the nix store). Contains the Nix-built Lean toolchain
+          # (pkgsLean.lean), elan (only so `lake` can update
+          # lake-manifest.json -- the actual `lean` binary on PATH is the
+          # Nix one), Python venv setup, and all general tooling.
+          default = pkgsLean.mkShell {
+            name = "giyf dev shell";
             venvDir = "./.venv";
             nativeBuildInputs = [ ];
             buildInputs = ci_deps;
-            packages = dev_deps;
+            packages = dev_deps ++ [
+              pkgsLean.lean
+              pkgs.elan
+              pkgs.git
+              pkgs.just
+            ];
 
             shellHook = /* bash */ ''
+              # Prepend our Nix-built Lean toolchain so it wins over any
+              # `lean`/`lake` shims inherited from the outer shell (e.g.
+              # nixpkgs' `lean4-elan-stub` shipped via some neovim envs,
+              # which has a broken self-reference resolution that causes
+              # `exec` to loop and burn CPU).
+              export PATH="${pkgsLean.lean}/bin:$PATH"
+
+              # Workaround for nixpkgs #409490: `lake build` fails with the
+              # default gcc linker on NixOS. Switch to clang.
+              export LEAN_CC=clang
+
               SOURCE_DATE_EPOCH=$(date +%s)
               VENV=.venv
 
@@ -106,22 +174,9 @@
               # not honour a `postShellHook` field, so the export has to
               # live here.
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath ld_deps}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-
-              # Prefer the elan-managed toolchain over whatever lean4 the
-              # dev-shell-env transitively brings in. The Nix-packaged elan
-              # doesn't drop shims into ~/.elan/bin, so prepending that
-              # directory is a no-op. Instead, ask elan which toolchain
-              # `lean-toolchain` resolves to and put that bin/ on PATH.
-              if command -v elan >/dev/null 2>&1; then
-                LEAN_BIN="$(elan which lean 2>/dev/null || true)"
-                if [ -n "$LEAN_BIN" ] && [ -x "$LEAN_BIN" ]; then
-                  export PATH="$(dirname "$LEAN_BIN"):$PATH"
-                fi
-              fi
             '';
           };
         };
       };
     };
 }
-
