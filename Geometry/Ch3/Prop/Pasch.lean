@@ -32,6 +32,17 @@ open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
 open Atlas
 
+
+atlas lemma 3.7.1 "If A and B are collinear, and B and C are collinear, and A and C are collinear, then A B and C are collinear." 
+  {A B C : Point} : collinear A B ∧ collinear B C ∧ collinear A C -> collinear A B C := by
+  sorry
+
+atlas corollary 3.7.1 "If L intersects segments AB, BC, and AC, then A B and C are collinear"
+  {A B C : Point} {L : Line} :
+  L intersects segment A B ∧ L intersects segment B C ∧ L intersects segment A C -> collinear A B C := by
+  sorry
+
+
 atlas commentary := by
   ref proposition 3.7
   page 114
@@ -40,12 +51,18 @@ atlas commentary := by
   ]
   name "Pasch's Postulate"
   preface "If A,B,C are distinct noncollinear points and L is any line intersecting AB in a point between A and B, then L
-also intersect AC or BC (see figure 3.10). If C does not lie on L, then L does not intersect both AC and BC."
-  notes "Intuititively, this theorem says that if a line \"goes into\" a triangle through one side, it must \"come out\" through
+also intersects AC or BC (see figure 3.10). If C does not lie on L, then L does not intersect both AC and BC.
+  
+  Intuititively, this theorem says that if a line \"goes into\" a triangle through one side, it must \"come out\" through
 another side."
+  notes "
+    I added a distinct condition on A B and C to avoid the degenerate case. I think if we had introduced the concept of
+    a triangle instead of the half-ass version I have here with the `¬collinear` condition would probably include the
+    distinct condition.
+  "
 
 atlas proposition 3.7 "Pasch's Postulate"
-  {A B C : Point} {L : Line}
+  {A B C : Point} {L : Line} {distinctABC : distinct A B C}
   (triABC : ¬(collinear A B C)) (LintSegAB : L intersects segment A B) :
   ((L intersects segment A C) ∨ (L intersects segment B C)) ∧
   (C off L -> ¬((L intersects segment A C) ∧ (L intersects segment B C))) := by
@@ -80,31 +97,25 @@ atlas proposition 3.7 "Pasch's Postulate"
     fixme "Do I need to dispatch both at once? is that easier than one or the other? This argument is kinda messy"
     comment "Author asserts without proof, but it is obvious that these result in true instances for Pasch."
     clearly A off L := by
-      idea "if A on L, then L intersects segment A C at A, and L does not intersect B C at all, since A is off BC"
-      have LintAC : L intersects segment A C := obvious
-      have LintACatA : L intersects segment A C at A := by sorry
-      by_contra! hNeg
-      obtain ⟨_, _, LintBC⟩ := hNeg (Or.inl LintAC)
-      intuition "we now have L int AB, BC, AC, which means the triangle must be a point and A = B = C."
- 
-      sorry
-      /-
-      clearly A off segment B C := by
-        -- triABC is the play here; have collinear B C (via segment B C), so since ¬ collinear {A,B,C}, contra
-        have colABC : collinear A B C := by
-          use segment B C; intro P PisABC
-          by_exhaustion PisABC
-          · rw [PeqA]; trivial
-          · rw [PeqB]; exact ref lemma 1.0.19
-          · rw [PeqC]; exact ref lemma 1.0.20
-        contradiction
+      idea "if A on L, clearly L intersects AC, since A is on L and AC."
       constructor
-      · obvious
-      · sorry
-      -/
+      · have AonAC : A on segment A C := obvious
+        left; obvious
+      · intro _; push Not; intro LintAC;
+        by_contra! LintBC
+        intuition "If L intersects all three, then there is a sort of 'collinear-transititvity' that happens." 
+        todo "Make the lookup coerce between types here, segment ⊆ ray ⊆ linethrough, etc"
+        have colABC := ref corollary 3.7.1 ⟨LintSegAB, LintBC, LintAC⟩
+        contradiction
     clearly B off L := by
-      -- similar arg to above
-      sorry
+      idea "similar to the above"
+      constructor
+      · have BonBC : B on segment B C := obvious
+        right; obvious
+      · intro _; push Not; intro LintAC;
+        by_contra! LintBC
+        have colABC := ref corollary 3.7.1 ⟨LintSegAB, LintBC, LintAC⟩
+        contradiction
     quoting ... "and the segment A B does intersect L (hypothesis and Axiom B-1)"
     comment "
     We already have the intersection hypothesis, so this is just mise en place, I suppose this _is_
@@ -112,7 +123,8 @@ atlas proposition 3.7 "Pasch's Postulate"
     "
     quoting (3) "Hence, A and B lie on opposite sides of L (by definition)"
     have LsplitsAB : L splits A and B := by
-      sorry
+      have ⟨X, LintABatX⟩ : ∃ X : Point, L intersects segment A B at X := by sorry
+      exact ref corollary 2.0.25 LintABatX
     quoting (4) "From step 1 we may assume that C does not lie on L, in which case C is either on the same side of L as A or
            on the same side of L as B (separation axiom)"
     have LguardsACorBC : (L guards A and C) ∨ (L guards B and C) := by sorry
