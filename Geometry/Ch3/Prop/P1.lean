@@ -33,7 +33,7 @@ atlas proposition 3.1.i "Two rays from common endpoints intersect in their segme
     intro C CinInt
     quoting (3) "If C = A or C = B, C is an endpoint of the segment A B" ...
     by_cases suppose : C = A ∨ C = B
-    · tauto
+    · obvious
     · quoting ... "Otherwise, A B and C are three collinear points (by the definition of ray and Axiom B-1)" ...
       have distinctABC : distinct A B C := by separate; obvious
       have colABC : collinear A B C := by
@@ -44,7 +44,7 @@ atlas proposition 3.1.i "Two rays from common endpoints intersect in their segme
         · rw [PeqB]; exact ref lemma 1.0.22
         · rw [PeqC]; exact CinInt.left
       quoting ... "so exactly one of A - C - B, A - B - C, or C - A - B holds (Axiom B-3)." ...
-      have ⟨ConAB, ConBA⟩ : C on ray A B ∧ C on ray B A := by tauto
+      have ⟨ConAB, ConBA⟩ : C on ray A B ∧ C on ray B A := obvious
       rcases ref axiom B.3 A B C ⟨distinctABC, colABC⟩ with ⟨ABC, _, _⟩ | ⟨_, CAB, _⟩ | ⟨_, _ACB⟩
       · quoting (4) "If A - B - C holds, then C is not on the ray B A" ...
         exfalso
@@ -56,7 +56,7 @@ atlas proposition 3.1.i "Two rays from common endpoints intersect in their segme
         contradiction
       · quoting ... "In either case, C does not belong to both rays."
         quoting (5) "Hence, the relation A - C - B must hold, so C belongs to the segment A B (definition of the segment A B, proof by cases)."
-        tauto
+        obvious
 
 
 atlas commentary := by
