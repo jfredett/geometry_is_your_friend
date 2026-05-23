@@ -79,28 +79,11 @@ atlas proposition 3.7 "Pasch's Postulate"
       · left; trivial
       · contrapose!; intro _; exact ConL
     quoting (2) "A and B do not lie on L," ...
-    fixme "Do I need to dispatch both at once? is that easier than one or the other? This argument is kinda messy"
     comment "Author asserts without proof, but it is obvious that these result in true instances for Pasch."
     clearly A off L := by
-      idea "if A on L, clearly L intersects AC, since A is on L and AC."
-      constructor
-      · have AonAC : A on segment A C := obvious
-        left; obvious
-      · intro _; push Not; intro LintAC;
-        by_contra! LintBC
-        intuition "If L intersects all three, then there is a sort of 'collinear-transititvity' that happens." 
-        todo "Make the lookup coerce between types here, segment ⊆ ray ⊆ linethrough, etc"
-        have colABC := ref lemma 3.7.1 ⟨LintSegAB, LintBC, LintAC⟩
-        contradiction
+      sorry
     clearly B off L := by
-      idea "similar to the above"
-      constructor
-      · have BonBC : B on segment B C := obvious
-        right; obvious
-      · intro _; push Not; intro LintAC;
-        by_contra! LintBC
-        have colABC := ref lemma 3.7.1 ⟨LintSegAB, LintBC, LintAC⟩
-        contradiction
+      sorry
     quoting ... "and the segment A B does intersect L (hypothesis and Axiom B-1)"
     comment "
     We already have the intersection hypothesis, so this is just mise en place, I suppose this _is_

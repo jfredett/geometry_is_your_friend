@@ -59,29 +59,38 @@ atlas lemma 3.0.2 "A line intersects itself (bare intersection of L with L)"
   rw [hNeg] at AonL
   contradiction
 
-/- atlas lemma 3.7.1 "If A and B are collinear, and B and C are collinear, and A and C are collinear, then A B and C are collinear." -/
-/-   {A B C : Point} : collinear A B ∧ collinear B C ∧ collinear A C -> collinear A B C := by -/
-  
-
-atlas lemma 3.7.1 "If L intersects segments AB, BC, and AC, then A B and C are collinear"
-  {A B C : Point} {L : Line} :
-  L intersects segment A B ∧ L intersects segment B C ∧ L intersects segment A C -> collinear A B C := by
-  intro ⟨LintAB, LintBC, LintAC⟩
-  sorry
-
 atlas lemma 3.7.2 "If L intersects M, then there is a point at which it intersects M, WLOG X"
-  {L M : Line} : L intersects M -> ∃ X : Point, L intersects M at X := by
-  intro LinM
-  
-  sorry
+  {L M : Line} : L ≠ M -> L intersects M -> ∃ X : Point, L intersects M at X := by
+  intro LneM LintM
+  rcases ref lemma 2.0.1 L M with empty | unique | equal
+  · exfalso; obtain ⟨X, hX⟩ := LintM; rw [empty] at hX; exact hX
+  · obtain ⟨X, hX, _⟩ := unique
+    exact ⟨X, hX⟩
+  · exact absurd equal LneM
 
-atlas lemma 3.7.3 "If L splits A and B, then L intersects segment A B" 
+atlas lemma 3.7.3 "If L splits A and B, then L intersects segment A B"
   {L : Line} {A B : Point} : (L splits A and B) -> (L intersects segment A B) := by
-  sorry
+  intro LsplitsAB
+  by_cases hA : A on L
+  · exact ⟨A, hA, by obvious⟩
+  by_cases hB : B on L
+  · exact ⟨B, hB, by obvious⟩
+  unfold Splits Guards at LsplitsAB
+  push Not at LsplitsAB
+  obtain ⟨_, P, PonSeg, PonL⟩ := LsplitsAB hA hB
+  exact ⟨P, PonL, PonSeg⟩
 
-atlas corollary 3.7.3 "If L guards A and B, then L does not intersect segment A B" 
+atlas corollary 3.7.3 "If L guards A and B, then L does not intersect segment A B"
   {L : Line} {A B : Point} : (L guards A and B) -> ¬(L intersects segment A B) := by
-  sorry
+  intro ⟨AoffL, BoffL, hCase⟩ ⟨X, XonL, XonSeg⟩
+  rcases hCase with AeqB | hAvoids
+  · subst AeqB
+    rcases XonSeg with AXA | AeqX | AeqX
+    · have : distinct A X A := ref lemma 1.0.39 AXA
+      separate at this; contradiction
+    · rw [<- AeqX] at XonL; exact AoffL XonL
+    · rw [<- AeqX] at XonL; exact AoffL XonL
+  · exact (hAvoids X XonSeg) XonL
 
 
 end Intersection
