@@ -5,28 +5,50 @@ import Geometry.Theory.Ch1
 import Geometry.Theory.Line.Ch1
 import Geometry.Theory.Line.Ch2
 import Geometry.Tactics
+import Atlas
 
 namespace Geometry.Theory
 
 open Set
 open Geometry.Theory
+open Atlas
 
 namespace Betweenness
 
--- TODO: For this and other commutative properties, I think there is a class to instantiate to get that .symm thing to
--- work.
+atlas commentary := by
+  ref lemma 2.0.30
+  name "Guarding is symmetric in its two point arguments"
+  preface "a line doesn't care about the order of the points it guards"
+  notes "TODO: For this and other commutative properties, I think there is a class to instantiate to get that .symm thing to
+work."
 
-/-- a line doesn't care about the order of the points it guards -/
-lemma guards_commutes : (L guards A and B) -> (L guards B and A) := by
+atlas lemma 2.0.30 "Guarding is symmetric in its two point arguments"
+  : (L guards A and B) -> (L guards B and A) := by
     intro LguardsAB
-    unfold SameSide at *; rw [<- Line.segment_AB_eq_segment_BA] ; tauto
+    unfold Guards at *; rw [<- ref lemma 2.0.13] ; tauto
 
-/-- a line doesn't care about the order of the points it splits -/
-lemma splits_commutes : (L splits A and B) -> (L splits B and A) := by
+
+atlas commentary := by
+  ref lemma 2.0.31
+  name "Splitting is symmetric in its two point arguments"
+  preface "a line doesn't care about the order of the points it splits"
+
+atlas lemma 2.0.31 "Splitting is symmetric in its two point arguments"
+  : (L splits A and B) -> (L splits B and A) := by
     intro LsplitsAB
-    unfold SameSide at *; rw [<- Line.segment_AB_eq_segment_BA] ; tauto
-
+    unfold Splits Guards at *; rw [<- ref lemma 2.0.13] ; tauto
 
 end Betweenness
+
+/-- Dot-notation wrapper: `h.symm` swaps the point args of an `L guards _ and _` hypothesis.
+    Lives in `Geometry.Theory` (not the `Betweenness` sub-namespace) so dot-notation lookup
+    finds it via the `Guards` type's namespace. -/
+def Guards.symm {A B : Point} {L : Line} (h : Guards A B L) : Guards B A L :=
+  Betweenness.«Guarding is symmetric in its two point arguments» h
+
+/-- Dot-notation wrapper: `h.symm` swaps the point args of an `L splits _ and _` hypothesis.
+    Same namespace placement as `Guards.symm`. -/
+def Splits.symm {A B : Point} {L : Line} (h : Splits L A B) : Splits L B A :=
+  Betweenness.«Splitting is symmetric in its two point arguments» h
 
 end Geometry.Theory
