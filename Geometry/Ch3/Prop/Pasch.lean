@@ -131,13 +131,20 @@ atlas proposition 3.7 "Pasch's Postulate"
     rcases LguardsACorBC with LguardsAC | LguardsBC
     · quoting (5) "If C is on the same side of L as A, then C is on the opposite side from B, which means that L intersects BC
            and does not intersect AC" ...
-      sorry
+      have LsplitsBC : L splits B and C := by sorry -- ref corollary ["B.4.iii"] ⟨BoffL, CoffL, CoffL⟩ ⟨LsplitsBC, LguardsAC.symm⟩
+      have LintBC : L intersects segment B C := via lemma 3.7.3 LsplitsBC
+      have LguardsAC := ref axiom ["B.4.ii"] ⟨AoffL, BoffL, CoffL⟩ ⟨LsplitsAB, LsplitsBC⟩
+      constructor
+      · right; exact LintBC
+      · intro; push Not; contrapose!; intro;
+        exact ref corollary 3.7.3 LguardsAC
     · quoting ... "similarly, if C is on the same side of L as B, then L intersects AC and does not intersect BC (separation axiom)."
-      have LsplitsAC := ref axiom ["B.4.iii"] ⟨AoffL, BoffL, CoffL⟩ ⟨LsplitsAB, LguardsBC⟩
-      have LintAC := ref lemma 3.7.3 LsplitsAC
+      have LsplitsAC := ref corollary ["B.4.iii"] ⟨AoffL, BoffL, CoffL⟩ ⟨LsplitsAB, LguardsBC⟩
+      have LintAC := via lemma 3.7.3 LsplitsAC
       constructor
       · left; exact LintAC
-      · intro; push Not; intro; sorry
+      · intro; push Not; intro;
+        exact ref corollary 3.7.3 LguardsBC
     quoting (6) "The conclusion of Pasch's theorem holds (Logic Rule 11 -- proof by cases). ∎"
 
 
