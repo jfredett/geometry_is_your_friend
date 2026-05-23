@@ -205,8 +205,7 @@ atlas commentary := by
   preface "A line is 'bigger' than a ray in the same way that a line is bigger than a segment"
 
 atlas lemma 2.0.12 "A ray A B is never equal to any line L"
-  : ∀ L : Line, ∀ A B : Point, A ≠ B -> ray A B ≠ L := by
-  intro L A B AneB
+  { L : Line } {A B : Point}  (AneB : A ≠ B := by assumption) : ray A B ≠ L := by
   by_contra ABeqL
   idea "construct a point X - A - B, X is on L, by definition, but off AB, also by def. but under the hypothesis L = AB, -><-"
   have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.5 A B AneB
@@ -243,6 +242,30 @@ atlas lemma 2.0.13 "Segment Commutativity"
 attribute [obvious] «Segment Commutativity»
 
 
+atlas commentary := by
+  ref lemma 2.0.14
+  name "A segment A B is never equal to any line L"
+  preface "A line is 'bigger' than a segment, in the same way that a line is bigger than a ray (2.0.12)"
+
+atlas lemma 2.0.14 "A segment A B is never equal to any line L"
+  { L : Line } {A B : Point}  (AneB : A ≠ B := by assumption) : segment A B ≠ L := by
+  intro ABeqL
+  have AonL : A on L := by rw [<- ABeqL]; obvious
+  have BonL : B on L := by rw [<- ABeqL]; obvious
+  have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.5 A B AneB
+  separate at distinctXAB
+  have XonL : X on L := by
+    have LeqXAB : L = colXAB.line :=
+      ref lemma 2.0.2 AneB ⟨AonL, colXAB.mem A, BonL, colXAB.mem B⟩
+    rw [LeqXAB]; exact colXAB.mem X
+  rw [<- ABeqL] at XonL
+  rcases XonL with AXB | AeqX | BeqX
+  · exact ref lemma 1.0.36 ⟨XAB, AXB⟩
+  · exact absurd AeqX XneA.symm
+  · exact absurd BeqX XneB.symm
+
+attribute [obvious] «A segment A B is never equal to any line L»
+                    «A ray A B is never equal to any line L»
 
 
 end Line

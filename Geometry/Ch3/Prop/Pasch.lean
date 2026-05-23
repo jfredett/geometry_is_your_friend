@@ -45,13 +45,16 @@ also intersects AC or BC (see figure 3.10). If C does not lie on L, then L does 
   
   Intuititively, this theorem says that if a line \"goes into\" a triangle through one side, it must \"come out\" through
 another side."
+  notes "The author does not require, but clearly assumes, that A B and C are distinct, I have added that as an implicit
+hypothesis"
 
 atlas proposition 3.7 "Pasch's Postulate"
-  {A B C : Point} {L : Line}
+  {A B C : Point} {L : Line} {distinctABC : distinct A B C}
   (triABC : ¬(collinear A B C)) (LintSegAB : L intersects segment A B) :
   ((L intersects segment A C) ∨ (L intersects segment B C)) ∧
   (C off L -> ¬((L intersects segment A C) ∧ (L intersects segment B C))) := by
     comment "mise en place"
+    separate at distinctABC
     clearly segment A B ≠ segment B C := by
       idea "if AB = BC, then ABC are collinear, which is a contradiction"
       have colABC : collinear A B C := by
@@ -60,16 +63,9 @@ atlas proposition 3.7 "Pasch's Postulate"
         by_exhaustion PisABorC
         repeat obvious
       contradiction
-    clearly L ≠ segment A C := by
-      constructor
-      · rw [LeqSegAC]; left; exact ref lemma 3.0.2
-      · intro CoffL; rw [LeqSegAC] at CoffL
-        exact absurd obvious CoffL
-    clearly L ≠ segment B C := by
-      constructor
-      · rw [LeqSegBC]; right; exact ref lemma 3.0.2
-      · intro CoffL; rw [LeqSegBC] at CoffL
-        exact absurd obvious CoffL
+    clearly L ≠ segment A B := by exact absurd LeqSegAB.symm (ref lemma 2.0.14)
+    clearly L ≠ segment A C := by exact absurd LeqSegAC.symm (ref lemma 2.0.14)
+    clearly L ≠ segment B C := by exact absurd LeqSegBC.symm (ref lemma 2.0.14)
     quoting (1) "Either C lies on L or it does not; if it does, the theorem holds (law the excluded middle)"
     clearly C off L := by
       have ConAC : C on segment A C := obvious
@@ -81,7 +77,11 @@ atlas proposition 3.7 "Pasch's Postulate"
     quoting (2) "A and B do not lie on L," ...
     comment "Author asserts without proof, but it is obvious that these result in true instances for Pasch."
     clearly A off L := by
-      sorry
+      constructor
+      · left ; have AonAB : A on segment A C := obvious
+        obvious
+      · intros
+        sorry
     clearly B off L := by
       sorry
     quoting ... "and the segment A B does intersect L (hypothesis and Axiom B-1)"
@@ -90,7 +90,7 @@ atlas proposition 3.7 "Pasch's Postulate"
     the author's justification that A and B are off L.
     "
     quoting (3) "Hence, A and B lie on opposite sides of L (by definition)"
-    have LsplitsAB : L splits A and B := via corollary 2.0.25 (via lemma 3.7.2 LintSegAB).choose_spec
+    have LsplitsAB : L splits A and B := via corollary 2.0.25 (via lemma 3.7.2 LneSegAB LintSegAB).choose_spec
     quoting (4) "From step 1 we may assume that C does not lie on L, in which case C is either on the same side of L as A or
            on the same side of L as B (separation axiom)"
     have LguardsACorBC : (L guards A and C) ∨ (L guards B and C) := by

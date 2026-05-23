@@ -217,7 +217,7 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     push Not
     intro LneLineAB
     use X
-  have LneRayAB := Ne.symm (ref lemma 2.0.12 L A B AneB)
+  have LneRayAB : L ≠ ray A B := Ne.symm (ref lemma 2.0.12)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
     have AonLineAB : A on line A B := ref lemma 1.0.23
