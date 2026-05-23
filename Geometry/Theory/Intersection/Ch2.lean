@@ -279,7 +279,7 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   {L : Line} {A X B : Point} (AXB : A - X - B) :
   (L intersects M at X) -> (L splits A and B) := by
   intro LintAXBatX
-  unfold SameSide
+  unfold Splits SameSide
   push Not
   intro AoffL BoffL
   have distinctAXB := ref lemma 1.0.39 AXB
@@ -337,7 +337,7 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
     have hA := ref lemma 2.0.26 AneX LintMatX
     have hB := ref lemma 2.0.26 BneX LintMatX
     tauto
-  unfold SameSide at MsplitsAB; push Not at MsplitsAB
+  unfold Splits SameSide at MsplitsAB; push Not at MsplitsAB
   specialize MsplitsAB AoffM BoffM
   obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
   -- L and line A B are the same thing since two points determine a line.

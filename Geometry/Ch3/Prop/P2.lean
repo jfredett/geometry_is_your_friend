@@ -75,7 +75,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     contradiction
   quoting (4) "Then A and B are on opposite sides of l (by definition)," ...
   have LsplitsAB : L splits A and B := by
-    unfold SameSide
+    unfold Splits SameSide
     push Not
     intro AoffL BoffL
     refine ⟨AneB, O, ?_, OonL⟩

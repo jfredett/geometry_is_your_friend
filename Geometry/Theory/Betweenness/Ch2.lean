@@ -36,7 +36,7 @@ atlas commentary := by
 atlas lemma 2.0.31 "Splitting is symmetric in its two point arguments"
   : (L splits A and B) -> (L splits B and A) := by
     intro LsplitsAB
-    unfold SameSide at *; rw [<- ref lemma 2.0.13] ; tauto
+    unfold Splits SameSide at *; rw [<- ref lemma 2.0.13] ; tauto
 
 
 

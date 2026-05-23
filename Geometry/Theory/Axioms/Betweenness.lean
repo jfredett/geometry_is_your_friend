@@ -133,12 +133,19 @@ does intersect L, we say that A and B are _on opposite sides_ of L (see Figure 3
 @[reducible] def SameSide (A B : Point) (L : Line)
   := (A off L) ∧ (B off L) ∧ ((A = B) ∨ (∀ P : Point, (P on segment A B) -> (L avoids P)))
 
-/--
-"Splits" and "Guards", L "splits" A and B if A and B are on opposite sides of the 'wall' L, it 'guards'
-them if they are both on the same side of the wall (we presume all points are allied with other points
-on their side of the line).
--/
-notation:20 L " splits " A " and " B => ¬(SameSide A B L)
+/-- `Splits` wraps `¬(SameSide A B L)` in a named def so the goal-view printer
+    renders it as `L splits A and B` rather than unfolding to `¬(L guards A and B)`.
+    Reducible — definitionally equal to the negation, so propositional reasoning
+    is unaffected. The `unfold` tactic *is* strict about the named head though;
+    sites that previously did `unfold SameSide at h` where h : Splits …
+    must now do `unfold Splits SameSide at h` (or `simp only [Splits, SameSide]`).
+
+    L "splits" A and B if A and B are on opposite sides of the 'wall' L; L
+    "guards" them if they are both on the same side (we presume all points
+    are allied with other points on their side of the line). -/
+@[reducible] def Splits (L : Line) (A B : Point) : Prop := ¬(SameSide A B L)
+
+notation:20 L " splits " A " and " B => Splits L A B
 notation:20 L " guards " A " and " B => SameSide A B L
 
 atlas commentary := by
