@@ -33,7 +33,9 @@ atlas commentary := by
   preface "No points are contained on the intersection of a segment and it's related extension"
 
 atlas lemma 2.0.15 "Segment A B and the related extension A B have empty intersection"
-  : (segment A B : Set Point) ∩ (extension A B : Set Point) = ∅ := by
+  : (segment A B : Line) ∩ extension A B = ∅ := by
+  apply Line.ext_set
+  rw [Line.inter_toSet, Line.empty_toSet]
   ext P
   constructor
   -- Forward case.
@@ -57,8 +59,8 @@ atlas lemma 2.0.16 "A point on a segment lies off the related extension"
   : X on segment A B -> X off extension A B := by
   intro XonAB
   by_contra! hNeg
-  have interEmpty : (segment A B : Set Point) ∩ (extension A B : Set Point) = ∅ := ref lemma 2.0.15
-  have XinInter : X ∈ ((segment A B : Set Point) ∩ (extension A B : Set Point)) := by tauto
+  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
+  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by tauto
   rw [interEmpty] at XinInter
   contradiction
 
@@ -72,8 +74,8 @@ atlas lemma 2.0.17 "A point on an extension lies off the related segment"
   : X on extension A B -> X off segment A B := by
   intro XonAB
   by_contra! hNeg
-  have interEmpty : (segment A B : Set Point) ∩ (extension A B : Set Point) = ∅ := ref lemma 2.0.15
-  have XinInter : X ∈ ((segment A B : Set Point) ∩ (extension A B : Set Point)) := by tauto
+  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
+  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by tauto
   rw [interEmpty] at XinInter
   contradiction
 
@@ -103,7 +105,7 @@ atlas commentary := by
 atlas lemma 2.0.19 "The intersection of two distinct parallel lines is empty"
   : ∀ L M : Line, (L ≠ M) -> (L ∥ M) -> L ∩ M = ∅ := by
   intro L M LneM LparM
-  apply Subset.antisymm
+  apply Line.eq_of_subset
   · tauto
   · tauto
 
@@ -119,7 +121,7 @@ atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines
   constructor
   · intro PinInter
     unfold Intersects
-    apply Subset.antisymm
+    apply Line.eq_of_subset
     · intro Q QinInter
       have h := ref lemma 2.0.18 L M LneM LnparM ⟨QinInter, PinInter⟩
       trivial
@@ -143,18 +145,18 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
   have XonSegAB : X on segment A B := ref lemma 1.0.33 LintABatX
   have XonL : X on L := ref lemma 1.0.32 LintABatX
   have XonRayAB : X on ray A B := by obvious
-  have LneRayAB : L ≠ (ray A B : Set Point) := by
+  have LneRayAB : L ≠ (ray A B : Line) := by
     by_contra! hNeg
     rw [hNeg] at LintABatX
     unfold Intersects at LintABatX
     have AonSegAB : A on segment A B := by obvious
     have AonRayAB : A on ray A B := by obvious
-    have AonIntRaySeg : A ∈ ((ray A B : Set Point) ∩ (segment A B : Set Point)) := by tauto
+    have AonIntRaySeg : A ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by tauto
     rw [LintABatX] at AonIntRaySeg
     have AeqX : A = X := by tauto
     have BonSegAB : B on segment A B := by obvious
     have BonRayAB : B on ray A B := by obvious
-    have BonIntRaySeg : B ∈ ((ray A B : Set Point) ∩ (segment A B : Set Point)) := by tauto
+    have BonIntRaySeg : B ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by tauto
     rw [LintABatX] at BonIntRaySeg
     have BeqX : B = X := by tauto
     have AeqB : A = B := by rw [BeqX, AeqX]
@@ -169,7 +171,7 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
     have XeqP : P = X := by tauto
     contradiction
   · push Not at counter
-    apply Subset.antisymm
+    apply Line.eq_of_subset
     · intro P PonLintRay
       have XonLintRay : X ∈ L ∩ ray A B := by tauto
       have PeqX : P = X := ref lemma 2.0.18 L (ray A B) LneRayAB LnparRayAB ⟨PonLintRay, XonLintRay⟩
@@ -224,24 +226,24 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     have AonLineAB : A on line A B := ref lemma 1.0.23
     have AonRayAB : A on ray A B := ref lemma 1.0.21
     have AonL : A on L := by
-      have h : A ∈ (line A B : Set Point) := AonLineAB
+      have h : A ∈ (line A B : Line) := AonLineAB
       rw [<- hNeg] at h; tauto
     have BonLineAB : B on line A B := ref lemma 1.0.24
     have BonRayAB : B on ray A B := ref lemma 1.0.22
     have BonL : B on L := by
-      have h : B ∈ (line A B : Set Point) := BonLineAB
+      have h : B ∈ (line A B : Line) := BonLineAB
       rw [<- hNeg] at h; tauto
     have AinIntLine : A ∈ L ∩ line A B := by tauto
     have BinIntLine : B ∈ L ∩ line A B := by tauto
     have AinIntRay : A ∈ L ∩ ray A B := by tauto
     have BinIntRay : B ∈ L ∩ ray A B := by tauto
-    have LintABatA : L intersects ray A B at A := (ref lemma 2.0.20 A L (ray A B : Set Point) ⟨LneRayAB, LnparRayAB⟩).mp AinIntRay
-    have LintABatB : L intersects ray A B at B := (ref lemma 2.0.20 B L (ray A B : Set Point) ⟨LneRayAB, LnparRayAB⟩).mp BinIntRay
+    have LintABatA : L intersects ray A B at A := (ref lemma 2.0.20 A L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp AinIntRay
+    have LintABatB : L intersects ray A B at B := (ref lemma 2.0.20 B L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp BinIntRay
     unfold Intersects at *
     rw [LintRay] at LintABatA
     rw [LintRay] at LintABatB
     rw [LintABatB] at LintABatA
-    simp only [singleton_eq_singleton_iff] at LintABatA
+    simp only [Line.singleton_eq_singleton] at LintABatA
     rw [LintABatA] at AneB
     contradiction
   by_cases counter : ∃ P : Point, (L intersects line A B at P) ∧ (P ≠ X)
@@ -252,7 +254,7 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     have PeqX : P = X := ref lemma 2.0.18 L (line A B) LneLineAB LnparLineAB ⟨PinInter, XinInter⟩
     contradiction
   · push Not at counter
-    apply Subset.antisymm
+    apply Line.eq_of_subset
     · intro P PinInter
       exact counter P ((ref lemma 2.0.20 P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
     · intro P PisX

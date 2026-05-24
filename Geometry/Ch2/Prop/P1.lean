@@ -49,20 +49,23 @@ atlas proposition 2.1 "Distinct non-parallel lines share a unique point"
     use P
     constructor
     · unfold Intersects
+      apply Line.ext_set
       apply Subset.antisymm
       · intro Q QinInt
+        rw [Line.inter_toSet] at QinInt
         have ⟨QonL, QonM⟩ := QinInt
         specialize Puniq Q ⟨QonL, QonM⟩
         rw [Puniq]
-        tauto
+        rw [Line.singleton_toSet]; tauto
       · intro Q QinSingle
+        rw [Line.singleton_toSet] at QinSingle
         have QeqP : Q = P := by tauto
-        rw [QeqP]
+        rw [Line.inter_toSet]; rw [QeqP]
         tauto
     · intro Q LintMatQ
       unfold Intersects at LintMatQ
       specialize Puniq Q
-      have QinLintM : Q ∈ L ∩ M := by rw [LintMatQ]; tauto
+      have QinLintM : Q ∈ L ∩ M := by rw [LintMatQ]; simp
       tauto
 
 end Geometry.Ch2.Prop

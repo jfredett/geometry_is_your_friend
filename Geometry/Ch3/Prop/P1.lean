@@ -24,9 +24,9 @@ atlas commentary := by
   notes "I'm inserting this `A ≠ B` condition because the author never clearly states, but definitely implies, that `the ray A A` is degenerate because `A - A - B` and the like are degenerate"
 
 atlas proposition 3.1.i "Two rays from common endpoints intersect in their segment"
-  : A ≠ B -> (segment A B : Set Point) = (ray A B : Set Point) ∩ (ray B A : Set Point) := by
+  : A ≠ B -> (segment A B : Line) = (ray A B : Line) ∩ (ray B A : Line) := by
   intro AneB
-  apply Subset.antisymm
+  apply Line.eq_of_subset
   · quoting (1) "By the definition of segment and ray, the segment A B ⊆ the ray A B [and ⊆ ray B A], so by definition of intersection, the segment AB ⊆ (ray A B ∩ ray B A)."
     obvious
   · quoting (2) "Conversely, let the point C belong to the intersection, (ray A B ∩ ray B A); we wish to show that C belongs to the segment A B."
@@ -65,9 +65,9 @@ atlas commentary := by
   notes "similar to the above, an implied A ≠ B condition was added"
 
 atlas proposition 3.1.ii "Two rays from common endpoints union to their line"
-  : A ≠ B -> (ray A B : Set Point) ∪ (ray B A : Set Point) = (line A B : Set Point) := by
+  : A ≠ B -> (ray A B : Line) ∪ (ray B A : Line) = (line A B : Line) := by
   intro AneB
-  apply Subset.antisymm
+  apply Line.eq_of_subset
   · intro P PinUnion
     rcases PinUnion with PinAB | PinBA
     · exact ref lemma 1.0.18 PinAB
@@ -86,7 +86,7 @@ atlas proposition 3.1.ii "Two rays from common endpoints union to their line"
     · exfalso; exact absurd eq.symm BneP
     -- the case where P is on the segment
     · have PonSegAB : P on segment A B := obvious
-      have PonRayAB : P ∈ (ray A B : Set Point) := by obvious
+      have PonRayAB : P ∈ (ray A B : Line) := by obvious
       exact mem_union_left _ PonRayAB
     -- this is where we need the PneA and PneB conditions
     · have PonExtAB : P on extension A B := obvious

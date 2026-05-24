@@ -66,6 +66,68 @@ structure LineThrough (A B : Point) where
 @[reducible] def LineThrough.carrier {A B : Point} (_L : LineThrough A B) : Set Point :=
   {C | C = A ∨ C = B ∨ A - C - B ∨ A - B - C ∨ C - A - B}
 
+/-! ## Pretty-printer unexpanders — proof states show the surface syntax
+
+    Without these, goals render the elaborated form (e.g.
+    `{ toSet := (Segment.between A B).carrier }`) which is unreadable.
+    Each unexpander brings constructor applications back to surface form.
+-/
+
+@[app_unexpander Segment.between]
+def Segment.between.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $A $B) => `(segment $A $B)
+  | _ => throw ()
+
+@[app_unexpander Ray.from_]
+def Ray.from_.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $A $B) => `(ray $A $B)
+  | _ => throw ()
+
+@[app_unexpander Extension.past]
+def Extension.past.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $A $B) => `(extension $A $B)
+  | _ => throw ()
+
+@[app_unexpander LineThrough.through]
+def LineThrough.through.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $A $B) => `(line $A $B)
+  | _ => throw ()
+
+-- The Coe insertion from a line-part to `Line` produces
+-- `Line.mk (X.carrier)`, which Lean prints as `{ toSet := X.carrier }`
+-- (anonymous structure literal). The unexpanders below recognize the
+-- carrier projection on line-parts and render it as `↑(segment A B)`
+-- (etc.), so proof states stay readable.
+
+@[app_unexpander Segment.carrier]
+def Segment.carrier.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $s) => `(($s : Line))
+  | _ => throw ()
+
+@[app_unexpander Ray.carrier]
+def Ray.carrier.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $r) => `(($r : Line))
+  | _ => throw ()
+
+@[app_unexpander Extension.carrier]
+def Extension.carrier.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $e) => `(($e : Line))
+  | _ => throw ()
+
+@[app_unexpander LineThrough.carrier]
+def LineThrough.carrier.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $L) => `(($L : Line))
+  | _ => throw ()
+
+-- Strip the `Line.mk` wrap when its argument is already an ascribed
+-- `(X : Line)` form (which our carrier unexpanders produce). This
+-- collapses `{ toSet := (segment A B : Line) }` back to `(segment A B : Line)`.
+@[app_unexpander Line.mk]
+def Line.mk.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ ($x : $_)) => `($x)
+  | `($_ $x) => `(($x : Line))
+  | _ => throw ()
+
 /-! ## Membership instances -/
 
 instance {A B : Point} : Membership Point (Segment A B) where
@@ -93,6 +155,69 @@ instance {A B : Point} : CoeHead (Extension A B) (Set Point) where
 
 instance {A B : Point} : CoeHead (LineThrough A B) (Set Point) where
   coe L := L.carrier
+
+/-! ## `CoeHead` to the abstract `Line`
+
+    With `Line` now an opaque-ish wrapper around `Set Point`, line-parts
+    coerce to `Line` by wrapping their carrier. This makes
+    `ray A B ⊆ line A B`, `segment A B = L`, etc. work without the
+    `(... : Set Point)` ascription — both sides land in `Line` via Coe.
+-/
+
+instance {A B : Point} : CoeHead (Segment A B) Line where
+  coe s := ⟨s.carrier⟩
+
+instance {A B : Point} : CoeHead (Ray A B) Line where
+  coe r := ⟨r.carrier⟩
+
+instance {A B : Point} : CoeHead (Extension A B) Line where
+  coe e := ⟨e.carrier⟩
+
+instance {A B : Point} : CoeHead (LineThrough A B) Line where
+  coe L := ⟨L.carrier⟩
+
+/-! ## Cross-line-part comparison auto-coercion — bottom of the warren
+
+    `Eq` / `Ne` / `⊆` / `∩` / `∪` between two typed line-parts of different
+    shapes (e.g. `segment A B = segment B C`) fail to elaborate by default
+    because Lean picks the LHS type and refuses to coerce the RHS to a
+    common ambient.
+
+    **What we tried, and why each failed:**
+
+    1. `macro_rules` matching `$lhs = $rhs`: never fires. `=` / `≠` / `⊆`
+       go through Lean's `binrel%` machinery which intercepts the syntax
+       below the macro layer. Term-level `macro_rules` never sees these.
+
+    2. Replacing `CoeHead X Line` with `Coe X Line` (so Lean's `binrel%`
+       might use it to find a common type): hits "instance does not
+       provide concrete values for (semi-)out-params" at the instance
+       declaration. The line-parts being parameterized by `A B : Point`
+       means a `Coe (Segment A B) Line` instance has free A and B that
+       Lean's typeclass resolver can't pin down at search time.
+
+    3. `term_elab` / `binop_elab` hook on `Eq` directly: would require
+       writing a Lean elaborator extension that inspects elaborated
+       argument types, recognizes the line-part-vs-line-part pattern,
+       and inserts `CoeHead.coe` to `Line` on both sides. ~80 LOC of
+       elaborator code, touches Lean's elaboration loop, and requires
+       intimate knowledge of how `binrel%` / `Lean.Elab.BinOp` interact
+       with `Lean.Meta.coercedTo?` — interface that's not stable across
+       Lean versions.
+
+    **Convention going forward:** at the ~25 cross-line-part comparison
+    sites in the codebase, anchor the LHS with `(... : Line)`. The RHS
+    auto-coerces via `CoeHead`. Example:
+    ```
+    (segment A B : Line) = segment B A   -- ✓ — LHS anchors, RHS auto-coerces
+    (segment A B : Line) ⊆ line A B      -- ✓ — same pattern
+    segment A B = segment B C            -- ✗ — Lean picks Segment A B as type, can't coerce
+    ```
+
+    If the elaborator extension ever becomes worth ~80 LOC + the
+    Lean-internal API risk, the right hook point is `binrel%` / each
+    operator's elabFn. We've exhausted the cheaper options.
+-/
 
 /-! ## Cross-type subset is via explicit `(↑x : Set Point)` ascription.
 
@@ -158,7 +283,7 @@ macro_rules
 
 /-! ## Intersections -/
 
-@[reducible] def Intersects (L M : Set Point) (X : Point) : Prop := L ∩ M = {X}
+@[reducible] def Intersects (L M : Line) (X : Point) : Prop := L ∩ M = ({X} : Line)
 
 /-- Bare form of `L intersects M` — asserts the intersection is non-empty (i.e.
     `L` and `M` share *at least one* point, allowing the "L coincides with M"
@@ -168,23 +293,27 @@ macro_rules
     Going from this to a unique intersection point (`L intersects M at X`)
     requires extra work — typically `ref lemma 3.0.1` for lines,
     which uses `line_trichotomy` to rule out coincidence. -/
-def IntersectsSome (L M : Set Point) : Prop := Set.Nonempty (L ∩ M)
+def IntersectsSome (L M : Line) : Prop := ∃ P, P ∈ L ∧ P ∈ M
 
 /-- Extract a point in the intersection from a bare `intersects` hypothesis.
     Note: the returned `X` is *some* shared point, not necessarily a unique one. -/
-lemma IntersectsSome.intersection_point {L M : Set Point} (h : IntersectsSome L M)
-  : ∃ X, X ∈ L ∩ M := h
+lemma IntersectsSome.intersection_point {L M : Line} (h : IntersectsSome L M)
+  : ∃ X, X ∈ L ∧ X ∈ M := h
 
 /-- Forget the witness: `L intersects M at X` ⇒ `L intersects M`. Use via dot
     notation as `h.bare` at call sites where the bare (witness-free) form is
     expected. -/
-theorem Intersects.bare {L M : Set Point} {X : Point}
-  (h : Intersects L M X) : IntersectsSome L M :=
-  ⟨X, by rw [h]; rfl⟩
+theorem Intersects.bare {L M : Line} {X : Point}
+  (h : Intersects L M X) : IntersectsSome L M := by
+  refine ⟨X, ?_, ?_⟩
+  · have : X ∈ (L ∩ M : Line) := by rw [h]; exact rfl
+    exact this.1
+  · have : X ∈ (L ∩ M : Line) := by rw [h]; exact rfl
+    exact this.2
 
 /-- Bare intersection is symmetric. Tagged `@[symm]` so the `symm` tactic picks
     it up; `h.symm` works via dot notation. -/
-@[symm] theorem IntersectsSome.symm {L M : Set Point}
+@[symm] theorem IntersectsSome.symm {L M : Line}
   (h : IntersectsSome L M) : IntersectsSome M L := by
   obtain ⟨X, hL, hM⟩ := h
   exact ⟨X, hM, hL⟩
@@ -222,8 +351,8 @@ example : (L intersects M at X) ↔ (Intersects L M X) := Iff.rfl
 example : (L intersects M) ↔ (IntersectsSome L M) := Iff.rfl
 
 -- `symm` tactic + dot notation for the bare intersection.
-example {L M : Set Point} (h : L intersects M) : M intersects L := by symm; exact h
-example {L M : Set Point} (h : L intersects M) : M intersects L := h.symm
+example {L M : Line} (h : L intersects M) : M intersects L := by symm; exact h
+example {L M : Line} (h : L intersects M) : M intersects L := h.symm
 end Examples
 
 end Geometry.Theory

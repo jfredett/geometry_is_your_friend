@@ -27,7 +27,7 @@ atlas lemma 1.0.30 "Two pointed intersections of the same line pair share their 
   unfold Intersects
   intro ⟨LMatX, LMatY⟩
   rw [LMatX] at LMatY
-  exact singleton_eq_singleton_iff.mp LMatY
+  exact Line.singleton_eq_singleton.mp LMatY
 
 
 atlas commentary := by
@@ -39,13 +39,13 @@ atlas lemma 1.0.31 "Pointed intersection is symmetric in its line arguments"
   : (L intersects M at X) ↔ (M intersects L at X) := by
   unfold Intersects
   refine Eq.congr ?_ rfl
-  exact inter_comm L M
+  exact Line.inter_comm L M
 
 attribute [symm] «Pointed intersection is symmetric in its line arguments»
 
 /-- Dot-notation wrapper: `h.symm` swaps the line args of an `L intersects M at X`
     hypothesis. Picks up the `@[symm]` Iff form above via projection. -/
-@[symm] def Intersects.symm {L M : Set Point} {X : Point}
+@[symm] def Intersects.symm {L M : Line} {X : Point}
   (h : L intersects M at X) : M intersects L at X :=
   («Pointed intersection is symmetric in its line arguments»).mp h
 
@@ -59,8 +59,8 @@ atlas lemma 1.0.32 "A pointed intersection's witness point lies on the left line
   : (L intersects M at X) -> (X on L) := by
   unfold Intersects
   intro LMintX
-  have XinLintM : X ∈ L ∩ M := by simp_all only [mem_singleton_iff]
-  exact mem_of_mem_inter_left XinLintM
+  have XinLintM : X ∈ L ∩ M := by rw [LMintX]; simp
+  exact (Line.mem_inter.mp XinLintM).1
 
 
 atlas commentary := by
@@ -72,8 +72,8 @@ atlas lemma 1.0.33 "A pointed intersection's witness point lies on the right lin
   : (L intersects M at X) -> (X on M) := by
   unfold Intersects
   intro LMintX
-  have XinLintM : X ∈ L ∩ M := by simp_all only [mem_singleton_iff]
-  exact mem_of_mem_inter_right XinLintM
+  have XinLintM : X ∈ L ∩ M := by rw [LMintX]; simp
+  exact (Line.mem_inter.mp XinLintM).2
 
 
 atlas commentary := by

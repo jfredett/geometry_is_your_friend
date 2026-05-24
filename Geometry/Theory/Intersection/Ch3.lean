@@ -30,17 +30,17 @@ rules out the empty branch, leaving either the unique-point branch (which
 must be `A`) or the coincident branch."
 
 atlas lemma 3.0.1 "Bare intersection plus a shared point implies pointed intersection or coincidence"
-  {L M : Set Point} {A : Point} :
+  {L M : Line} {A : Point} :
     L intersects M -> A on L ∧ A on M -> L intersects M at A ∨ L = M := by
   intro _LintM ⟨AonL, AonM⟩
-  have AinInt : A ∈ L ∩ M := ⟨AonL, AonM⟩
+  have AinInt : A ∈ L ∩ M := Line.mem_inter.mpr ⟨AonL, AonM⟩
   rcases ref lemma 2.0.1 L M with empty | unique | equal
-  · exfalso; rw [empty] at AinInt; exact AinInt
+  · exfalso; rw [empty] at AinInt; exact (Line.not_mem_empty AinInt)
   · left
     obtain ⟨X, hX, _⟩ := unique
     rw [hX] at AinInt
-    have AeqX : A = X := AinInt
-    change L ∩ M = {A}
+    have AeqX : A = X := Line.mem_singleton.mp AinInt
+    change L ∩ M = ({A} : Line)
     rw [hX, AeqX]
   · right; exact equal
 
@@ -52,18 +52,17 @@ atlas commentary := by
 
 atlas lemma 3.0.2 "A line intersects itself (bare intersection of L with L)"
   : L intersects L := by
-  unfold IntersectsSome
-  by_contra! hNeg
-  rw [Set.inter_self] at hNeg
   obtain ⟨A, _, _, AonL, _⟩ := ref axiom I.2 L
-  rw [hNeg] at AonL
-  contradiction
+  exact ⟨A, AonL, AonL⟩
 
 atlas lemma 3.7.2 "If L intersects M, then there is a point at which it intersects M, WLOG X"
   {L M : Line} : L ≠ M -> L intersects M -> ∃ X : Point, L intersects M at X := by
   intro LneM LintM
   rcases ref lemma 2.0.1 L M with empty | unique | equal
-  · exfalso; obtain ⟨X, hX⟩ := LintM; rw [empty] at hX; exact hX
+  · exfalso
+    obtain ⟨X, hX⟩ := LintM
+    have hMem : X ∈ L ∩ M := Line.mem_inter.mpr hX
+    rw [empty] at hMem; exact Line.not_mem_empty hMem
   · obtain ⟨X, hX, _⟩ := unique
     exact ⟨X, hX⟩
   · exact absurd equal LneM
