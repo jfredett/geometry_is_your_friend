@@ -60,7 +60,7 @@ atlas lemma 2.0.16 "A point on a segment lies off the related extension"
   intro XonAB
   by_contra! hNeg
   have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
-  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by tauto
+  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by obvious
   rw [interEmpty] at XinInter
   contradiction
 
@@ -75,7 +75,7 @@ atlas lemma 2.0.17 "A point on an extension lies off the related segment"
   intro XonAB
   by_contra! hNeg
   have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
-  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by tauto
+  have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by obvious
   rw [interEmpty] at XinInter
   contradiction
 
@@ -92,8 +92,8 @@ atlas lemma 2.0.18 "Two points in the intersection of distinct nonparallel lines
   specialize LinterMatP
   rw [LinterMatP] at XonInt
   rw [LinterMatP] at YonInt
-  have XeqP : X = P := by tauto
-  have YeqP : Y = P := by tauto
+  have XeqP : X = P := by obvious
+  have YeqP : Y = P := by obvious
   rw [XeqP, YeqP]
 
 
@@ -106,8 +106,8 @@ atlas lemma 2.0.19 "The intersection of two distinct parallel lines is empty"
   : ∀ L M : Line, (L ≠ M) -> (L ∥ M) -> L ∩ M = ∅ := by
   intro L M LneM LparM
   apply Line.eq_of_subset
-  · tauto
-  · tauto
+  · obvious
+  · obvious
 
 
 atlas commentary := by
@@ -126,7 +126,7 @@ atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines
       have h := ref lemma 2.0.18 L M LneM LnparM ⟨QinInter, PinInter⟩
       trivial
     · intro Q QisP
-      have QeqP : Q = P := by tauto
+      have QeqP : Q = P := by obvious
       rw [QeqP]; exact PinInter
   · intro LintMatP
     rw [LintMatP]
@@ -151,34 +151,34 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
     unfold Intersects at LintABatX
     have AonSegAB : A on segment A B := by obvious
     have AonRayAB : A on ray A B := by obvious
-    have AonIntRaySeg : A ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by tauto
+    have AonIntRaySeg : A ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by obvious
     rw [LintABatX] at AonIntRaySeg
-    have AeqX : A = X := by tauto
+    have AeqX : A = X := by obvious
     have BonSegAB : B on segment A B := by obvious
     have BonRayAB : B on ray A B := by obvious
-    have BonIntRaySeg : B ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by tauto
+    have BonIntRaySeg : B ∈ ((ray A B : Line) ∩ (segment A B : Line)) := by obvious
     rw [LintABatX] at BonIntRaySeg
-    have BeqX : B = X := by tauto
+    have BeqX : B = X := by obvious
     have AeqB : A = B := by rw [BeqX, AeqX]
     contradiction
-  have LnparRayAB : L ∦ ray A B := by tauto
+  have LnparRayAB : L ∦ ray A B := by obvious
   -- assume there is some point not X that intersects the ray.
   by_cases counter : ∃ P : Point, (L intersects ray A B at P) ∧ (P ≠ X)
   · obtain ⟨P, LintRayABatP, PneX⟩ := counter
-    have XinInter : X ∈ L ∩ ray A B := by tauto
+    have XinInter : X ∈ L ∩ ray A B := by obvious
     unfold Intersects at LintRayABatP
     rw [LintRayABatP] at XinInter
-    have XeqP : P = X := by tauto
+    have XeqP : P = X := by obvious
     contradiction
   · push Not at counter
     apply Line.eq_of_subset
     · intro P PonLintRay
-      have XonLintRay : X ∈ L ∩ ray A B := by tauto
+      have XonLintRay : X ∈ L ∩ ray A B := Line.mem_inter.mpr ⟨XonL, XonRayAB⟩
       have PeqX : P = X := ref lemma 2.0.18 L (ray A B) LneRayAB LnparRayAB ⟨PonLintRay, XonLintRay⟩
       rw [PeqX]
       trivial
     · intro P PinSingleX
-      have PeqX : P = X := by tauto
+      have PeqX : P = X := by obvious
       rw [PeqX]; trivial
 
 
@@ -211,15 +211,15 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
   -- `@«Title»` form needed: positional implicits.
   have XABCol := @Line.«Ray Points are Collinear» A B X AneB XonRayAB
   have XonLineAB : X on line A B := ref lemma 1.0.18 XonRayAB
-  have XonRayAB : X on ray A B := by tauto
-  have XinInter : X ∈ L ∩ line A B := by tauto
+  have XonRayAB : X on ray A B := by obvious
+  have XinInter : X ∈ L ∩ line A B := by obvious
   have LnparRayAB : L ∦ ray A B := ref lemma 2.0.22 LintRay
   have LnparLineAB : L ∦ line A B := by
     unfold Parallel
     push Not
     intro LneLineAB
     use X
-    tauto
+    obvious
   have LneRayAB : L ≠ ray A B := Ne.symm (ref lemma 2.0.12)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
@@ -227,16 +227,16 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     have AonRayAB : A on ray A B := ref lemma 1.0.21
     have AonL : A on L := by
       have h : A ∈ (line A B : Line) := AonLineAB
-      rw [<- hNeg] at h; tauto
+      rw [<- hNeg] at h; obvious
     have BonLineAB : B on line A B := ref lemma 1.0.24
     have BonRayAB : B on ray A B := ref lemma 1.0.22
     have BonL : B on L := by
       have h : B ∈ (line A B : Line) := BonLineAB
-      rw [<- hNeg] at h; tauto
-    have AinIntLine : A ∈ L ∩ line A B := by tauto
-    have BinIntLine : B ∈ L ∩ line A B := by tauto
-    have AinIntRay : A ∈ L ∩ ray A B := by tauto
-    have BinIntRay : B ∈ L ∩ ray A B := by tauto
+      rw [<- hNeg] at h; obvious
+    have AinIntLine : A ∈ L ∩ line A B := by obvious
+    have BinIntLine : B ∈ L ∩ line A B := by obvious
+    have AinIntRay : A ∈ L ∩ ray A B := by obvious
+    have BinIntRay : B ∈ L ∩ ray A B := by obvious
     have LintABatA : L intersects ray A B at A := (ref lemma 2.0.20 A L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp AinIntRay
     have LintABatB : L intersects ray A B at B := (ref lemma 2.0.20 B L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp BinIntRay
     unfold Intersects at *
@@ -258,7 +258,7 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     · intro P PinInter
       exact counter P ((ref lemma 2.0.20 P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
     · intro P PisX
-      have PeqX : P = X := by tauto
+      have PeqX : P = X := by obvious
       rw [PeqX]
       trivial
 
@@ -325,7 +325,7 @@ atlas lemma 2.0.26 "A point different from the meet of two lines lies off at lea
   by_contra! AonLandM
   have AinInt : A ∈ L ∩ M := AonLandM
   rw [LintMatX] at AinInt
-  tauto
+  obvious
 
 
 
@@ -343,7 +343,7 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
   have ⟨AoffM, BoffM⟩  : (A off M) ∧ (B off M) := by
     have hA := ref lemma 2.0.26 AneX LintMatX
     have hB := ref lemma 2.0.26 BneX LintMatX
-    tauto
+    obvious
   unfold Splits Guards at MsplitsAB; push Not at MsplitsAB
   specialize MsplitsAB AoffM BoffM
   obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
@@ -356,9 +356,9 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
     trivial
   -- since P on L and P on M, P = X
   have PeqX : P = X := by
-    have PinLintM : P ∈ L ∩ M := by tauto
+    have PinLintM : P ∈ L ∩ M := by obvious
     rw [LintMatX] at PinLintM
-    tauto
+    obvious
   -- so now we just dispatch the cases
   rcases PonSeg with APB | AeqP | BeqP
   · rw [PeqX] at APB; exact APB
@@ -384,11 +384,11 @@ atlas lemma 2.0.28 "Through X on L and E off L: L and line E X are distinct, non
   have npar : L ∦ (line E X) := by
     intro hpar
     have XinInter : X ∈ L ∩ (line E X) := ⟨XonL, XonEX⟩
-    rw [ref lemma 2.0.19 L (line E X) (by tauto) hpar] at XinInter
+    rw [ref lemma 2.0.19 L (line E X) (by obvious) hpar] at XinInter
     exact absurd XinInter (Set.notMem_empty X)
-  have XonLintEX : X ∈ L ∩ (line E X) := by tauto
+  have XonLintEX : X ∈ L ∩ (line E X) := by obvious
   have int : L intersects (line E X) at X := (ref lemma 2.0.20 X L (line E X) ⟨ne, npar⟩).mp XonLintEX
-  tauto
+  obvious
 
 
 atlas commentary := by

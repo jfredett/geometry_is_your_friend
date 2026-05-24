@@ -43,7 +43,7 @@ atlas lemma 2.0.1 "Two lines either share no points share one point or are equal
       · intro e eInInt
         specialize LparM e
         rw [Line.inter_toSet, Set.mem_inter_iff] at eInInt
-        tauto
+        obvious
       · simp [Line.empty_toSet]
 
 
@@ -99,7 +99,7 @@ atlas lemma 2.0.5 "Segment A B is a subset of line A B"
   have h₂ : (ray A B : Line) ⊆ (line A B : Line) := ref lemma 1.0.18
   intro P PonSeg
   rcases PonSeg with APB | AorBeqP
-  repeat tauto
+  repeat obvious
 
 atlas commentary := by
   ref lemma 2.0.6
@@ -196,7 +196,7 @@ atlas lemma 2.0.11 "A line equals the set of all points lying on it"
   : ∀ L : Line, L.toSet = {P : Point | P on L} := by
   intro L
   apply Subset.antisymm
-  repeat tauto
+  repeat obvious
 
 
 atlas commentary := by

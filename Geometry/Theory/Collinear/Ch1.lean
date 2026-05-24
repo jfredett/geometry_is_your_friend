@@ -82,8 +82,8 @@ attribute [simp] «Collinearity ignores trailing duplicate point (A B B ↔ A B)
 atlas lemma 1.0.17 "Collinearity ignores interleaved duplicate point (B A B ↔ A B)"
   (A B : Point) : collinear B A B ↔ collinear A B := by
   constructor
-  · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton]; try tauto)
-  · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton]; try tauto)
+  · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton]; try obvious)
+  · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton]; try obvious)
 
 attribute [simp] «Collinearity ignores interleaved duplicate point (B A B ↔ A B)»
 

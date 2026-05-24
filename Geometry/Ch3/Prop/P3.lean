@@ -145,7 +145,7 @@ atlas proposition 3.3.i "Betweenness from shared outer pair: B-C-D from A-B-C an
       ⟨LeqAB ▸ BonAB, ref lemma 1.0.23, LeqAB ▸ DonAB, ref lemma 1.0.24⟩
     rw [LeqBD] at LintECatC
     rw [LintECatC] at PinBDintEC
-    have PeqC : P = C := by tauto
+    have PeqC : P = C := by obvious
     rw [<- PeqC]
     rcases PonSegBD with BPD | BeqP | DeqP
     · exact BPD

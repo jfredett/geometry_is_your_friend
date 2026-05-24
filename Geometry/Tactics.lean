@@ -27,3 +27,14 @@ import Mathlib.Data.List.Basic
     decl and `obvious` in tactic mode coexist without ambiguity. -/
 register_simp_attr obvious
 
+/-- Stage-specific simp set used by `obvious`'s `unfold Parallel` stage.
+    Tag with `@[obvious.parallel]` any reducible def whose unfolding is
+    safe-but-expensive (so we don't want it in the main `obvious` set).
+    The macro-hygiene escape hatch — `simp only [obvious.parallel]` in
+    the cascade resolves the set name without needing to escape the
+    underlying constant identifiers.
+
+    Sibling stage-sets follow the `obvious.<class>` convention
+    (`obvious.betweenness`, `obvious.incidence`, etc.) as they're added. -/
+register_simp_attr obvious.parallel
+

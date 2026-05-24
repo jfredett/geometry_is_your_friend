@@ -99,14 +99,10 @@ theorem Line.eq_of_subset {L M : Line} (h₁ : L ⊆ M) (h₂ : M ⊆ L) : L = M
 
 /-- Pointwise membership in a Line intersection / union. -/
 @[simp, obvious] theorem Line.mem_inter {L M : Line} {P : Point} :
-    P ∈ L ∩ M ↔ P ∈ L ∧ P ∈ M := by
-  show P ∈ (L ∩ M).toSet ↔ _
-  rw [Line.inter_toSet]; exact Set.mem_inter_iff P L.toSet M.toSet
+    P ∈ L ∩ M ↔ P ∈ L ∧ P ∈ M := Set.mem_inter_iff P L.toSet M.toSet
 
 @[simp, obvious] theorem Line.mem_union {L M : Line} {P : Point} :
-    P ∈ L ∪ M ↔ P ∈ L ∨ P ∈ M := by
-  show P ∈ (L ∪ M).toSet ↔ _
-  rw [Line.union_toSet]; exact Set.mem_union P L.toSet M.toSet
+    P ∈ L ∪ M ↔ P ∈ L ∨ P ∈ M := Set.mem_union P L.toSet M.toSet
 
 @[simp, obvious] theorem Line.not_mem_empty {P : Point} : P ∉ (∅ : Line) := by
   simp [Line.mem_def]

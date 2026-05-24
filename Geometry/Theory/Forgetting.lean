@@ -47,7 +47,7 @@ elab_rules : term
            apply Finset.eq_of_subset_of_card_le
            · intro x hx;
              simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton] at hx ⊢;
-             tauto
+             obvious
            · rw [Finset.card_erase_of_mem (by simp)];
              simp_all [Finset.card_insert_eq_ite, Finset.card_singleton,
                        Finset.mem_insert, Finset.mem_singleton, eq_comm]
@@ -61,7 +61,7 @@ elab_rules : term
            apply Finset.eq_of_subset_of_card_le
            · intro x hx;
              simp only [Finset.mem_erase, Finset.mem_insert, Finset.mem_singleton] at hx ⊢;
-             tauto
+             obvious
            · rw [Finset.card_erase_of_mem (by simp), ($col).card_eq];
              simp only [Finset.card_insert_eq_ite, Finset.card_singleton,
                         Finset.mem_insert, Finset.mem_singleton];

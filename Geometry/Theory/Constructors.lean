@@ -248,6 +248,29 @@ instance {A B : Point} : CoeHead (LineThrough A B) Line where
 @[simp, obvious] theorem LineThrough.mem_def {A B : Point} {L : LineThrough A B} {P : Point} :
   P ∈ L ↔ P = A ∨ P = B ∨ A - P - B ∨ A - B - P ∨ P - A - B := Iff.rfl
 
+/-! ## Coercion-membership bridges
+
+    `P ∈ (↑x : Line) ↔ P ∈ x` for each line-part. Both sides reduce to
+    `P ∈ x.carrier`, but they go through different `Membership` instances
+    (Line's via `.toSet`, line-part's via `.carrier`), so simp doesn't
+    unify them without an explicit bridge.
+
+    Tagged `@[simp, obvious]` so `Line.mem_inter` etc. can rewrite a goal
+    like `X ∈ L ∩ ray A B` into `X ∈ L ∧ X ∈ ray A B` and have the second
+    conjunct match a `X ∈ ray A B` hypothesis. -/
+
+@[simp, obvious] theorem Segment.mem_coe_line {A B P : Point} {s : Segment A B} :
+  P ∈ (↑s : Line) ↔ P ∈ s := Iff.rfl
+
+@[simp, obvious] theorem Ray.mem_coe_line {A B P : Point} {r : Ray A B} :
+  P ∈ (↑r : Line) ↔ P ∈ r := Iff.rfl
+
+@[simp, obvious] theorem Extension.mem_coe_line {A B P : Point} {e : Extension A B} :
+  P ∈ (↑e : Line) ↔ P ∈ e := Iff.rfl
+
+@[simp, obvious] theorem LineThrough.mem_coe_line {A B P : Point} {L : LineThrough A B} :
+  P ∈ (↑L : Line) ↔ P ∈ L := Iff.rfl
+
 /-! ## Surface syntax — unchanged from the Set-Point era -/
 
 syntax:max "segment " term:max term:max : term

@@ -6,26 +6,29 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
 
 /-!
-# `obvious` tactic
+# `obvious` tactic — v2 (stage-based cascade)
 
-Captures the author's intuition for 'by definition' in the text: unfolds
-common geometric objects, runs `simp_all` over the `obvious` simp set, and
-falls back to `tauto` / Finset-extensionality.
+Each *stage* has a `preamble` (run once) and a list of `closers` (tried
+one-by-one on the post-preamble state). A stage closes the goal iff some
+closer succeeds. If preamble fails (e.g. `simp_all made no progress`),
+closers still run against the *original* state — more permissive than
+v1's strict `simp_all ; tauto`, which now also closes goals where the
+simp_all step was unnecessary.
 
-The `obvious` simp set itself is registered in `Geometry/Tactics.lean`
-(Lean requires `register_simp_attr` and the first `attribute [obvious]`
-use to live in different files). This file populates the set with the
-chapter-0 / axiom-level lemmas Greenberg treats as background.
+The structure makes "try a different closer after the same preamble" the
+default operation: `simp_all only [obvious]` now runs once per `obvious`
+call regardless of whether `done` or `tauto` ultimately closes.
+
+## Tracing
+
+`set_option trace.obvious true`:
+- Success: `closed by <stage> → <closer> (preamble Xms, closer Yms)`
+- Failure: per-stage breakdown with preamble + each closer's elapsed ms.
 -/
 
-namespace Geometry.Theory
+initialize Lean.registerTraceClass `obvious
 
--- `register_simp_attr obvious` lives in `Geometry/Tactics.lean`
--- (Lean requires the registration to be in a different file from the
--- first `attribute [obvious]` use). This block tags the
--- chapter-0 / axiom-level lemmas that count as Greenberg's
--- minimum-standard intuition. Tag conservatively: a bad simp rule
--- here propagates to every `obvious` invocation downstream.
+namespace Geometry.Theory
 
 attribute [obvious]
   -- set
@@ -38,72 +41,122 @@ attribute [obvious]
   not_true_eq_false not_false_eq_true not_or not_and not_not
 
 attribute [obvious]
-  -- line parts: `mem_def` simp lemmas bridge `P ∈ segment A B` to the
-  -- underlying disjunction. (The old setup tagged the `Segment`/etc.
-  -- defs themselves; with the typed-structure rewrite they're no longer
-  -- defs, and the `@[simp, obvious]` `mem_def` lemmas live next to the
-  -- structures in `Geometry/Theory/Constructors.lean`.)
-  -- subset unfolding so simple subset goals reduce to pointwise membership.
   Set.subset_def
-  -- split a subset-of-intersection into two subsets upfront so simp_all
-  -- gets bite-sized goals instead of trying to unfold the whole intersection
-  -- pointwise. Cheap rewrite that prevents the explosion observed on
-  -- `s ⊆ t ∩ u` goals.
   Set.subset_inter_iff
 
--- Title-form `@[obvious]` tags for the betweenness axioms (e.g.
--- `«Betweenness Commutativity»`, `«A-B-C implies …»`) live in
--- `Geometry.Theory.Axioms.Betweenness` itself, applied after each
--- decl — that file imports this one, and tagging there avoids a
--- circular import.
+/-! ## Cascade structure -/
 
-/-- Attempts to unfold any geometric objects in the vicinity and eliminate booleans
- and the like. Tries to capture the author's intuition for 'by definition' in the text.
+open Lean Lean.Elab.Tactic in
+/-- A single stage: shared `preamble` runs once, then each `closer` is
+    tried in turn against the saved post-preamble state. -/
+private structure ObviousStage where
+  name : String
+  preamble : TSyntax `tactic
+  closers : Array (String × TSyntax `tactic)
 
- The last alternative handles Finset literal equality (`{A,B,C} = {C,A,B}` etc.) by
- reducing to membership and tautology — convenient since Finsets are unordered.
+open Lean Lean.Elab.Tactic in
+/-- Run `tac` with explicit save/restore on failure. Returns `(succeeded?, ms)`.
+    On failure the proof state is rolled back; on success state changes stand. -/
+private def tryTimed (tac : TSyntax `tactic) : TacticM (Bool × Nat) := do
+  let s ← saveState
+  let startMs ← IO.monoMsNow
+  let ok ← try evalTactic tac; pure true catch _ => s.restore; pure false
+  let endMs ← IO.monoMsNow
+  return (ok, endMs - startMs)
 
- `normalize_eq` runs first to canonicalize `=` / `≠` orientations so `simp_all` can
- close hypotheses regardless of which side they were originally written on.
+open Lean Lean.Elab.Tactic in
+/-- The cascade stages, in priority order. Each stage represents a *class
+    of intuition* — a kind of reasoning the author would take for granted.
+    Long-term, stage selection will be driven by the theorem graph / goal
+    shape; for now stages are tried in fixed order. -/
+private def obviousStages : TacticM (Array ObviousStage) := do
+  let simpAll ← `(tactic| simp_all (config := { maxSteps := 2000 }) only [obvious])
+  let unfoldParallel ← `(tactic| simp only [obvious.parallel] at *)
+  let memDef ← `(tactic|
+    simp only [Segment.mem_def, Ray.mem_def, Extension.mem_def, LineThrough.mem_def])
+  let memDefAt ← `(tactic|
+    simp only [Segment.mem_def, Ray.mem_def, Extension.mem_def, LineThrough.mem_def] at *)
+  let finsetExt ← `(tactic|
+    (ext; simp only [Finset.mem_insert, Finset.mem_singleton, Finset.mem_erase, ne_eq]))
+  let doneT ← `(tactic| done)
+  let assumptionT ← `(tactic| assumption)
+  let decideT ← `(tactic| decide)
+  let tautoT ← `(tactic| tauto)
+  -- Cheap closers tried before tauto: done (simp_all already closed),
+  -- assumption (hypothesis match), decide (decidable-instance reduction).
+  -- Each is fast-to-fail when inapplicable, so paying them per-stage is cheap.
+  let cheapThenTauto := #[
+    ("done", doneT), ("assumption", assumptionT),
+    ("decide", decideT), ("tauto", tautoT)
+  ]
+  return #[
+    { name := "simp_all",
+      preamble := simpAll,
+      closers := cheapThenTauto },
+    { name := "unfold Parallel",
+      preamble := unfoldParallel,
+      closers := cheapThenTauto },
+    { name := "mem_def goal",
+      preamble := memDef,
+      closers := cheapThenTauto },
+    { name := "mem_def at*",
+      preamble := memDefAt,
+      closers := cheapThenTauto },
+    { name := "Finset ext",
+      preamble := finsetExt,
+      closers := cheapThenTauto }
+  ]
 
- The simp set is the `obvious` attribute — each chapter tags its
- own canonical normalizations and they accumulate progressively. -/
-macro "obvious" : tactic =>
-  `(tactic| (
-      try intros
-      normalize_eq
-      first
-      -- Pure rewrite closes the goal entirely (definitional only).
-      | (simp_all only [obvious]; done)
-      -- Rewrite hyps and goal via `obvious`, then let `tauto` do
-      -- the propositional closing. This handles patterns like:
-      --   hyp: `A - P - B`  ⊢  `P ∈ LineThrough B A`
-      -- where the rewrite turns the hyp into a form that matches one
-      -- disjunct of the unfolded goal, and `tauto` picks it.
-      | (simp_all only [obvious]; tauto)
-      -- Goal-only unfold + propositional close (some sites have hyps
-      -- in normalized form already). Uses the typed-structure `mem_def`
-      -- lemmas to expose the underlying disjunction.
-      | (simp only [Segment.mem_def, Ray.mem_def, Extension.mem_def, LineThrough.mem_def]; tauto)
-      -- Last-ditch: simp through the mem_def bridges everywhere and tauto.
-      | (simp only [Segment.mem_def, Ray.mem_def, Extension.mem_def, LineThrough.mem_def] at *; tauto)
-      -- The `ext` alternative is for Finset-literal equality goals
-      -- (`{A,B,C} = {C,A,B}`). Guard with `first` so a `fail`
-      -- alternative gives a clean error message when nothing closed.
-      | (first
-          | (ext; simp only [Finset.mem_insert, Finset.mem_singleton, Finset.mem_erase, ne_eq]; tauto)
-          | fail "obvious: no alternative closed the goal")))
+open Lean Lean.Elab.Tactic in
+elab "obvious" : tactic => do
+  try evalTactic (← `(tactic| intros)) catch _ => pure ()
+  try evalTactic (← `(tactic| normalize_eq)) catch _ => pure ()
+  let stages ← obviousStages
+  let original ← saveState
+  let mut stageReports : Array (String × Bool × Nat × Array (String × Nat)) := #[]
+  for stage in stages do
+    original.restore
+    let (preOk, preMs) ← tryTimed stage.preamble
+    -- Strict: if preamble fails, skip closers. Matches v1 semantics where
+    -- `simp_all only [obvious]; tauto` only runs tauto if simp_all
+    -- succeeds. Permissive (run closers anyway) blew up tauto search on
+    -- goals where simp_all was the gatekeeping cheap check.
+    if !preOk then
+      stageReports := stageReports.push (stage.name, false, preMs, #[])
+      continue
+    let postPreamble ← saveState
+    let mut closerReports : Array (String × Nat) := #[]
+    let mut closed := false
+    for (cName, cTac) in stage.closers do
+      postPreamble.restore
+      let (ok, cMs) ← tryTimed cTac
+      if ok then
+        if ← isTracingEnabledFor `obvious then
+          addTrace `obvious
+            m!"closed by {stage.name} → {cName} (preamble {preMs}ms, closer {cMs}ms)"
+        closed := true
+        break
+      closerReports := closerReports.push (cName, cMs)
+    if closed then return
+    stageReports := stageReports.push (stage.name, true, preMs, closerReports)
+  original.restore
+  if ← isTracingEnabledFor `obvious then
+    let rows := stageReports.toList.map fun (n, ok, preMs, closers) =>
+      let preTag := if ok then m!"preamble {preMs}ms" else m!"preamble FAILED {preMs}ms"
+      let cRows := closers.toList.map (fun (cn, cms) => m!"\n      {cn}: {cms}ms")
+      m!"  {n}: {preTag}{MessageData.joinSep cRows m!""}"
+    addTrace `obvious
+      m!"all alternatives failed:\n{MessageData.joinSep rows m!"\n"}"
+  throwError "obvious: no alternative closed the goal"
 
+/-- Term-position form: `(obvious : T)` desugars to `(by obvious : T)`. -/
 macro "obvious" : term => `(by obvious)
 
 /-! ## Examples -/
 
 section Examples
--- Endpoint membership unfolds via the `Segment` simp tag.
 example (A B : Point) : A on segment A B := by obvious
 example (A B : Point) : B on segment A B := by obvious
-
--- Term-position form.
 example (A B : Point) : A on segment A B := obvious
 end Examples
 

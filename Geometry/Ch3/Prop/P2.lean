@@ -38,13 +38,13 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
   obtain ⟨O, _, _, OonL, _⟩ := ref axiom I.2 L
   quoting (3) "There is a point B such that B * O * A (Betweenness Axiom 2 [ref axiom B.2])"
   have AneO : A ≠ O := by -- author omits this step
-    by_contra!; rw [this] at AoffL; tauto
+    by_contra!; rw [this] at AoffL; obvious
   have ⟨B, _, _, colBOA, distinctBOA, bBOA, _, _⟩ := ref axiom B.2 O A AneO.symm
   have AneB : A ≠ B := by distinguish
   have LneAO : L ≠ segment A O := by
     by_contra! hNeg;
     rw [hNeg] at AoffL;
-    have AonAO : A on segment A O := by tauto
+    have AonAO : A on segment A O := by obvious
     contradiction
   have LnoparAO : L ∦ segment A O := by
     by_contra! hNeg
@@ -60,18 +60,18 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     separate at distinctBOA
     have LintAOatO : L intersects segment A O at O := by
       unfold Intersects
-      have OonAO : O on segment A O := by tauto
-      have OonInt : O on L ∩ segment A O := by tauto
+      have OonAO : O on segment A O := by obvious
+      have OonInt : O on L ∩ segment A O := by obvious
       exact (ref lemma 2.0.20 O L (segment A O) ⟨LneAO, LnoparAO⟩).mp OonInt
     have h := ref lemma 2.0.21 AneO LintAOatO
     unfold Ray at h
     have BonExtAO : B on extension A O := ⟨bBOA.symm, AneB, BneO.symm⟩
-    have BonRayAO : B on ray A O := by tauto
+    have BonRayAO : B on ray A O := by obvious
     unfold Intersects at h
     by_contra! BonL
-    have BonInt : B ∈ (L ∩ ray A O) := by tauto
+    have BonInt : B ∈ (L ∩ ray A O) := by obvious
     rw [h] at BonInt
-    have BeqO : B = O := by tauto
+    have BeqO : B = O := by obvious
     contradiction
   quoting (4) "Then A and B are on opposite sides of l (by definition)," ...
   have LsplitsAB : L splits A and B := by
@@ -111,10 +111,10 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
       by_cases suppose: L splits B and C
       · specialize AseparatefromB suppose
         have CinHl : C ∈ Hl := by tauto
-        tauto
+        obvious
       · push Not at suppose
         have CinHr : C ∈ Hr := by tauto
-        tauto
+        obvious
     · intro C CinUnion
       rcases CinUnion with CinHl | CinHr
       rw [Set.mem_setOf_eq] at *;
@@ -154,7 +154,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     have LguardsBandC : L guards B and C := CinHr
     have CoffL : C off L := by tauto
     contradiction
-  tauto
+  obvious
 
 
 /- I was frequently left to my own devices with respect to school. We did a correspondence video thing.
