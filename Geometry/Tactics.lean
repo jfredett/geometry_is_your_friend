@@ -51,3 +51,9 @@ register_simp_attr obvious.intersects
     typically covers both. -/
 register_simp_attr obvious.guards
 
+-- Note: dump-deps tracking for `obvious` is gated on the env var
+-- `GIYF_DUMP_DEPS=1` (checked at tactic runtime via `IO.getEnv`).
+-- Custom Lean options can't be set via Lake's `-D` flag because
+-- Lake doesn't know about them at command-line-parse time; env vars
+-- sidestep that. See `Geometry/Tactics/Obvious.lean` for the writer.
+

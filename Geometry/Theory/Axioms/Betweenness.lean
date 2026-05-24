@@ -20,6 +20,19 @@ namespace Geometry.Theory
 
 open Atlas
 
+/-- `B.1.a`'s conclusion with named accessors `.distinct` and `.collinear`.
+    Backed by a `@[reducible] def` over the underlying And, so all the
+    existing `.left` / `.right` / `obtain ⟨_, _⟩` patterns continue to
+    work, AND the new dot-notation reads cleanly at call sites. Absorbs
+    what used to be lemmas `1.0.39` and `1.0.40`. -/
+@[reducible] def Between.Consequences (A B C : Point) : Prop :=
+  distinct A B C ∧ collinear A B C
+
+namespace Between.Consequences
+@[reducible] def «distinct» {A B C : Point} (h : Between.Consequences A B C) : distinct A B C := h.1
+@[reducible] def «collinear» {A B C : Point} (h : Between.Consequences A B C) : collinear A B C := h.2
+end Between.Consequences
+
 atlas commentary := by
   ref axiom ["B.1.a"]
   page 108
@@ -27,7 +40,7 @@ atlas commentary := by
   preface "If A - B - C, then A,B,C are distinct points on the same line..."
 
 atlas axiom ["B.1.a"] "A-B-C implies A B C are distinct and collinear"
-  {A B C : Point} : A - B - C -> distinct A B C ∧ collinear A B C
+  {A B C : Point} : A - B - C -> Between.Consequences A B C
 attribute [simp, obvious] «A-B-C implies A B C are distinct and collinear»
 
 

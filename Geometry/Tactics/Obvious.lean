@@ -28,6 +28,12 @@ call regardless of whether `done` or `tauto` ultimately closes.
 
 initialize Lean.registerTraceClass `obvious
 
+-- Dump-deps tracking is opted in via the env var `GIYF_DUMP_DEPS=1`,
+-- read at tactic runtime in `dumpObviousUse` below. Env var instead of
+-- a Lean option because custom options can't be set via Lake's `-D` flag
+-- (Lake validates flags before imports load, so it never learns of
+-- project-local option names). The `just graph` recipe exports this var.
+
 namespace Geometry.Theory
 
 attribute [obvious]
@@ -68,6 +74,35 @@ private def tryTimed (tac : TSyntax `tactic) : TacticM (Bool × Nat) := do
   let ok ← try evalTactic tac; pure true catch _ => s.restore; pure false
   let endMs ← IO.monoMsNow
   return (ok, endMs - startMs)
+
+open Lean Lean.Elab.Tactic in
+/-- Append a JSONL record of a successful `obvious` invocation.
+    File: `blueprint/obvious_uses.jsonl`. Each line records the module,
+    source-line number, stage that fired, and closer that closed.
+    Append-only and per-line atomic via O_APPEND; safe under lake's
+    parallel module compilation. -/
+private def dumpObviousUse (stage : String) (closer : String) : TacticM Unit := do
+  let env ← getEnv
+  let modName := env.header.mainModule.toString
+  let stx ← getRef
+  let fileMap ← getFileMap
+  let posn := stx.getPos?.getD 0
+  let lineNum := (fileMap.toPosition posn).line
+  let escape (s : String) : String := (s.replace "\\" "\\\\").replace "\"" "\\\""
+  let record :=
+    "{\"module\":\"" ++ escape modName ++ "\",\"line\":" ++ toString lineNum ++
+    ",\"stage\":\"" ++ escape stage ++ "\",\"closer\":\"" ++ escape closer ++ "\"}\n"
+  let path : System.FilePath := "blueprint/obvious_uses.jsonl"
+  try
+    let h ← IO.FS.Handle.mk path .append
+    h.putStr record
+  catch _ =>
+    -- Directory may not exist; create it and retry once.
+    try
+      IO.FS.createDirAll "blueprint"
+      let h ← IO.FS.Handle.mk path .append
+      h.putStr record
+    catch _ => pure ()  -- give up silently; dump tracking is best-effort
 
 open Lean Lean.Meta Lean.Elab.Tactic in
 /-- Does the main goal or any hypothesis mention the constant `c`?
@@ -192,6 +227,8 @@ elab "obvious" : tactic => do
         if ← isTracingEnabledFor `obvious then
           addTrace `obvious
             m!"closed by {stage.name} → {cName} (preamble {preMs}ms, closer {cMs}ms)"
+        if (← IO.getEnv "GIYF_DUMP_DEPS").isSome then
+          dumpObviousUse stage.name cName
         closed := true
         break
       closerReports := closerReports.push (cName, cMs)

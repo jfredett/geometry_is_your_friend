@@ -123,7 +123,7 @@ atlas lemma 2.0.6 "Line Points are Collinear"
     by_cases suppose: A = P
     · rw [<- PeqB, suppose] at AneB; contradiction
     · exact ref lemma 1.0.14 suppose
-  repeat exact Collinear.order_irrelevance (ref lemma 1.0.40 tween)
+  repeat exact Collinear.order_irrelevance (ref axiom ["B.1.a"] tween).collinear
 
 
 /-
@@ -141,7 +141,7 @@ atlas commentary := by
 atlas lemma 2.0.7 "Every point on extension A B is collinear with A and B"
   {A B : Point} : P on extension A B -> collinear A B P := by
   intro PonExtAB
-  exact ref lemma 1.0.40 PonExtAB.left
+  exact (ref axiom ["B.1.a"] PonExtAB.left).collinear
 
 
 atlas commentary := by

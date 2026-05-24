@@ -54,30 +54,11 @@ atlas lemma 1.0.38 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
   repeat contradiction
 
 
-atlas commentary := by
-  ref lemma 1.0.39
-  name "Betweenness A-B-C implies the three points are distinct"
-  preface "betweeness implies distinctness"
-  notes "TODO: use the `distinct` condition here"
+-- Lemmas `1.0.39` (A-B-C → distinct) and `1.0.40` (A-B-C → collinear)
+-- absorbed into `B.1.a`'s `Between.Consequences` structure via
+-- `.distinct` / `.collinear` projections. Call sites use
+-- `(ref axiom ["B.1.a"] h).distinct` and `.collinear` directly.
 
-atlas lemma 1.0.39 "Betweenness A-B-C implies the three points are distinct"
-  : A - B - C -> distinct A B C := by
-  intro ABC
-  have ⟨h,  _⟩ := (ref axiom ["B.1.a"] ABC)
-  exact h
-
-
-atlas commentary := by
-  ref lemma 1.0.40
-  name "Betweenness A-B-C implies the three points are collinear"
-  preface "betweeness implies collinearity"
-
-atlas lemma 1.0.40 "Betweenness A-B-C implies the three points are collinear"
-  : A - B - C -> collinear A B C := by
-  intro ABC
-  exact (ref axiom ["B.1.a"] ABC).right
-
-  
 end Betweenness
 
 end Geometry.Theory
