@@ -56,7 +56,7 @@ atlas proposition 3.2 "Every line bounds exactly two disjoint half-planes"
     contradiction
   have BoffL : B off L := by
     idea "since A is off L, and O is on, the AO intersects L at O, extend AO, since AOB, then B is on this extension."
-    have ⟨distinctBOA, colBOA⟩ := ref axiom ["B.1.a"] bBOA
+    have ⟨distinctBOA, colBOA, _⟩ := ref axiom B.1 bBOA
     separate at distinctBOA
     have LintAOatO : L intersects segment A O at O := by
       unfold Intersects

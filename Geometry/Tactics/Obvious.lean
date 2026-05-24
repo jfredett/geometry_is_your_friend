@@ -131,9 +131,8 @@ private def obviousStages : TacticM (Array ObviousStage) := do
   let unfoldIntersects ← `(tactic| simp only [obvious.intersects] at *)
   -- The Guards stage pulls in the *main* `obvious` set alongside the
   -- topic-specific one — Guards-form goals typically need both the
-  -- Guards/Splits unfold AND propositional normalizations like
-  -- Segment Commutativity (`{A,B} ↔ {B,A}`) and Betweenness Commutativity.
-  -- The `simp only` here is non-recursive so it converges.
+  -- Guards/Splits unfold AND the propositional normalizations
+  -- (Segment Commutativity, etc.) that live in the main set.
   let unfoldGuards ← `(tactic| simp only [obvious, obvious.guards] at *)
   let memDef ← `(tactic|
     simp only [Segment.mem_def, Ray.mem_def, Extension.mem_def, LineThrough.mem_def])

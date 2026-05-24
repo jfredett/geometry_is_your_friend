@@ -262,7 +262,7 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   unfold Splits Guards
   push Not
   intro AoffL BoffL
-  have distinctAXB := (ref axiom ["B.1.a"] AXB).distinct
+  have distinctAXB := (ref axiom B.1 AXB).distinct
   distinguish
   use X
   constructor

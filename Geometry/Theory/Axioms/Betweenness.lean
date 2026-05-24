@@ -8,8 +8,10 @@ import Atlas
 /-!
 # Betweenness axioms
 
-Greenberg's betweenness axioms (["B.1.a"], ["B.1.b"], B-2, B-3, ["B.4.i"], ["B.4.ii"]) plus the
+Greenberg's betweenness axioms (B-1, B-2, B-3, ["B.4.i"], ["B.4.ii"]) plus the
 three density-axiom witness lemmas (1.0.5, 1.0.6, 1.0.7) extracted from B-2.
+B-1 returns `Between.Consequences` with `.distinct`, `.collinear`, `.symm`
+projections; `Between.symm` wires the mathlib `symm` tactic.
 
 Same-side / opposite-side definitions and the `splits` / `guards` notation
 also live here — they're the conceptual layer that ["B.4.i"] and ["B.4.ii"] depend on.
@@ -20,50 +22,34 @@ namespace Geometry.Theory
 
 open Atlas
 
-/-- `B.1.a`'s conclusion with named accessors `.distinct` and `.collinear`.
-    Backed by a `@[reducible] def` over the underlying And, so all the
-    existing `.left` / `.right` / `obtain ⟨_, _⟩` patterns continue to
-    work, AND the new dot-notation reads cleanly at call sites. Absorbs
-    what used to be lemmas `1.0.39` and `1.0.40`. -/
+/-- `B.1`'s conclusion: three facts packaged together — distinctness,
+    collinearity, and commutativity (`.symm` gives the reversed
+    betweenness). `@[reducible]` over nested `And` so positional
+    destructuring (`⟨d, c, s⟩`) and dot-notation both work. -/
 @[reducible] def Between.Consequences (A B C : Point) : Prop :=
-  distinct A B C ∧ collinear A B C
+  distinct A B C ∧ collinear A B C ∧ (C - B - A)
 
 namespace Between.Consequences
 @[reducible] def «distinct» {A B C : Point} (h : Between.Consequences A B C) : distinct A B C := h.1
-@[reducible] def «collinear» {A B C : Point} (h : Between.Consequences A B C) : collinear A B C := h.2
+@[reducible] def «collinear» {A B C : Point} (h : Between.Consequences A B C) : collinear A B C := h.2.1
+@[reducible] def «symm» {A B C : Point} (h : Between.Consequences A B C) : C - B - A := h.2.2
 end Between.Consequences
 
 atlas commentary := by
-  ref axiom ["B.1.a"]
+  ref axiom B.1
   page 108
-  name "A-B-C implies A B C are distinct and collinear"
-  preface "If A - B - C, then A,B,C are distinct points on the same line..."
+  name "A-B-C implies distinctness, collinearity, and commutativity"
+  preface "If A - B - C, then A, B, C are distinct points on the same line, and C - B - A."
 
-atlas axiom ["B.1.a"] "A-B-C implies A B C are distinct and collinear"
+atlas axiom B.1 "A-B-C implies distinctness, collinearity, and commutativity"
   {A B C : Point} : A - B - C -> Between.Consequences A B C
-attribute [simp, obvious] «A-B-C implies A B C are distinct and collinear»
+attribute [simp, obvious] «A-B-C implies distinctness, collinearity, and commutativity»
 
-
-atlas commentary := by
-  ref axiom ["B.1.b"]
-  page 108
-  name "Betweenness Commutativity"
-  preface "... and [A - B - C iff] C - B - A.\"\""
-  notes "Note, I separated these parts of the axiom to make rewriting
-a bit easier. The author even notes, \"The second part (C * B * A) makes the obvious remark
-that 'betwen A and C' means the same as 'between C and A'\" Making it a separate axiom means
-I won't have to dig it out of the pile of parts that is 1a."
-
-atlas axiom ["B.1.b"] "Betweenness Commutativity"
-  {A B C : Point} : A - B - C ↔ C - B - A
-attribute [simp, obvious] «Betweenness Commutativity»
-
-/-- Endpoint-reversal projection of ["B.1.b"] — exposes ["B.1.b"]'s commutativity
-    via dot notation: `BCD.symm` instead of `(«Betweenness Commutativity»).mp BCD`.
-    Not atlas-tagged (this is a structural projection on the underlying
-    `Between` relation, not book content). -/
+/-- `@[symm]` wires the mathlib `symm` tactic + `h.symm` dot notation
+    on `h : A - B - C`. Body is just `(B.1 h).symm` via the structure
+    field. -/
 @[symm] def Between.symm {A B C : Point} (h : A - B - C) : C - B - A :=
-  («Betweenness Commutativity»).mp h
+  Between.Consequences.symm («A-B-C implies distinctness, collinearity, and commutativity» h)
 
 
 atlas commentary := by

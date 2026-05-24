@@ -25,8 +25,11 @@ namespace Line
 
 atlas commentary := by
   ref lemma 2.0.1
-  name "Two lines either share no points share one point or are equal"
+  name "Line Trichotomy: Two lines either share no points share one point or are equal"
   preface "An intersection is either empty, a singleton, or the lines are equal."
+  aliases [
+    Geometry.Theory.Line.trichotomy
+  ]
 
 atlas lemma 2.0.1 "Two lines either share no points share one point or are equal"
   : ∀ L M : Line, (L ∩ M = ∅) ∨ (∃! X, L ∩ M = {X}) ∨ L = M := by
@@ -44,8 +47,7 @@ atlas lemma 2.0.1 "Two lines either share no points share one point or are equal
         specialize LparM e
         rw [Line.inter_toSet, Set.mem_inter_iff] at eInInt
         obvious
-      · simp [Line.empty_toSet]
-
+      · obvious
 
 atlas commentary := by
   ref lemma 2.0.2
@@ -123,7 +125,7 @@ atlas lemma 2.0.6 "Line Points are Collinear"
     by_cases suppose: A = P
     · rw [<- PeqB, suppose] at AneB; contradiction
     · exact ref lemma 1.0.14 suppose
-  repeat exact Collinear.order_irrelevance (ref axiom ["B.1.a"] tween).collinear
+  repeat exact Collinear.order_irrelevance (ref axiom B.1 tween).collinear
 
 
 /-
@@ -141,7 +143,7 @@ atlas commentary := by
 atlas lemma 2.0.7 "Every point on extension A B is collinear with A and B"
   {A B : Point} : P on extension A B -> collinear A B P := by
   intro PonExtAB
-  exact (ref axiom ["B.1.a"] PonExtAB.left).collinear
+  exact (ref axiom B.1 PonExtAB.left).collinear
 
 
 atlas commentary := by
