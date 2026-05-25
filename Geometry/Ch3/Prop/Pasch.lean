@@ -45,6 +45,17 @@ also intersects AC or BC (see figure 3.10). If C does not lie on L, then L does 
   
   Intuititively, this theorem says that if a line \"goes into\" a triangle through one side, it must \"come out\" through
 another side."
+  figure := by
+    file "./assets/pasch_fig1.svg"
+    title "Pasch's Postulate"
+    index 1
+    caption "A line L crosses segment AB at X and exits through BC."
+  figure := by
+    file "./assets/pasch_fig2.svg"
+    title "Alternative crossing"
+    index 2
+    caption "L crosses AB at X and exits through AC at Y."
+
 
 atlas proposition 3.7 "Pasch's Postulate"
   {A B C : Point} {L : Line} {distinctABC : distinct A B C} {AXB : A - X - B}
@@ -134,4 +145,5 @@ atlas proposition 3.7 "Pasch's Postulate"
 
 
 end Geometry.Ch3.Prop
+
 
