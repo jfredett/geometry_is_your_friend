@@ -111,6 +111,234 @@ def elabArrangementTac : Tactic := fun stx => match stx with
           any other interleaving needs to be derived manually."
   | _ => throwUnsupportedSyntax
 
+/-- Parsed shape of a hypothesis passed to `organize`. -/
+inductive ArrFact where
+  | bet (proof : Expr) (a b c : Expr) : ArrFact
+  | arr (proof : Expr) (pts : Array Expr) : ArrFact
+
+def ArrFact.proof : ArrFact → Expr
+  | .bet p _ _ _ => p
+  | .arr p _     => p
+
+def ArrFact.points : ArrFact → Array Expr
+  | .bet _ a b c => #[a, b, c]
+  | .arr _ ps    => ps
+
+private def parseArrFact (e : Expr) : MetaM (Option ArrFact) := do
+  let t ← instantiateMVars (← inferType e)
+  let t ← whnf t
+  if let some (a, b, c) := t.app3? ``Geometry.Theory.Between then
+    return some (.bet e a b c)
+  if t.isAppOfArity ``Geometry.Theory.Arrangement 1 then
+    let ptsExpr := t.getArg! 0
+    match listExprToArray ptsExpr with
+    | some pts => return some (.arr e pts)
+    | none     => return none
+  return none
+
+private def addPoint (pool : Array Expr) (p : Expr) : MetaM (Nat × Array Expr) := do
+  for h : i in [:pool.size] do
+    if ← isDefEq pool[i] p then
+      return (i, pool)
+  return (pool.size, pool.push p)
+
+/-- Kahn-style topological sort with strict uniqueness: at every step
+exactly one node must have in-degree 0. Returns the topo order, an
+ambiguity error, or a cycle error. -/
+private def topoSort (n : Nat) (edges : Array (Nat × Nat)) :
+    Except String (Array Nat) := Id.run do
+  let mut adj : Array (Array Nat) := Array.replicate n #[]
+  for (a, b) in edges do
+    if !(adj[a]!).contains b then
+      adj := adj.set! a ((adj[a]!).push b)
+  let mut inDeg : Array Nat := Array.replicate n 0
+  for i in [:n] do
+    for b in adj[i]! do
+      inDeg := inDeg.set! b (inDeg[b]! + 1)
+  let mut order : Array Nat := #[]
+  let mut visited : Array Bool := Array.replicate n false
+  while order.size < n do
+    let mut zeros : Array Nat := #[]
+    for i in [:n] do
+      if !visited[i]! && inDeg[i]! == 0 then
+        zeros := zeros.push i
+    if zeros.isEmpty then
+      return .error "cycle in betweenness constraints"
+    if zeros.size > 1 then
+      return .error s!"ambiguous arrangement (multiple topological roots: {zeros})"
+    let v := zeros[0]!
+    visited := visited.set! v true
+    order := order.push v
+    for b in adj[v]! do
+      inDeg := inDeg.set! b (inDeg[b]! - 1)
+  return .ok order
+
+private def lookupAtlasConst (kind number : String) : MetaM Name := do
+  let env ← getEnv
+  match Atlas.atlasLookupByNumber env kind number with
+  | [n] => return n
+  | []  => throwError "organize: no atlas {kind} `{number}` in scope"
+  | ns  => throwError "organize: ambiguous atlas {kind} `{number}` ({ns})"
+
+/-- For a 4-point topo order, classify which sufficient-pair lemma fits
+the given pair of Between facts (in rank-triple form). Returns the
+`(kind, number, idxOfH₁, idxOfH₂)` to apply, or `none`. -/
+private def detect4PtPair (r0 r1 : Array Nat) : Option (String × String × Nat × Nat) :=
+  let t0 := (r0[0]?.getD 0, r0[1]?.getD 0, r0[2]?.getD 0)
+  let t1 := (r1[0]?.getD 0, r1[1]?.getD 0, r1[2]?.getD 0)
+  -- 3.0.8 :  A-B-C  +  B-C-D   →  Arr[A,B,C,D]     (ranks (0,1,2)+(1,2,3))
+  -- 3.0.9 :  A-B-D  +  B-C-D   →  Arr[A,B,C,D]     (ranks (0,1,3)+(1,2,3))
+  -- alt-3.3: A-B-C  +  A-C-D   →  Arr[A,B,C,D]     (ranks (0,1,2)+(0,2,3))
+  if t0 == (0,1,2) && t1 == (1,2,3) then some ("lemma", "3.0.8", 0, 1)
+  else if t0 == (1,2,3) && t1 == (0,1,2) then some ("lemma", "3.0.8", 1, 0)
+  else if t0 == (0,1,3) && t1 == (1,2,3) then some ("lemma", "3.0.9", 0, 1)
+  else if t0 == (1,2,3) && t1 == (0,1,3) then some ("lemma", "3.0.9", 1, 0)
+  else if t0 == (0,1,2) && t1 == (0,2,3) then some ("alternate", "3.3", 0, 1)
+  else if t0 == (0,2,3) && t1 == (0,1,2) then some ("alternate", "3.3", 1, 0)
+  else none
+
+/-- Build a proof of `Arrangement [pool[order[0]], …, pool[order[n-1]]]`
+from the available facts. Supports n=3 (single Between) and n=4
+(sufficient-pair). For larger or unsupported configurations, throws. -/
+private def buildArrangement
+    (facts : Array ArrFact) (factRanks : Array (Array Nat))
+    (n : Nat) : MetaM Expr := do
+  -- Short-circuit: any input that's already the right Arrangement.
+  for h : i in [:facts.size] do
+    if let .arr p ps := facts[i] then
+      if ps.size == n then
+        let r := factRanks[i]!
+        let mut isIdentity := true
+        for h : k in [:n] do
+          if r[k]! != k then isIdentity := false
+        if isIdentity then return p
+  match n with
+  | 0 | 1 | 2 => throwError "organize: need at least 3 distinct points (got {n})"
+  | 3 =>
+    for h : i in [:facts.size] do
+      if let .bet _ _ _ _ := facts[i] then
+        let r := factRanks[i]!
+        if r.size == 3 && r[0]! == 0 && r[1]! == 1 && r[2]! == 2 then
+          let lem ← lookupAtlasConst "lemma" "1.0.39"
+          return ← Meta.mkAppM lem #[facts[i].proof]
+    throwError "organize: 3 points but no Between covering them in order"
+  | 4 =>
+    if facts.size < 2 then
+      throwError "organize: 4 points but fewer than 2 Between facts"
+    -- Try every pair of facts; pick the first that classifies as a sufficient pair.
+    for h : i in [:facts.size] do
+      for h : j in [:facts.size] do
+        if i == j then continue
+        let .bet _ _ _ _ := facts[i] | continue
+        let .bet _ _ _ _ := facts[j] | continue
+        match detect4PtPair factRanks[i]! factRanks[j]! with
+        | none => pure ()
+        | some (k, num, idx1, idx2) =>
+          let p1 := if idx1 == 0 then facts[i].proof else facts[j].proof
+          let p2 := if idx2 == 0 then facts[i].proof else facts[j].proof
+          let lem ← lookupAtlasConst k num
+          return ← Meta.mkAppM lem #[p1, p2]
+    throwError "organize: 4 points but no recognised sufficient-pair configuration"
+  | _ => throwError "organize: arrangements of size > 4 not yet supported"
+
+syntax (name := organizeTac) "organize" (ppSpace colGt term:max)+ : tactic
+
+@[tactic organizeTac]
+def elabOrganize : Tactic := fun stx => match stx with
+  | `(tactic| organize $hs*) => do
+    let goal ← getMainGoal
+    goal.withContext do
+      -- Elaborate inputs and parse into ArrFacts.
+      let mut facts : Array ArrFact := #[]
+      for h in hs do
+        let hExpr ← Term.elabTerm h none
+        Term.synthesizeSyntheticMVarsNoPostponing
+        let some f ← parseArrFact hExpr
+          | throwError m!"organize: cannot parse `{h}` as Between or Arrangement"
+        facts := facts.push f
+      if facts.isEmpty then
+        throwError "organize: requires at least one hypothesis"
+      -- Pool all distinct points; compute per-fact index lists.
+      let mut pool : Array Expr := #[]
+      let mut perFactIdx : Array (Array Nat) := #[]
+      for f in facts do
+        let mut idxs : Array Nat := #[]
+        for p in f.points do
+          let (k, newPool) ← addPoint pool p
+          pool := newPool
+          idxs := idxs.push k
+        perFactIdx := perFactIdx.push idxs
+      let n := pool.size
+      -- Build edges from each fact's consecutive points.
+      let mut edges : Array (Nat × Nat) := #[]
+      for idxs in perFactIdx do
+        for i in [:idxs.size - 1] do
+          edges := edges.push (idxs[i]!, idxs[i+1]!)
+      -- Topo-sort the pool indices.
+      let order ← match topoSort n edges with
+        | .ok o      => pure o
+        | .error msg => throwError m!"organize: {msg}"
+      -- rank[pool-idx] = position in topo order.
+      let mut rank : Array Nat := Array.replicate n 0
+      for k in [:n] do
+        rank := rank.set! order[k]! k
+      let factRanks : Array (Array Nat) := perFactIdx.map (·.map (rank[·]!))
+      -- Build the maximal arrangement proof.
+      let arrProof ← buildArrangement facts factRanks n
+      -- Inspect the goal.
+      let goalType ← instantiateMVars (← goal.getType)
+      let goalType ← whnf goalType
+      if let some (gx, gy, gz) := goalType.app3? ``Geometry.Theory.Between then
+        let some ix ← findIndex pool gx
+          | throwError m!"organize: goal point {gx} not in hypotheses"
+        let some iy ← findIndex pool gy
+          | throwError m!"organize: goal point {gy} not in hypotheses"
+        let some iz ← findIndex pool gz
+          | throwError m!"organize: goal point {gz} not in hypotheses"
+        let rx := rank[ix]!
+        let ry := rank[iy]!
+        let rz := rank[iz]!
+        -- Forward or reversed read of a topo-sorted triple. Anything else means the
+        -- goal isn't a Between consistent with the inferred order.
+        let (i0, i1, i2, reverse) ←
+          if rx < ry && ry < rz then pure (rx, ry, rz, false)
+          else if rx > ry && ry > rz then pure (rz, ry, rx, true)
+          else throwError m!"organize: goal points are not in arrangement order \
+                                  (ranks {rx}, {ry}, {rz})"
+        -- Bind the built arrangement so we can name it in a tactic block.
+        let arrType ← Meta.inferType arrProof
+        let g' ← goal.assert `arr_aux arrType arrProof
+        let (_, g') ← g'.intro1P
+        replaceMainGoal [g']
+        g'.withContext do
+          let arrIdent := mkIdent `arr_aux
+          let i0Lit := Syntax.mkNumLit (toString i0)
+          let i1Lit := Syntax.mkNumLit (toString i1)
+          let i2Lit := Syntax.mkNumLit (toString i2)
+          let body ← `(($arrIdent).tri $i0Lit $i1Lit $i2Lit
+            (by simp) (by simp) (by simp) (by decide) (by decide))
+          let finalTerm : TSyntax `term ←
+            if reverse then `(($body).symm) else pure body
+          evalTactic (← `(tactic| exact $finalTerm))
+      else if goalType.isAppOfArity ``Geometry.Theory.Arrangement 1 then
+        let ptsExpr := goalType.getArg! 0
+        let some _ := listExprToArray ptsExpr
+          | throwError "organize: goal Arrangement has non-literal point list"
+        -- Try to close with the arrangement we built (defeq up to list reduction).
+        let arrType ← Meta.inferType arrProof
+        if ← isDefEq arrType goalType then
+          goal.assign arrProof
+        else
+          throwError m!"organize: built arrangement does not match goal\n  built : {arrType}\n  goal  : {goalType}"
+      else
+        -- Reduce-not-close: introduce the maximal arrangement we managed
+        -- to build and leave the goal untouched.
+        let arrType ← Meta.inferType arrProof
+        let g' ← goal.assert `arr_aux arrType arrProof
+        let (_, g') ← g'.intro1P
+        replaceMainGoal [g']
+  | _ => throwUnsupportedSyntax
+
 end Geometry.Theory.Arrangement
 
 namespace Geometry.Theory
@@ -311,5 +539,17 @@ atlas lemma 3.0.8 "If A-B-C and B-C-D, then A-B-C-D"
   {A B C D : Point} (h₁ : A - B - C) (h₂ : B - C - D) : A - B - C - D := by
   have hACD : A - C - D := via corollary 3.3.ii ⟨h₁, h₂⟩
   exact via alternate 3.3 h₁ hACD
+
+atlas commentary := by
+  ref lemma 3.0.9
+  name "If A-B-D and B-C-D, then A-B-C-D"
+  preface ""
+
+atlas lemma 3.0.9 "If A-B-D and B-C-D, then A-B-C-D"
+  {A B C D : Point} (h₁ : A - B - D) (h₂ : B - C - D) : A - B - C - D := by
+  have hCBA : C - B - A := via proposition 3.3.i ⟨h₂.symm, h₁.symm⟩
+  have hABC : A - B - C := hCBA.symm
+  exact via lemma 3.0.8 hABC h₂
+
 
 end Geometry.Theory

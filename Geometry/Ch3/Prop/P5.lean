@@ -15,6 +15,7 @@ import Geometry.Ch3.Ex.Ex1
 import Geometry.Theory.Distinct
 import Geometry.Theory.Interpendices.A
 import Geometry.Theory.Interpendices.B
+import Geometry.Theory.Interpendices.C
 import Geometry.Theory.Forgetting
 import Atlas
 
@@ -103,10 +104,9 @@ atlas proposition 3.5 "If A-B-C then AC = AB ∪ BC..."
   apply Line.eq_of_subset
   · intro P PonAC
     rcases PonAC with APC | PeqA | PeqC
-    · idea "converse of Prop 3.3? start with APC to get APB or BPC"
-      comment "Author does not, as far as I can see, get into a generalization of the ternary 'betweenness' syntax to an
-n-point 'arrangement' syntax. A tragedy."
-      sorry
+    · have APBorBPC : A - P - B ∨ B - P - C := by organize ABC APC
+      rcases APBorBPC with APB | BPC
+      all_goals obvious
     all_goals obvious
   · intro P PonABorBC
     rcases PonABorBC with (APB | _ | _) | (BPC | _ | _)
@@ -114,27 +114,7 @@ n-point 'arrangement' syntax. A tragedy."
       obvious
     · obvious
     · obvious
-    · -- ABC = ACD, so BPC = CXD, no 3.3 variant for that.
-      -- A - B   -   C
-      --     B - P - C
-      -- A   B   P   C
-      -- *   *       *
-      --     *   *   *
-      -- A   B   C   D
-      --
-      -- need      1101 and 0111 to conclude 1011
-      -- 3.3.i  is 1110 and 1011 to conclude 0111
-      -- 3.3.ii is 1110 and 1011 to conclude 1101
-      -- 3.3.ci is 1110 and 0111 to conclude 1011
-      --
-      -- I just need arrangements, this is untenable. I'm going to need to prove 800 variants of prop 3.3 to do all this
-      -- bookkeeping.
-      --
-      -- this is as simple as `A - B - C - D - ...` for any finite list of points, the arrangement is in order, and we can
-      -- naturally conclude any ordered triple is a true claim about the betweenness of the points.
-      --
-      have APC : A - P - C := by
-        sorry
+    · have APC : A - P - C := by organize ABC BPC
       obvious
     · obvious
     · obvious

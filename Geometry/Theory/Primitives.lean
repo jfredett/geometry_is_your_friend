@@ -93,6 +93,15 @@ syntax:65 (name := dashChain)
 macro_rules (kind := dashChain)
   | `($a:term - $b:term - $c:term) => `(Between $a $b $c)
 
+open Lean PrettyPrinter.Delaborator SubExpr in
+@[app_delab Geometry.Theory.Between]
+def delabBetween : Delab := do
+  guard <| (← getExpr).isAppOfArity ``Geometry.Theory.Between 3
+  let a ← withNaryArg 0 delab
+  let b ← withNaryArg 1 delab
+  let c ← withNaryArg 2 delab
+  `($a - $b - $c)
+
 /- Examples -/
 
 section Examples
