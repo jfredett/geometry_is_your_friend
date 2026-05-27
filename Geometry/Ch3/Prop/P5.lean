@@ -67,7 +67,12 @@ atlas exercise ["3.0.3.a.i"] "If A-B-C, then AB ⊆ AC"
 atlas exercise ["3.0.3.b"] "[If A-B-C,] then AC ⊂ AB ∪ BC."
   {A B C : Point} (ABC : A - B - C := by assumption) :
   (segment A B : Line) ⊆ (segment A C) := by
-  sorry
+  intro P PonAB
+  rcases PonAB with APB | rfl | rfl
+  · have APBC : A - P - B - C := by organize ABC APB
+    have APC : A - P - C := APBC
+    obvious
+  all_goals obvious
 
 atlas commentary := by
   ref exercise ["3.0.2"]
@@ -82,8 +87,8 @@ atlas commentary := by
 
 atlas exercise ["3.0.2.c"] "Given B-C-D and A-B-D, then A-B-C and A-C-D"
   (BCD : B - C - D := by assumption) (ABD : A - B - D := by assumption) :
-  A-B-C ∧ A-C-D := by
-  sorry
+  A-B-C ∧ A-C-D := by arranging ABD BCD
+  
   
 atlas commentary := by
   ref proposition 3.5
@@ -104,25 +109,25 @@ atlas proposition 3.5 "If A-B-C then AC = AB ∪ BC..."
   apply Line.eq_of_subset
   · intro P PonAC
     rcases PonAC with APC | PeqA | PeqC
-    · have h : A - P - B ∨ P = B ∨ B - P - C := by organize ABC APC
-      rcases h with APB | rfl | BPC
-      all_goals obvious
+    · arranging ABC APC
     all_goals obvious
   · intro P PonABorBC
-    rcases PonABorBC with (APB | _ | _) | (BPC | _ | _)
-    · have APC : A - P - C := (via proposition 3.3.ii ⟨APB, ABC⟩)
-      obvious
-    · obvious
-    · obvious
-    · have APC : A - P - C := by organize ABC BPC
-      obvious
-    · obvious
-    · obvious
+    arranging ABC PonABorBC into (APB | _ | _) | (BPC | _ | _)
 
 atlas corollary 3.5 "[If A-B-C then ...], and AB intersects BC at B"
   {A B C : Point} (ABC : A - B - C := by assumption) :
   (segment A B intersects segment B C at B) := by
-  sorry
+  ext P; constructor
+  · intro ⟨PinAB, PinBC⟩
+    rcases PinAB with APB | PeqA | PeqB
+    · have APBC : A - P - B - C := by organize ABC APB
+      have PoffBC : P off segment B C := via lemma 2.0.30 APBC
+      contradiction
+    · rw [PeqA] at ABC
+      have PoffBC : P off segment B C := via lemma 2.0.30 ABC
+      contradiction
+    · obvious
+  · intro PisB; obvious
 
 
 end Geometry.Ch3.Prop

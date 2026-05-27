@@ -607,6 +607,40 @@ atlas lemma 2.0.29 "A line crossing L at Z (not between A and B on L) guards A a
   · exact absurd (ref lemma 2.0.27 AneZ BneZ LintMatZ onL split) notAZB
 
 atlas commentary := by
+  ref lemma 2.0.30
+  name "The left outer point of a Between triple lies off the inner segment"
+  preface "If X - Y - Z, then X lies off segment Y Z."
+  notes "The inner segment is the closed segment from Y to Z; X being off it means X ≠ Y, X ≠ Z, and ¬(Y - X - Z). The first two come from B-1 distinctness on the Between hypothesis; the third comes from lemma 1.0.36 (Y - X - Z and X - Y - Z cannot coexist)."
+
+atlas lemma 2.0.30 "The left outer point of a Between triple lies off the inner segment"
+  {X Y Z : Point} (h : X - Y - Z) : X off segment Y Z := by
+  intro hMem
+  obtain ⟨distinctXYZ, _, _⟩ := ref axiom B.1 h
+  rcases hMem with YXZ | YeqX | ZeqX
+  · exact ref lemma 1.0.36 ⟨h, YXZ⟩
+  · have : X ≠ Y := by distinguish
+    exact this YeqX.symm
+  · have : X ≠ Z := by distinguish
+    exact this ZeqX.symm
+
+atlas commentary := by
+  ref corollary 2.0.30
+  name "The right outer point of a Between triple lies off the inner segment"
+  preface "If X - Y - Z, then Z lies off segment X Y."
+  notes "Symmetric variant of lemma 2.0.30 — same shape, the Y-Z-X betweenness contradiction here is via lemma 1.0.37 (X-Y-Z and X-Z-Y cannot coexist). Shares number 2.0.30 with the parent; use `via lemma 2.0.30 …` for type-directed dispatch."
+
+atlas corollary 2.0.30 "The right outer point of a Between triple lies off the inner segment"
+  {X Y Z : Point} (h : X - Y - Z) : Z off segment X Y := by
+  intro hMem
+  obtain ⟨distinctXYZ, _, _⟩ := ref axiom B.1 h
+  rcases hMem with XZY | XeqZ | YeqZ
+  · exact ref lemma 1.0.37 ⟨h, XZY⟩
+  · have : X ≠ Z := by distinguish
+    exact this XeqZ
+  · have : Y ≠ Z := by distinguish
+    exact this YeqZ
+
+atlas commentary := by
   ref lemma 3.0.1
   name "Bare intersection plus a shared point implies pointed intersection or coincidence"
   preface "If `L intersects M` and `A` lies on both, then either the intersection happens

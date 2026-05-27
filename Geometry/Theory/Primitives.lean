@@ -79,6 +79,32 @@ syntax:50 (name := onNotation) term:51 " on " term:50 : term
 macro_rules (kind := onNotation)
   | `($P on $L) => `($P ∈ $L)
 
+-- Goal-state display: `Line` membership unfolds via the instance body
+-- (`mem L P := P ∈ L.toSet`), which leaks `.toSet` into proof states like
+-- `P ∈ (segment A B).toSet`. The unexpander below strips the projection
+-- so `Line.toSet L` renders as just `L`, and the surrounding membership
+-- collapses back to `P ∈ L` (further turned into `P on L` by the
+-- `Membership.mem` delab below).
+@[app_unexpander Geometry.Theory.Line.toSet]
+def Line.toSet.unexpander : Lean.PrettyPrinter.Unexpander
+  | `($_ $L) => `($L)
+  | _        => throw ()
+
+-- Render `P ∈ L.toSet` (the unfolded form of Line membership — Lean
+-- inlines the `instance Membership Point Line` body before delab sees
+-- it, so the type arg is `Set Point`, not `Line`) as `P on L`. We
+-- detect the Line layer via the *collection* shape (`Line.toSet X`).
+open Lean PrettyPrinter.Delaborator SubExpr in
+@[app_delab Membership.mem]
+def delabMembershipOnLine : Delab := do
+  let e ← getExpr
+  guard <| e.isAppOfArity ``Membership.mem 5
+  let collection := e.getArg! 3
+  guard <| collection.isAppOfArity ``Geometry.Theory.Line.toSet 1
+  let element ← withNaryArg 4 delab
+  let lineStx ← withNaryArg 3 (withNaryArg 0 delab)
+  `($element on $lineStx)
+
 notation:80 P:81 " off " L:81 => P ∉ L
 notation:80 L:81 " has " P:81 => P ∈ L
 notation:80 L:81 " avoids " P:81 => P ∉ L

@@ -47,6 +47,89 @@ macro_rules (kind := dashChain)
   | `($a:term - $b:term - $c:term - $d:term $[- $rest:term]*) =>
     `(Arrangement [$a, $b, $c, $d, $rest,*])
 
+/-! ## Auto-coercion from `Arrangement` to its contained `Between`s
+
+Lean 4's `Coe` is type-driven, so it can't dispatch on a value-level "which
+triple"; instead we enumerate one `Coe` instance per ordered triple per
+arrangement size. Typeclass resolution then picks the right one by matching
+the target Between's points against the (instance-generic) list entries.
+
+Only `n=3` and `n=4` are wired up here — those are the sizes the project
+currently needs. Add more by following the pattern below (`C(n,3)` instances
+per size). The `.symm` direction isn't covered; write the Between in
+arrangement order or apply `.symm` explicitly. -/
+
+-- `CoeDep` (not `Coe`) because Coe's α-params must be fully determined by the
+-- target β; here the non-triple points of the arrangement are never in the
+-- Between's 3-tuple, so Coe rejects the instance ("does not provide concrete
+-- values for (semi-)out-params"). CoeDep takes the specific value as a
+-- typeclass arg, so α gets pinned by the value's type before β is consulted.
+--
+-- We can't write a SINGLE general instance for arbitrary `n`, because Lean's
+-- typeclass resolver can't search over Nat indices (i, j, k) to pick which
+-- triple matches the target Between. Instead, the command below generates one
+-- CoeDep instance per (size, i, j, k) tuple, up to a chosen max size. The
+-- `.symm` direction (reversed Between) is not generated; flip the orientation
+-- via `.symm` at the call site if you need it.
+
+open Lean Elab Command in
+/-- Emit `CoeDep (Arrangement [p₀, …, p_{size-1}]) h (Between p_i p_j p_k)`
+instances for every `(size, i<j<k<size)` with `3 ≤ size ≤ <n>`. -/
+elab "gen_arrangement_coes_up_to " n:num : command => do
+  let maxN := n.getNat
+  if maxN < 3 then throwError "gen_arrangement_coes_up_to: need n ≥ 3"
+  for size in [3:maxN+1] do
+    let pointIds : Array Ident :=
+      (Array.range size).map fun idx => mkIdent (Name.mkSimple s!"p{idx}")
+    let listTerms : Array (TSyntax `term) := pointIds.map (⟨·.raw⟩)
+    let listSyn ← `(term| [$listTerms,*])
+    let binder ← `(Lean.Parser.Term.bracketedBinderF| { $[$pointIds]* : Point })
+    for i in [:size] do
+      for j in [i+1:size] do
+        for k in [j+1:size] do
+          let pi : TSyntax `term := ⟨pointIds[i]!.raw⟩
+          let pj : TSyntax `term := ⟨pointIds[j]!.raw⟩
+          let pk : TSyntax `term := ⟨pointIds[k]!.raw⟩
+          let iLit := Syntax.mkNumLit (toString i)
+          let jLit := Syntax.mkNumLit (toString j)
+          let kLit := Syntax.mkNumLit (toString k)
+          elabCommand (← `(
+            instance $binder:bracketedBinder (h : Arrangement $listSyn) :
+                CoeDep (Arrangement $listSyn) h (Between $pi $pj $pk) where
+              coe := h.tri $iLit $jLit $kLit
+                (by simp) (by simp) (by simp) (by decide) (by decide)))
+
+-- Default covers the project's practical cap (book max 5, working cap ~7).
+-- Bump if you start chaining bigger arrangements; cost scales as C(n,3) per
+-- added size.
+gen_arrangement_coes_up_to 7
+
+/-- Walk a `List` literal expression and collect its element Exprs. -/
+private partial def arrangementListElems (e : Lean.Expr) (acc : Array Lean.Expr) :
+    Option (Array Lean.Expr) :=
+  match Lean.Expr.getAppFnArgs e with
+  | (``List.cons, #[_, hd, tl]) => arrangementListElems tl (acc.push hd)
+  | (``List.nil, _)             => some acc
+  | _                           => none
+
+open Lean PrettyPrinter.Delaborator SubExpr in
+@[app_delab Geometry.Theory.Arrangement]
+def delabArrangement : Delab := do
+  let e ← getExpr
+  guard <| e.isAppOfArity ``Geometry.Theory.Arrangement 1
+  let some elems := arrangementListElems (e.getArg! 0) #[] | failure
+  -- 3-point Arrangements stay as the list form since `a - b - c` would
+  -- parse as `Between`, not `Arrangement [a,b,c]`.
+  guard <| elems.size ≥ 4
+  let mut elemStxs : Array (TSyntax `term) := #[]
+  for elem in elems do
+    elemStxs := elemStxs.push (← Lean.PrettyPrinter.delab elem)
+  let e0 := elemStxs[0]!
+  let e1 := elemStxs[1]!
+  let e2 := elemStxs[2]!
+  let rest := elemStxs.extract 3 elemStxs.size
+  `($e0 - $e1 - $e2 $[- $rest]*)
+
 end Geometry.Theory
 
 namespace Geometry.Theory.Arrangement
@@ -289,12 +372,125 @@ private def tryTrichotomy (goal : MVarId) (facts : Array ArrFact) : MetaM Bool :
     return true
   | _, _ => return false
 
+/-- Derive a `A-B-C`-style name from three point Exprs by concatenating their
+user-facing names (when each is an `FVar`). Used by the reduce-not-close path
+to name extracted Between hypotheses in a way the user can refer to. -/
+private def betweenName (a b c : Expr) : MetaM Name := do
+  let nm (e : Expr) : MetaM String := do
+    match e with
+    | .fvar fid => return (← fid.getUserName).toString
+    | _         => return "_"
+  let na ← nm a
+  let nb ← nm b
+  let nc ← nm c
+  return Name.mkSimple (na ++ nb ++ nc)
+
+/-- Shared core: run the organize pipeline on a given fact array and goal.
+Both `organize <hyps>` (explicit hyps) and `organize_auto` (context-scan) share
+this body. -/
+def runOrganize (facts : Array ArrFact) (goal : MVarId) : TacticM Unit := do
+  goal.withContext do
+    if facts.isEmpty then
+      throwError "organize: requires at least one Between or Arrangement"
+    -- Disjunctive 3-way trichotomy dispatch.
+    if ← tryTrichotomy goal facts then return
+    -- Pool all distinct points; compute per-fact index lists.
+    let mut pool : Array Expr := #[]
+    let mut perFactIdx : Array (Array Nat) := #[]
+    for f in facts do
+      let mut idxs : Array Nat := #[]
+      for p in f.points do
+        let (k, newPool) ← addPoint pool p
+        pool := newPool
+        idxs := idxs.push k
+      perFactIdx := perFactIdx.push idxs
+    let n := pool.size
+    -- Build edges from each fact's consecutive points.
+    let mut edges : Array (Nat × Nat) := #[]
+    for idxs in perFactIdx do
+      for i in [:idxs.size - 1] do
+        edges := edges.push (idxs[i]!, idxs[i+1]!)
+    -- Topo-sort the pool indices.
+    let order ← match topoSort n edges with
+      | .ok o      => pure o
+      | .error msg => throwError m!"organize: {msg}"
+    -- rank[pool-idx] = position in topo order.
+    let mut rank : Array Nat := Array.replicate n 0
+    for k in [:n] do
+      rank := rank.set! order[k]! k
+    let factRanks : Array (Array Nat) := perFactIdx.map (·.map (rank[·]!))
+    -- Build the maximal arrangement proof.
+    let arrProof ← buildArrangement facts factRanks n
+    -- Inspect the goal.
+    let goalType ← instantiateMVars (← goal.getType)
+    let goalType ← whnf goalType
+    if let some (gx, gy, gz) := goalType.app3? ``Geometry.Theory.Between then
+      let some ix ← findIndex pool gx
+        | throwError m!"organize: goal point {gx} not in hypotheses"
+      let some iy ← findIndex pool gy
+        | throwError m!"organize: goal point {gy} not in hypotheses"
+      let some iz ← findIndex pool gz
+        | throwError m!"organize: goal point {gz} not in hypotheses"
+      let rx := rank[ix]!
+      let ry := rank[iy]!
+      let rz := rank[iz]!
+      let (i0, i1, i2, reverse) ←
+        if rx < ry && ry < rz then pure (rx, ry, rz, false)
+        else if rx > ry && ry > rz then pure (rz, ry, rx, true)
+        else throwError m!"organize: goal points are not in arrangement order \
+                                (ranks {rx}, {ry}, {rz})"
+      let arrType ← Meta.inferType arrProof
+      let g' ← goal.assert `arr_aux arrType arrProof
+      let (_, g') ← g'.intro1P
+      replaceMainGoal [g']
+      g'.withContext do
+        let arrIdent := mkIdent `arr_aux
+        let i0Lit := Syntax.mkNumLit (toString i0)
+        let i1Lit := Syntax.mkNumLit (toString i1)
+        let i2Lit := Syntax.mkNumLit (toString i2)
+        let body ← `(($arrIdent).tri $i0Lit $i1Lit $i2Lit
+          (by simp) (by simp) (by simp) (by decide) (by decide))
+        let finalTerm : TSyntax `term ←
+          if reverse then `(($body).symm) else pure body
+        evalTactic (← `(tactic| exact $finalTerm))
+    else if goalType.isAppOfArity ``Geometry.Theory.Arrangement 1 then
+      let ptsExpr := goalType.getArg! 0
+      let some _ := listExprToArray ptsExpr
+        | throwError "organize: goal Arrangement has non-literal point list"
+      let arrType ← Meta.inferType arrProof
+      if ← isDefEq arrType goalType then
+        goal.assign arrProof
+      else
+        throwError m!"organize: built arrangement does not match goal\n  built : {arrType}\n  goal  : {goalType}"
+    else
+      -- Reduce-not-close: bind the arrangement AND extract every i<j<k
+      -- Between as a named have (`<name>` derived from the three point
+      -- identifiers, e.g. `APB`), so downstream tactics like `obvious` can
+      -- consume the derived facts via simp on Between.
+      let arrType ← Meta.inferType arrProof
+      let g' ← goal.assert `arr_aux arrType arrProof
+      let (_, g') ← g'.intro1P
+      replaceMainGoal [g']
+      g'.withContext do
+        let arrIdent := mkIdent `arr_aux
+        for i in [:n] do
+          for j in [i+1:n] do
+            for k in [j+1:n] do
+              let iLit := Syntax.mkNumLit (toString i)
+              let jLit := Syntax.mkNumLit (toString j)
+              let kLit := Syntax.mkNumLit (toString k)
+              let triName ← betweenName
+                pool[order[i]!]! pool[order[j]!]! pool[order[k]!]!
+              let nameIdent := mkIdent triName
+              evalTactic (← `(tactic|
+                have $nameIdent : _ := ($arrIdent).tri $iLit $jLit $kLit
+                  (by simp) (by simp) (by simp) (by decide) (by decide)))
+
 @[tactic organizeTac]
 def elabOrganize : Tactic := fun stx => match stx with
   | `(tactic| organize $hs*) => do
     let goal ← getMainGoal
     goal.withContext do
-      -- Elaborate inputs and parse into ArrFacts.
       let mut facts : Array ArrFact := #[]
       for h in hs do
         let hExpr ← Term.elabTerm h none
@@ -302,90 +498,172 @@ def elabOrganize : Tactic := fun stx => match stx with
         let some f ← parseArrFact hExpr
           | throwError m!"organize: cannot parse `{h}` as Between or Arrangement"
         facts := facts.push f
-      if facts.isEmpty then
-        throwError "organize: requires at least one hypothesis"
-      -- Disjunctive 3-way trichotomy dispatch — handles the canonical
-      -- ambiguous-inner-pair case without needing to topo-sort.
-      if ← tryTrichotomy goal facts then return
-      -- Pool all distinct points; compute per-fact index lists.
-      let mut pool : Array Expr := #[]
-      let mut perFactIdx : Array (Array Nat) := #[]
-      for f in facts do
-        let mut idxs : Array Nat := #[]
-        for p in f.points do
-          let (k, newPool) ← addPoint pool p
-          pool := newPool
-          idxs := idxs.push k
-        perFactIdx := perFactIdx.push idxs
-      let n := pool.size
-      -- Build edges from each fact's consecutive points.
-      let mut edges : Array (Nat × Nat) := #[]
-      for idxs in perFactIdx do
-        for i in [:idxs.size - 1] do
-          edges := edges.push (idxs[i]!, idxs[i+1]!)
-      -- Topo-sort the pool indices.
-      let order ← match topoSort n edges with
-        | .ok o      => pure o
-        | .error msg => throwError m!"organize: {msg}"
-      -- rank[pool-idx] = position in topo order.
-      let mut rank : Array Nat := Array.replicate n 0
-      for k in [:n] do
-        rank := rank.set! order[k]! k
-      let factRanks : Array (Array Nat) := perFactIdx.map (·.map (rank[·]!))
-      -- Build the maximal arrangement proof.
-      let arrProof ← buildArrangement facts factRanks n
-      -- Inspect the goal.
-      let goalType ← instantiateMVars (← goal.getType)
-      let goalType ← whnf goalType
-      if let some (gx, gy, gz) := goalType.app3? ``Geometry.Theory.Between then
-        let some ix ← findIndex pool gx
-          | throwError m!"organize: goal point {gx} not in hypotheses"
-        let some iy ← findIndex pool gy
-          | throwError m!"organize: goal point {gy} not in hypotheses"
-        let some iz ← findIndex pool gz
-          | throwError m!"organize: goal point {gz} not in hypotheses"
-        let rx := rank[ix]!
-        let ry := rank[iy]!
-        let rz := rank[iz]!
-        -- Forward or reversed read of a topo-sorted triple. Anything else means the
-        -- goal isn't a Between consistent with the inferred order.
-        let (i0, i1, i2, reverse) ←
-          if rx < ry && ry < rz then pure (rx, ry, rz, false)
-          else if rx > ry && ry > rz then pure (rz, ry, rx, true)
-          else throwError m!"organize: goal points are not in arrangement order \
-                                  (ranks {rx}, {ry}, {rz})"
-        -- Bind the built arrangement so we can name it in a tactic block.
-        let arrType ← Meta.inferType arrProof
-        let g' ← goal.assert `arr_aux arrType arrProof
-        let (_, g') ← g'.intro1P
-        replaceMainGoal [g']
-        g'.withContext do
-          let arrIdent := mkIdent `arr_aux
-          let i0Lit := Syntax.mkNumLit (toString i0)
-          let i1Lit := Syntax.mkNumLit (toString i1)
-          let i2Lit := Syntax.mkNumLit (toString i2)
-          let body ← `(($arrIdent).tri $i0Lit $i1Lit $i2Lit
-            (by simp) (by simp) (by simp) (by decide) (by decide))
-          let finalTerm : TSyntax `term ←
-            if reverse then `(($body).symm) else pure body
-          evalTactic (← `(tactic| exact $finalTerm))
-      else if goalType.isAppOfArity ``Geometry.Theory.Arrangement 1 then
-        let ptsExpr := goalType.getArg! 0
-        let some _ := listExprToArray ptsExpr
-          | throwError "organize: goal Arrangement has non-literal point list"
-        -- Try to close with the arrangement we built (defeq up to list reduction).
-        let arrType ← Meta.inferType arrProof
-        if ← isDefEq arrType goalType then
-          goal.assign arrProof
+      runOrganize facts goal
+  | _ => throwUnsupportedSyntax
+
+/-- `organize_auto`: same pipeline as `organize`, but discovers
+Between/Arrangement hypotheses from the local context instead of taking
+them as explicit arguments. Useful as the per-branch closer in
+`arranging`. -/
+syntax (name := organizeAutoTac) "organize_auto" : tactic
+
+@[tactic organizeAutoTac]
+def elabOrganizeAuto : Tactic := fun stx => match stx with
+  | `(tactic| organize_auto) => do
+    let goal ← getMainGoal
+    goal.withContext do
+      let lctx ← getLCtx
+      let mut facts : Array ArrFact := #[]
+      for decl in lctx do
+        if decl.isImplementationDetail then continue
+        if let some f ← parseArrFact decl.toExpr then
+          facts := facts.push f
+      runOrganize facts goal
+  | _ => throwUnsupportedSyntax
+
+/-- Detect a pair of Between facts of the form `(A-B-C, A-P-C)` — shared
+outer pair `(A, C)` with different middle points — and apply lemma 3.0.10
+to derive the trichotomy `(A-P-B) ∨ (P=B) ∨ (B-P-C)`. Returns the proof
+expr or `none` if no such pair exists. -/
+private def tryFactsTrichotomy (facts : Array ArrFact) : MetaM (Option Expr) := do
+  for h : i in [:facts.size] do
+    for h : j in [:facts.size] do
+      if i == j then continue
+      match facts[i], facts[j] with
+      | .bet h1 a1 b1 c1, .bet h2 a2 _ c2 =>
+        if (← isDefEq a1 a2) && (← isDefEq c1 c2) then
+          -- Distinct middles ensure the trichotomy isn't vacuous. We don't
+          -- check that here; if they're defeq the case-split is still sound
+          -- (one branch becomes `B = B`, instantly closed).
+          let lem ← lookupAtlasConst "lemma" "3.0.10"
+          let proof ← Meta.mkAppM lem #[h1, h2]
+          -- Only commit if mkAppM's unification was consistent with the
+          -- {A, B, P, C} interpretation (i.e. the Between args of facts[i]
+          -- played the role of `(A, B, C)` and facts[j] of `(A, P, C)`).
+          let _ := b1
+          return some proof
+      | _, _ => pure ()
+  return none
+
+/-- Generate the auto-pattern for a freshly-introduced trichotomy
+`(A-P-B) ∨ (P=B) ∨ (B-P-C)`. Names follow the convention `A-B-C ↦ ABC`
+and `A=B ↦ AeqB`. -/
+private def trichotomyAutoPattern (triType : Expr) :
+    MetaM (TSyntax `Lean.Parser.Tactic.rcasesPatLo) := do
+  let triType ← whnf triType
+  unless triType.isAppOfArity ``Or 2 do
+    throwError "arranging: trichotomy auto-pattern expected outer Or"
+  let d1 := triType.getArg! 0
+  let d23 := triType.getArg! 1
+  let d23 ← whnf d23
+  unless d23.isAppOfArity ``Or 2 do
+    throwError "arranging: trichotomy auto-pattern expected inner Or"
+  let d2 := d23.getArg! 0
+  let d3 := d23.getArg! 1
+  let nm (e : Expr) : MetaM String := do
+    match e with
+    | .fvar fid => return (← fid.getUserName).toString
+    | _         => return "_"
+  let i1 := mkIdent <| Name.mkSimple
+    s!"{← nm (d1.getArg! 0)}{← nm (d1.getArg! 1)}{← nm (d1.getArg! 2)}"
+  let i2 := mkIdent <| Name.mkSimple
+    s!"{← nm (d2.getArg! 1)}eq{← nm (d2.getArg! 2)}"
+  let i3 := mkIdent <| Name.mkSimple
+    s!"{← nm (d3.getArg! 0)}{← nm (d3.getArg! 1)}{← nm (d3.getArg! 2)}"
+  let p1 : TSyntax `rcasesPat ← `(rcasesPat| $i1:ident)
+  let p2 : TSyntax `rcasesPat ← `(rcasesPat| $i2:ident)
+  let p3 : TSyntax `rcasesPat ← `(rcasesPat| $i3:ident)
+  let ps : TSyntaxArray `rcasesPat := #[p1, p2, p3]
+  `(Lean.Parser.Tactic.rcasesPatLo| $ps:rcasesPat|*)
+
+/-- `arranging <hyps>* [into <rcases-pattern>]` — case-analysis closer that
+surfaces only non-obvious subgoals.
+
+Categorizes each `<hyp>` by type:
+- Between / Arrangement → "fact" (stays in scope, fed to `organize_auto`).
+- anything else (Or / segment membership / etc.) → "branch" (subject to rcases).
+
+If the inputs are all facts that share an outer pair (the canonical inner-pair
+shape for lemma 3.0.10), `arranging` calls `tryFactsTrichotomy` to introduce
+the trichotomy disjunction as `tri_aux` and rcases on it — using
+`trichotomyAutoPattern` to name the disjuncts when no `into` is supplied.
+
+The per-branch closer is `first | obvious | (organize_auto; obvious)`:
+obvious handles trivial branches; otherwise organize_auto discovers in-scope
+Between/Arrangement hyps and either dispatches the goal or extracts every
+i<j<k Between from the maximal arrangement (reduce-not-close), and obvious
+finishes.
+
+### Current limits of this skeleton
+
+1. **Single branch hyp.** Multi-branch input is rejected. Generalization
+   needs a loop over `rcases b₁, b₂, … with …` and per-target pattern
+   slots.
+2. **No auto-pattern for branch-hyp shape.** When the branch hyp is a
+   general Or-tree (e.g. the segment-union case at P5 L110), `into` is
+   required. Only the trichotomy-derived shape has an auto-pattern.
+   Generalising needs an Or-tree walker that emits `(…) | (…)` with
+   parens on nested Ors and deduplicates leaf names (`AeqP` twice →
+   `AeqP`, `AeqP_2`, …).
+3. **Single rcases target.** `into` accepts one `rcasesPatLo`;
+   comma-separated multi-target rcases (`rcases a, b with …`) isn't
+   threaded through.
+4. **Narrow ambiguity detection.** `tryFactsTrichotomy` looks for exactly
+   the lemma-3.0.10 shape (two Betweens sharing the outer pair). Other
+   ambiguous configurations (e.g. three Betweens with one cyclic edge,
+   five-point ambiguities) silently fall through to the plain closer
+   and end up at organize_auto's "ambiguous arrangement" error instead
+   of being case-split. -/
+syntax (name := arrangingTac) "arranging" (ppSpace colGt term:max)+
+    (" into " Lean.Parser.Tactic.rcasesPatLo)? : tactic
+
+@[tactic arrangingTac]
+def elabArranging : Tactic := fun stx => match stx with
+  | `(tactic| arranging $hs* $[into $pat?]?) => do
+    let goal ← getMainGoal
+    goal.withContext do
+      let mut facts : Array ArrFact := #[]
+      let mut branchHyps : Array (TSyntax `term) := #[]
+      for h in hs do
+        let hExpr ← Term.elabTerm h none
+        Term.synthesizeSyntheticMVarsNoPostponing
+        if let some f ← parseArrFact hExpr then
+          facts := facts.push f
         else
-          throwError m!"organize: built arrangement does not match goal\n  built : {arrType}\n  goal  : {goalType}"
-      else
-        -- Reduce-not-close: introduce the maximal arrangement we managed
-        -- to build and leave the goal untouched.
-        let arrType ← Meta.inferType arrProof
-        let g' ← goal.assert `arr_aux arrType arrProof
-        let (_, g') ← g'.intro1P
-        replaceMainGoal [g']
+          branchHyps := branchHyps.push h
+      let closer : TSyntax `tactic ← `(tactic|
+        first
+          | obvious
+          | (organize_auto; obvious))
+      -- If the user gave only fact hypos, see if those facts derive a
+      -- trichotomy we can case-split on.
+      if branchHyps.isEmpty then
+        if let some triProof ← tryFactsTrichotomy facts then
+          let triType ← Meta.inferType triProof
+          let g' ← goal.assert `tri_aux triType triProof
+          let (hFVarId, g') ← g'.intro1P
+          replaceMainGoal [g']
+          g'.withContext do
+            let hIdent := mkIdent (← hFVarId.getUserName)
+            let tgt ← `(Lean.Parser.Tactic.elimTarget| $hIdent:ident)
+            let usePat ← match pat? with
+              | some p => pure p
+              | none   => trichotomyAutoPattern triType
+            evalTactic (← `(tactic| rcases $tgt with $usePat <;> $closer))
+          return
+        else
+          evalTactic closer
+          return
+      match branchHyps.size, pat? with
+      | 1, some p =>
+        let b := branchHyps[0]!
+        let tgt ← `(Lean.Parser.Tactic.elimTarget| $b:term)
+        evalTactic (← `(tactic| rcases $tgt with $p <;> $closer))
+      | 1, none =>
+        throwError "arranging: branch hyp requires `into <rcases-pattern>` \
+                    (auto-pattern from branch shape not yet implemented)"
+      | _, _ =>
+        throwError "arranging: multiple branch hypotheses not yet supported"
   | _ => throwUnsupportedSyntax
 
 end Geometry.Theory.Arrangement
