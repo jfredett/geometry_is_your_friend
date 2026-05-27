@@ -142,6 +142,13 @@ atlas lemma 3.0.5 "Arrangement.cons"
   have hjk : j < k := hjk
   simp only [List.length_cons] at hi hj hk
   have hOldLen : (B :: C :: rest).length = rest.length + 2 := by simp
+  -- The index shift: prefixing A bumps every old index by 1.
+  have shift : ∀ (m : Nat) (hm : m < rest.length + 2),
+      (B :: C :: rest).get ⟨m, by rw [hOldLen]; omega⟩ =
+      (A :: B :: C :: rest).get ⟨m + 1, by simp only [List.length_cons]; omega⟩ := by
+    intro m hm
+    rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := m)
+          (hk := by simp only [List.length_cons]; omega)]
   have h_AB_at : ∀ m (_ : 2 ≤ m) (hm' : m < rest.length + 3),
       A - B - ((A :: B :: C :: rest).get
         ⟨m, by simp only [List.length_cons]; omega⟩) := by
@@ -153,9 +160,7 @@ atlas lemma 3.0.5 "Arrangement.cons"
       exact anchor
     · have key : B - C - (rest.get ⟨m, by omega⟩) := by
         have h := arr.tri 0 1 (m + 2)
-          (by rw [hOldLen]; omega)
-          (by rw [hOldLen]; omega)
-          (by rw [hOldLen]; omega)
+          (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
           (by omega) (by omega)
         simpa using h
       change A - B - (rest.get ⟨m, by omega⟩)
@@ -177,20 +182,10 @@ atlas lemma 3.0.5 "Arrangement.cons"
         rcases k with _ | k
         · omega
         have h := arr.tri 0 (j + 1) k
-          (by rw [hOldLen]; omega)
-          (by rw [hOldLen]; omega)
-          (by rw [hOldLen]; omega)
+          (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
           (by omega) (by omega)
         have e1 : (B :: C :: rest).get ⟨0, by rw [hOldLen]; omega⟩ = B := by simp
-        have e2 : (B :: C :: rest).get ⟨j + 1, by rw [hOldLen]; omega⟩ =
-                  (A :: B :: C :: rest).get ⟨j + 2, by simp only [List.length_cons]; omega⟩ := by
-          rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := j + 1)
-                (hk := by simp only [List.length_cons]; omega)]
-        have e3 : (B :: C :: rest).get ⟨k, by rw [hOldLen]; omega⟩ =
-                  (A :: B :: C :: rest).get ⟨k + 1, by simp only [List.length_cons]; omega⟩ := by
-          rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := k)
-                (hk := by simp only [List.length_cons]; omega)]
-        rw [e1, e2, e3] at h
+        rw [e1, shift (j + 1) (by omega), shift k (by omega)] at h
         exact h
       exact via corollary 3.3.ii ⟨hAB, hBjk⟩
   · rcases j with _ | j
@@ -198,23 +193,9 @@ atlas lemma 3.0.5 "Arrangement.cons"
     rcases k with _ | k
     · omega
     have h := arr.tri i j k
-      (by rw [hOldLen]; omega)
-      (by rw [hOldLen]; omega)
-      (by rw [hOldLen]; omega)
+      (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
       (by omega) (by omega)
-    have ei : (B :: C :: rest).get ⟨i, by rw [hOldLen]; omega⟩ =
-              (A :: B :: C :: rest).get ⟨i + 1, by simp only [List.length_cons]; omega⟩ := by
-      rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := i)
-            (hk := by simp only [List.length_cons]; omega)]
-    have ej : (B :: C :: rest).get ⟨j, by rw [hOldLen]; omega⟩ =
-              (A :: B :: C :: rest).get ⟨j + 1, by simp only [List.length_cons]; omega⟩ := by
-      rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := j)
-            (hk := by simp only [List.length_cons]; omega)]
-    have ek : (B :: C :: rest).get ⟨k, by rw [hOldLen]; omega⟩ =
-              (A :: B :: C :: rest).get ⟨k + 1, by simp only [List.length_cons]; omega⟩ := by
-      rw [cons_get_succ (a := A) (l := B :: C :: rest) (k := k)
-            (hk := by simp only [List.length_cons]; omega)]
-    rw [ei, ej, ek] at h
+    rw [shift i (by omega), shift j (by omega), shift k (by omega)] at h
     exact h
 
 atlas commentary := by
@@ -320,5 +301,15 @@ atlas lemma 3.0.7 "Arrangement.insert_head"
   (arr : Arrangement (B :: C :: suf)) (bxc : B - X - C) :
     Arrangement (B :: X :: C :: suf) :=
   via lemma 3.0.5 bxc (via lemma 3.0.6 arr bxc)
+
+atlas commentary := by
+  ref lemma 3.0.8
+  name "If A-B-C and B-C-D, then A-B-C-D"
+  preface ""
+
+atlas lemma 3.0.8 "If A-B-C and B-C-D, then A-B-C-D"
+  {A B C D : Point} (h₁ : A - B - C) (h₂ : B - C - D) : A - B - C - D := by
+  have hACD : A - C - D := via corollary 3.3.ii ⟨h₁, h₂⟩
+  exact via alternate 3.3 h₁ hACD
 
 end Geometry.Theory
