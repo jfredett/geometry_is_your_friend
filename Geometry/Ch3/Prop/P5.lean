@@ -44,10 +44,12 @@ interchange?
   "
   notes "Author has triggered a pet peeve, I would have written (b) and (c) as '(x) Statement (Hint).' and not '(x) Statement. (Hint.)'
 
-  Additionally, I think the second part of (a) is wrong. Introducing a new point (`D`), we can place that anywhere. I
-think the author clearly _meant_ B here, and that is what I've proved. In fact, place D such that D-A-B, then clearly
-¬(CD ⊂ CA), since A-B-C. However, BC ⊂ AC makes perfect sense. The use of proper vs improper subset here is also odd,
-AB ⊂ AC clearly; but the author uses `⊆`. I've maintained fidelity despite the oddity.
+  Additionally, I think the second part of (a) and the assertion of (b) is wrong. For (a) Introducing a new point (`D`),
+we can place that anywhere. I think the author clearly _meant_ B here, and that is what I've proved. In fact, place D
+such that D-A-B, then clearly ¬(CD ⊂ CA), since A-B-C. However, BC ⊂ AC makes perfect sense. The use of proper vs
+improper subset here is also odd, AB ⊂ AC clearly; but the author uses `⊆`. I've maintained fidelity despite the oddity.
+
+  Similarly, for (b), We end up proving in 3.5 that AC = AB U BC so we certainly can't prove it's a proper subset.
   
   Finally, I've broken the first statement into individual sub exercises. Atlas gangs all these together as a theorem
 complex, so it is easiest to just break down by conclusion.
@@ -63,16 +65,23 @@ atlas exercise ["3.0.3.a.i"] "If A-B-C, then AB ⊆ AC"
     obvious
   all_goals obvious
 
--- FIXME: commented because ssubset isn't supported
 atlas exercise ["3.0.3.a.ii"] "[If A-B-C, then] CB ⊂ CA; which axiom justifies this interchange?"
   {A B C : Point} (ABC : A - B - C := by assumption) :
-  ((segment C B : Line) ⊂ (segment C A)) := by 
-  sorry
+  ((segment C B : Line) ⊂ (segment C A)) := by
+  refine ⟨?_, ?_⟩
+  · exact via exercise ["3.0.3.a.i"] ABC.symm
+  · by_contra! CAsubCB
+    have AoffCB : A off segment C B := via corollary 2.0.30 ABC.symm
+    have AinCA : A on segment C A := obvious
+    obvious
 
 atlas exercise ["3.0.3.b"] "[If A-B-C,] then AC ⊂ AB ∪ BC."
   {A B C : Point} (ABC : A - B - C := by assumption) :
-  (segment A C : Line) ⊂ (segment A B) ∪ (segment B C) := by
-  sorry
+  (segment A C : Line) ⊆ (segment A B) ∪ (segment B C) := by
+  intro P PonAC
+  rcases PonAC with APC | rfl | rfl
+  · arranging ABC APC into ABP | rfl | BPC
+  all_goals obvious
 
 atlas commentary := by
   ref exercise ["3.0.2"]
