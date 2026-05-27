@@ -104,8 +104,8 @@ atlas proposition 3.5 "If A-B-C then AC = AB ∪ BC..."
   apply Line.eq_of_subset
   · intro P PonAC
     rcases PonAC with APC | PeqA | PeqC
-    · have APBorBPC : A - P - B ∨ B - P - C := by organize ABC APC
-      rcases APBorBPC with APB | BPC
+    · have h : A - P - B ∨ P = B ∨ B - P - C := by organize ABC APC
+      rcases h with APB | rfl | BPC
       all_goals obvious
     all_goals obvious
   · intro P PonABorBC

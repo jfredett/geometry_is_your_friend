@@ -243,6 +243,52 @@ private def buildArrangement
 
 syntax (name := organizeTac) "organize" (ppSpace colGt term:max)+ : tactic
 
+/-- Detect whether the goal is the canonical inner-pair trichotomy disjunction
+`(A - P - B) ∨ (P = B) ∨ (B - P - C)` and, if so, dispatch via lemma 3.0.10
+using the matching inputs `A - B - C` and `A - P - C`. Returns `true` if the
+case was handled. -/
+private def tryTrichotomy (goal : MVarId) (facts : Array ArrFact) : MetaM Bool := do
+  let goalType ← instantiateMVars (← goal.getType)
+  let goalType ← whnf goalType
+  unless goalType.isAppOfArity ``Or 2 do return false
+  let g1 := goalType.getArg! 0
+  let g23 := goalType.getArg! 1
+  unless g23.isAppOfArity ``Or 2 do return false
+  let g2 := g23.getArg! 0
+  let g3 := g23.getArg! 1
+  unless g1.isAppOfArity ``Geometry.Theory.Between 3 do return false
+  unless g2.isAppOfArity ``Eq 3 do return false
+  unless g3.isAppOfArity ``Geometry.Theory.Between 3 do return false
+  let A := g1.getArg! 0
+  let P := g1.getArg! 1
+  let B := g1.getArg! 2
+  let eqLhs := g2.getArg! 1
+  let eqRhs := g2.getArg! 2
+  let B' := g3.getArg! 0
+  let P' := g3.getArg! 1
+  let C := g3.getArg! 2
+  unless ← isDefEq P P' do return false
+  unless ← isDefEq B B' do return false
+  unless ← isDefEq eqLhs P do return false
+  unless ← isDefEq eqRhs B do return false
+  -- Find input facts matching `A - B - C` and `A - P - C`.
+  let mut hABC : Option Expr := none
+  let mut hAPC : Option Expr := none
+  for f in facts do
+    match f with
+    | .bet pr a b c =>
+      if (← isDefEq a A) && (← isDefEq c C) then
+        if ← isDefEq b B then hABC := some pr
+        if ← isDefEq b P then hAPC := some pr
+    | _ => pure ()
+  match hABC, hAPC with
+  | some h1, some h2 =>
+    let lem ← lookupAtlasConst "lemma" "3.0.10"
+    let proof ← Meta.mkAppM lem #[h1, h2]
+    goal.assign proof
+    return true
+  | _, _ => return false
+
 @[tactic organizeTac]
 def elabOrganize : Tactic := fun stx => match stx with
   | `(tactic| organize $hs*) => do
@@ -258,6 +304,9 @@ def elabOrganize : Tactic := fun stx => match stx with
         facts := facts.push f
       if facts.isEmpty then
         throwError "organize: requires at least one hypothesis"
+      -- Disjunctive 3-way trichotomy dispatch — handles the canonical
+      -- ambiguous-inner-pair case without needing to topo-sort.
+      if ← tryTrichotomy goal facts then return
       -- Pool all distinct points; compute per-fact index lists.
       let mut pool : Array Expr := #[]
       let mut perFactIdx : Array (Array Nat) := #[]
@@ -550,6 +599,48 @@ atlas lemma 3.0.9 "If A-B-D and B-C-D, then A-B-C-D"
   have hCBA : C - B - A := via proposition 3.3.i ⟨h₂.symm, h₁.symm⟩
   have hABC : A - B - C := hCBA.symm
   exact via lemma 3.0.8 hABC h₂
+
+atlas commentary := by
+  ref lemma 3.0.10
+  name "Inner-pair trichotomy: from A-B-C and A-P-C, either A-P-B, P=B, or B-P-C"
+  preface ""
+  notes "Resolves the topological ambiguity between two points (B, P) that are both strictly between the same outer pair (A, C). The proof case-splits on `P = B`; in the inequality branch it applies axiom B-3 to the three distinct collinear points {A, P, B} and discharges the impossible P-A-B case via corollary 3.3.i + lemma 1.0.36, and the A-B-P case via proposition 3.3.i."
+
+atlas lemma 3.0.10 "Inner-pair trichotomy: from A-B-C and A-P-C, either A-P-B, P=B, or B-P-C"
+  {A B C P : Point} (h₁ : A - B - C) (h₂ : A - P - C) :
+    (A - P - B) ∨ (P = B) ∨ (B - P - C) := by
+  by_cases hPeqB : P = B
+  · right; left; exact hPeqB
+  obtain ⟨distinctABC, colABC, _⟩ := ref axiom B.1 h₁
+  obtain ⟨distinctAPC, colAPC, _⟩ := ref axiom B.1 h₂
+  have AneB : A ≠ B := by distinguish
+  have AneP : A ≠ P := by distinguish
+  have AneC : A ≠ C := by distinguish
+  have distinctAPB : distinct A P B := by
+    refine ⟨?_⟩
+    rw [Finset.card_insert_of_notMem (by simp [AneP, AneB]),
+        Finset.card_insert_of_notMem (by simp [hPeqB]),
+        Finset.card_singleton]
+  have hSameLine : colAPC.line = colABC.line := by
+    apply ref lemma 2.0.2 AneC
+    exact ⟨colAPC.mem A, colABC.mem A, colAPC.mem C, colABC.mem C⟩
+  have colAPB : collinear A P B := by
+    refine ⟨colABC.line, ?_⟩
+    intro q hq
+    simp only [Finset.mem_insert, Finset.mem_singleton] at hq
+    rcases hq with hqA | hqP | hqB
+    · rw [hqA]; exact colABC.mem A
+    · rw [hqP, ← hSameLine]; exact colAPC.mem P
+    · rw [hqB]; exact colABC.mem B
+  rcases ref axiom B.3 A P B ⟨distinctAPB, colAPB⟩ with
+    ⟨APB, _, _⟩ | ⟨_, PAB, _⟩ | ⟨_, _, ABP⟩
+  · left; exact APB
+  · exfalso
+    have BAP : B - A - P := PAB.symm
+    have BAC : B - A - C := via corollary 3.3.i ⟨BAP, h₂⟩
+    exact ref lemma 1.0.36 ⟨h₁, BAC⟩
+  · right; right
+    exact via proposition 3.3.i ⟨ABP, h₂⟩
 
 
 end Geometry.Theory
