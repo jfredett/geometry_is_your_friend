@@ -123,6 +123,9 @@ private lemma cons_get_succ {α} {a : α} {l : List α} {k : Nat}
     (hk : k + 1 < (a :: l).length) :
     (a :: l).get ⟨k + 1, hk⟩ = l.get ⟨k, by simp only [List.length_cons] at hk; omega⟩ := by simp
 
+private lemma get_of_idx_eq {α} (l : List α) {i j : Nat} (hi : i < l.length) (hj : j < l.length)
+    (h : i = j) : l.get ⟨i, hi⟩ = l.get ⟨j, hj⟩ := by subst h; rfl
+
 atlas commentary := by
   ref lemma 3.0.5
   name "Arrangement.cons"
@@ -225,5 +228,97 @@ atlas alternate 3.3 "full chain arrangement from overlapping outer-pair triples"
   {A B C D : Point} (h₁ : A - B - C) (h₂ : A - C - D) : A - B - C - D := by
   have hBCD : B - C - D := via proposition 3.3.i ⟨h₁, h₂⟩
   exact via lemma 3.0.5 h₁ (ref lemma 1.0.39 hBCD)
+
+atlas commentary := by
+  ref lemma 3.0.6
+  name "Arrangement.head_swap"
+  preface "Given Arr[B,C,…] and B-X-C, derive Arr[X,C,…]."
+
+atlas lemma 3.0.6 "Arrangement.head_swap"
+  {B C X : Point} {suf : List Point}
+  (arr : Arrangement (B :: C :: suf)) (bxc : B - X - C) :
+    Arrangement (X :: C :: suf) := by
+  refine ⟨?_, ?_⟩
+  · have := arr.three_plus
+    simp only [List.length_cons] at this ⊢
+    exact this
+  rintro ⟨i, hi⟩ ⟨j, hj⟩ ⟨k, hk⟩ hij hjk
+  have hij : i < j := hij
+  have hjk : j < k := hjk
+  simp only [List.length_cons] at hi hj hk
+  have hOldLen : (B :: C :: suf).length = suf.length + 2 := by simp
+  have arr_BC_suf : ∀ m (hm : m < suf.length),
+      B - C - (suf.get ⟨m, hm⟩) := fun m hm => by
+    have h := arr.tri 0 1 (m + 2)
+      (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
+      (by omega) (by omega)
+    simpa using h
+  have h_XC_at : ∀ m (hm : m < suf.length),
+      X - C - (suf.get ⟨m, hm⟩) := fun m hm =>
+    via proposition 3.3.i ⟨bxc, arr_BC_suf m hm⟩
+  -- Index-conversion helpers: for any list l ∈ {(X::C::suf), (B::C::suf)} and idx m ≥ 2,
+  -- l.get ⟨m, _⟩ = suf.get ⟨m - 2, _⟩.
+  have suf_get_of_geq2 :
+      ∀ {Y : Point} (m : Nat) (hm : m < suf.length + 2) (hm2 : 2 ≤ m) (hmr : m - 2 < suf.length),
+        (Y :: C :: suf).get ⟨m, by simp only [List.length_cons]; omega⟩ = suf.get ⟨m - 2, hmr⟩ := by
+    intro Y m hm hm2 hmr
+    rw [get_of_idx_eq (Y :: C :: suf) _ (by simp only [List.length_cons]; omega)
+        (show m = (m - 2) + 2 from by omega)]
+    simp
+  rcases Nat.lt_or_ge i 1 with _ | hi'
+  · obtain rfl : i = 0 := by omega
+    rcases Nat.lt_or_ge j 2 with _ | hj'
+    · obtain rfl : j = 1 := by omega
+      have hkr : k - 2 < suf.length := by omega
+      have e0 : (X :: C :: suf).get ⟨0, by simp only [List.length_cons]; omega⟩ = X := rfl
+      have e1 : (X :: C :: suf).get ⟨1, by simp only [List.length_cons]; omega⟩ = C := rfl
+      have ek := suf_get_of_geq2 (Y := X) k hk (by omega) hkr
+      rw [e0, e1, ek]
+      exact h_XC_at (k - 2) hkr
+    · have hjr : j - 2 < suf.length := by omega
+      have hkr : k - 2 < suf.length := by omega
+      have e0 : (X :: C :: suf).get ⟨0, by simp only [List.length_cons]; omega⟩ = X := rfl
+      have ej := suf_get_of_geq2 (Y := X) j hj (by omega) hjr
+      have ek := suf_get_of_geq2 (Y := X) k hk (by omega) hkr
+      rw [e0, ej, ek]
+      have hXCj : X - C - (suf.get ⟨j - 2, hjr⟩) := h_XC_at (j - 2) hjr
+      have hC_jk : C - (suf.get ⟨j - 2, hjr⟩) - (suf.get ⟨k - 2, hkr⟩) := by
+        have h := arr.tri 1 j k
+          (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
+          (by omega) (by omega)
+        have e1' : (B :: C :: suf).get ⟨1, by rw [hOldLen]; omega⟩ = C := rfl
+        have ej' := suf_get_of_geq2 (Y := B) j (by rw [hOldLen] at *; omega) (by omega) hjr
+        have ek' := suf_get_of_geq2 (Y := B) k (by rw [hOldLen] at *; omega) (by omega) hkr
+        rw [e1', ej', ek'] at h
+        exact h
+      exact via corollary 3.3.ii ⟨hXCj, hC_jk⟩
+  · -- i ≥ 1: triple in old arr at same indices. For m ≥ 1, both lists agree.
+    have new_eq_old : ∀ (m : Nat) (_hm_pos : 1 ≤ m) (hm : m < suf.length + 2),
+        (B :: C :: suf).get ⟨m, by simp only [List.length_cons]; omega⟩ =
+        (X :: C :: suf).get ⟨m, by simp only [List.length_cons]; omega⟩ := by
+      intro m _ hm
+      rw [get_of_idx_eq (X :: C :: suf) _ (by simp only [List.length_cons]; omega)
+            (show m = (m - 1) + 1 from by omega),
+          get_of_idx_eq (B :: C :: suf) _ (by simp only [List.length_cons]; omega)
+            (show m = (m - 1) + 1 from by omega)]
+      simp
+    have h := arr.tri i j k
+      (by rw [hOldLen]; omega) (by rw [hOldLen]; omega) (by rw [hOldLen]; omega)
+      hij hjk
+    rw [new_eq_old i (by omega) (by rw [hOldLen] at *; omega),
+        new_eq_old j (by omega) (by rw [hOldLen] at *; omega),
+        new_eq_old k (by omega) (by rw [hOldLen] at *; omega)] at h
+    exact h
+
+atlas commentary := by
+  ref lemma 3.0.7
+  name "Arrangement.insert_head"
+  preface "Given Arr[B,C,…] and B-X-C, derive Arr[B,X,C,…]. Composes head_swap with cons."
+
+atlas lemma 3.0.7 "Arrangement.insert_head"
+  {B C X : Point} {suf : List Point}
+  (arr : Arrangement (B :: C :: suf)) (bxc : B - X - C) :
+    Arrangement (B :: X :: C :: suf) :=
+  via lemma 3.0.5 bxc (via lemma 3.0.6 arr bxc)
 
 end Geometry.Theory
