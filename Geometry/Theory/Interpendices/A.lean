@@ -425,6 +425,12 @@ structure Arrangement (pts : List Point) : Prop where
     i.val < j.val → j.val < k.val →
     Between (pts.get i) (pts.get j) (pts.get k)
 
+theorem Arrangement.tri {pts : List Point} (arr : Arrangement pts)
+    (i j k : Nat) (hi : i < pts.length) (hj : j < pts.length) (hk : k < pts.length)
+    (hij : i < j) (hjk : j < k) :
+    Between (pts.get ⟨i, hi⟩) (pts.get ⟨j, hj⟩) (pts.get ⟨k, hk⟩) :=
+  arr.ordered_triple ⟨i, hi⟩ ⟨j, hj⟩ ⟨k, hk⟩ hij hjk
+
 atlas commentary := by
   ref lemma 1.0.39
   name "Three-point arrangement from a single between"
