@@ -8,13 +8,13 @@ import Atlas
 /-!
 # Betweenness axioms
 
-Greenberg's betweenness axioms (B-1, B-2, B-3, ["B.4.i"], ["B.4.ii"]) plus the
-three density-axiom witness lemmas (1.0.5, 1.0.6, 1.0.7) extracted from B-2.
+Greenberg's betweenness axioms (B-1, B-2, B-3, B.4.i, B.4.ii) plus the
+three density-axiom witness lemmas (1.0.1, 1.0.2, 1.0.3) extracted from B-2.
 B-1 returns `Between.Consequences` with `.distinct`, `.collinear`, `.symm`
 projections; `Between.symm` wires the mathlib `symm` tactic.
 
 Same-side / opposite-side definitions and the `splits` / `guards` notation
-also live here — they're the conceptual layer that ["B.4.i"] and ["B.4.ii"] depend on.
+also live here — they're the conceptual layer that B.4.i and B.4.ii depend on.
 Page 108–110 of the text.
 -/
 
@@ -68,7 +68,7 @@ atlas axiom B.2 "Two distinct points admit a left, middle, and right witness on 
 attribute [simp] «Two distinct points admit a left, middle, and right witness on their line»
 
 
--- Density witness lemmas 1.0.5 / 1.0.6 / 1.0.7 (extracted from B.2)
+-- Density witness lemmas 1.0.1 / 1.0.2 / 1.0.3 (extracted from B.2)
 -- moved to `Geometry/Theory/Interpendices/A.lean` (axiom-derivable).
 
 atlas commentary := by
@@ -132,14 +132,14 @@ notation:20 L " guards " A " and " B => Guards A B L
   ¬(L guards A and B) ↔ (L splits A and B) := Iff.rfl
 
 atlas commentary := by
-  ref axiom ["B.4.i"]
+  ref axiom B.4.i
   page 110
   name "Same-side is transitive across a common middle point"
   preface "Betweenness Axiom 4 (Plane Separation). For every line L and for any
 three points A, B, and C not on L: (i) If A and B are on the same side of L and
 if B and C are on the same side of L, the A and C are on the same side of L..."
 
-atlas axiom ["B.4.i"] "Same-side is transitive across a common middle point"
+atlas axiom B.4.i "Same-side is transitive across a common middle point"
   {A B C : Point} {L : Line}
   (AoffL : A off L := by assumption)
   (BoffL : B off L := by assumption)
@@ -148,13 +148,13 @@ atlas axiom ["B.4.i"] "Same-side is transitive across a common middle point"
 attribute [simp] «Same-side is transitive across a common middle point»
 
 atlas commentary := by
-  ref axiom ["B.4.ii"]
+  ref axiom B.4.ii
   page 110
   name "Two opposite-side relations chain to a same-side relation"
   preface "... (ii) If A and B are on opposite sides of L and if B and C are opposite
 sides of L, then A and C are on the same side of L."
 
-atlas axiom ["B.4.ii"] "Two opposite-side relations chain to a same-side relation"
+atlas axiom B.4.ii "Two opposite-side relations chain to a same-side relation"
   {A B C : Point} {L : Line}
   (AoffL : A off L := by assumption)
   (BoffL : B off L := by assumption)

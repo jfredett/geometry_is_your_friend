@@ -61,7 +61,7 @@ atlas commentary := by
   ref proposition 3.1.ii
   page 109
   aliases [
-    -- exercise 3.0.2.a
+    -- exercise 3.Review.2.a
   ]
   name "Two rays from common endpoints union to their line"
   preface "... (ii) Ray A B ∪ Ray B A = LineThrough A B"
@@ -73,8 +73,8 @@ atlas proposition 3.1.ii "Two rays from common endpoints union to their line"
   apply Line.eq_of_subset
   · intro P PinUnion
     rcases PinUnion with PinAB | PinBA
-    · exact ref lemma 1.0.18 PinAB
-    · apply ref lemma 1.0.18 at PinBA
+    · exact ref lemma 1.0.8 PinAB
+    · apply ref lemma 1.0.8 at PinBA
       obvious
   · intro P PinLine
     comment "Need to handle the equality cases first, we'll refer to these later in the proof"

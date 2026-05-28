@@ -21,17 +21,14 @@ open Geometry.Ch3.Prop
 open Geometry.Ch3.Ex
 open Atlas
 
--- TODO: Renumber, there are 4 sections of this chapter, this is ex 1 from 'Exercises on Betweenness'
--- the numbering should probably be `$ch.$section.$ex#.$subex`, so this'd be 3.0.1.b
--- will also need to FIXME: Natively support up to 6 dots deep; just for safety
 atlas commentary := by
-  ref exercise 3.1.a
+  ref exercise 3.Betweenness.1.a
   page 146
   name "Exercise 1(a): four points from chained betweenness are distinct"
   preface "Given A-B-C and A-C-D:
   (a) Prove that A,B,C, and D are four distinct points (the proof requires an axiom)"
 
-atlas exercise 3.1.a "Exercise 1(a): four points from chained betweenness are distinct"
+atlas exercise 3.Betweenness.1.a "Exercise 1(a): four points from chained betweenness are distinct"
   : A - B - C ∧ A - C - D -> distinct A B C D := by
   intro ⟨ABC, ACD⟩
   have distinctABC := (ref axiom B.1 ABC).distinct
@@ -41,7 +38,7 @@ atlas exercise 3.1.a "Exercise 1(a): four points from chained betweenness are di
   have BneD : B ≠ D := by
     by_contra! BeqD
     rw [<- BeqD] at ACD
-    exact ref lemma 1.0.37 ⟨ABC, ACD⟩
+    exact ref lemma 1.0.19 ⟨ABC, ACD⟩
   refine ⟨?_⟩
   simp [Finset.card_insert_of_notMem, Finset.card_singleton,
         Finset.mem_insert, Finset.mem_singleton,
@@ -49,16 +46,16 @@ atlas exercise 3.1.a "Exercise 1(a): four points from chained betweenness are di
 
 
 atlas commentary := by
-  ref exercise 3.1.b
+  ref exercise 3.Betweenness.1.b
   page 146
   name "Exercise 1(b): four points from chained betweenness are collinear"
   preface "(b) Prove that A,B,C, and D are collinear"
 
-atlas exercise 3.1.b "Exercise 1(b): four points from chained betweenness are collinear"
+atlas exercise 3.Betweenness.1.b "Exercise 1(b): four points from chained betweenness are collinear"
   : A - B - C ∧ A - C - D -> collinear A B C D := by
   intro ⟨ABC, ACD⟩
   -- We only end up needing A ≠ C, but easy to get the whole thing.
-  have distinctABCD : distinct A B C D := via exercise 3.1.a ⟨ABC, ACD⟩
+  have distinctABCD : distinct A B C D := via exercise 3.Betweenness.1.a ⟨ABC, ACD⟩
   have AneC : A ≠ C := by distinguish
   have colABC := (ref axiom B.1 ABC).collinear
   have colACD := (ref axiom B.1 ACD).collinear
@@ -93,7 +90,7 @@ atlas lemma 3.0.3 "Distinct four points from shifted chained betweenness (A-B-C 
   have AneD : A ≠ D := by
     by_contra! AeqD
     rw [AeqD] at ABC
-    exact ref lemma 1.0.38 ⟨BCD, ABC⟩
+    exact ref lemma 1.0.20 ⟨BCD, ABC⟩
   refine ⟨?_⟩
   simp [Finset.card_insert_of_notMem, Finset.card_singleton,
         Finset.mem_insert, Finset.mem_singleton,

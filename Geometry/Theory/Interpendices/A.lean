@@ -56,11 +56,11 @@ open Geometry.Theory
 open Atlas
 
 atlas commentary := by
-  ref lemma 1.0.5
+  ref lemma 1.0.1
   name "Density axiom witness: a point left of two distinct points"
   preface "Construct a point 'to the left' of points BD on the induced line B D"
 
-atlas lemma 1.0.5 "Density axiom witness: a point left of two distinct points"
+atlas lemma 1.0.1 "Density axiom witness: a point left of two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ A : Point, collinear A B D ∧ distinct A B D ∧ (A - B - D) := by
       intro B D BneD
       have ⟨A, _, _, colABCDE, distinctABCDE, ABD, _, _⟩ := ref axiom B.2 B D BneD
@@ -69,11 +69,11 @@ atlas lemma 1.0.5 "Density axiom witness: a point left of two distinct points"
 
 
 atlas commentary := by
-  ref lemma 1.0.6
+  ref lemma 1.0.2
   name "Density axiom witness: a point between two distinct points"
   preface "Construct a point 'in between' points BD on the induced line B D"
 
-atlas lemma 1.0.6 "Density axiom witness: a point between two distinct points"
+atlas lemma 1.0.2 "Density axiom witness: a point between two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ C : Point, collinear B C D ∧ distinct B C D ∧ (B - C - D) := by
       intro B D BneD
       have ⟨_, C, _, colABCDE, distinctABCDE, _, BCD, _⟩ := ref axiom B.2 B D BneD
@@ -82,11 +82,11 @@ atlas lemma 1.0.6 "Density axiom witness: a point between two distinct points"
 
 
 atlas commentary := by
-  ref lemma 1.0.7
+  ref lemma 1.0.3
   name "Density axiom witness: a point right of two distinct points"
   preface "Construct a point 'to the right' points BD on the induced line B D"
 
-atlas lemma 1.0.7 "Density axiom witness: a point right of two distinct points"
+atlas lemma 1.0.3 "Density axiom witness: a point right of two distinct points"
   : ∀ B D : Point, B ≠ D -> ∃ E : Point, collinear B D E ∧ distinct B D E ∧ (B - D - E) := by
       intro B D BneD
       have ⟨_, _, E, colABCDE, distinctABCDE, _, _, BDE⟩ := ref axiom B.2 B D BneD
@@ -96,11 +96,11 @@ atlas lemma 1.0.7 "Density axiom witness: a point right of two distinct points"
 namespace Point
 
 atlas commentary := by
-  ref lemma 1.0.11
+  ref lemma 1.0.4
   name "For every Point there exists at least one distinct Point"
   preface "For every Point, there is at least one point that isn't that point."
 
-atlas lemma 1.0.11 "For every Point there exists at least one distinct Point"
+atlas lemma 1.0.4 "For every Point there exists at least one distinct Point"
   : ∀ P : Point, ∃ Q : Point, P ≠ Q := by
     intro P
     obtain ⟨A, B, C, hDistinct, _⟩ := ref axiom I.3
@@ -138,11 +138,11 @@ noncomputable instance collinearCoe {points : Finset Point} (h : Collinear point
 lemma of_eq {s t : Finset Point} (c : Collinear s) (h : s = t) : Collinear t := h ▸ c
 
 atlas commentary := by
-  ref lemma 1.0.14
+  ref lemma 1.0.5
   name "Any two distinct points are collinear"
   preface "There is a line between any two points, so by definition any two points are collinear"
 
-atlas lemma 1.0.14 "Any two distinct points are collinear"
+atlas lemma 1.0.5 "Any two distinct points are collinear"
   : A ≠ B -> collinear A B := by
   intro AneB
   have ⟨L, ⟨AonL, BonL⟩, _h⟩ := ref axiom I.1 A B AneB
@@ -166,7 +166,7 @@ attribute [simp] «Any two distinct points are collinear»
   intro p hp
   exact hL p ((samePoints p).mpr hp)
 
-atlas lemma 1.0.16 "Collinearity ignores trailing duplicate point (A B B ↔ A B)"
+atlas lemma 1.0.6 "Collinearity ignores trailing duplicate point (A B B ↔ A B)"
   (A B : Point) : collinear A B B ↔ collinear A B := by
   constructor
   · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton])
@@ -174,7 +174,7 @@ atlas lemma 1.0.16 "Collinearity ignores trailing duplicate point (A B B ↔ A B
 
 attribute [simp] «Collinearity ignores trailing duplicate point (A B B ↔ A B)»
 
-atlas lemma 1.0.17 "Collinearity ignores interleaved duplicate point (B A B ↔ A B)"
+atlas lemma 1.0.7 "Collinearity ignores interleaved duplicate point (B A B ↔ A B)"
   (A B : Point) : collinear B A B ↔ collinear A B := by
   constructor
   · intro h; exact Collinear.order_irrelevance h (by intro p; simp [Finset.mem_insert, Finset.mem_singleton]; try obvious)
@@ -187,11 +187,11 @@ end Collinear
 namespace Line
 
 atlas commentary := by
-  ref lemma 1.0.18
+  ref lemma 1.0.8
   name "A ray A B is a subset of the line A B"
   preface "A ray A B is a subset of the line A B"
 
-atlas lemma 1.0.18 "A ray A B is a subset of the line A B"
+atlas lemma 1.0.8 "A ray A B is a subset of the line A B"
   : (ray A B : Set Point) ⊆ (line A B : Set Point) := by
   intro P PonRay
   rcases PonRay with (APB | AeqP | BeqP) | h
@@ -203,13 +203,13 @@ atlas lemma 1.0.18 "A ray A B is a subset of the line A B"
 
 
 atlas commentary := by
-  ref lemma 1.0.26
+  ref lemma 1.0.9
   page 71
   name "Three pairwise-distinct concurrent lines meet at a unique point"
   preface "Author suggests a lemma, \"... to prove it, I could first prove a lemma that if three lines
 are concurrent, the point at which they meet is unique.\""
 
-atlas lemma 1.0.26 "Three pairwise-distinct concurrent lines meet at a unique point"
+atlas lemma 1.0.9 "Three pairwise-distinct concurrent lines meet at a unique point"
   : L ≠ M ∧ M ≠ N ∧ L ≠ N ->
         Concurrent L M N ->
         ∃! P : Point,
@@ -234,11 +234,11 @@ atlas lemma 1.0.26 "Three pairwise-distinct concurrent lines meet at a unique po
 
 
 atlas commentary := by
-  ref lemma 1.0.28
+  ref lemma 1.0.10
   name "Line Extensionality"
   preface "Two lines are coincident iff every point on one is on the other."
 
-atlas lemma 1.0.28 "Line Extensionality"
+atlas lemma 1.0.10 "Line Extensionality"
   : ∀ L M : Line,
      L = M ↔ ∀ P : Point, (P on L) ↔ (P on M) := by
      intros L M
@@ -265,11 +265,11 @@ attribute [obvious] «Line Extensionality»
 
 
 atlas commentary := by
-  ref lemma 1.0.29
+  ref lemma 1.0.11
   name "Two lines are distinct iff some point lies on exactly one"
   preface "Two lines are distinct iff they have at least one point not in common"
 
-atlas lemma 1.0.29 "Two lines are distinct iff some point lies on exactly one"
+atlas lemma 1.0.11 "Two lines are distinct iff some point lies on exactly one"
   : ∀ L M : Line,
     L ≠ M ↔ ∃ P, ((P on L) ∧ (P off M)) ∨ ((P off L) ∧ (P on M)) := by
     intros L M
@@ -286,12 +286,12 @@ end Line
 namespace Intersection
 
 atlas commentary := by
-  ref lemma 1.0.30
+  ref lemma 1.0.12
   name "Two pointed intersections of the same line pair share their point"
   preface "If two lines intersect, their intersection is unique."
   tags ["obvious.intersects"]
 
-atlas lemma 1.0.30 "Two pointed intersections of the same line pair share their point"
+atlas lemma 1.0.12 "Two pointed intersections of the same line pair share their point"
   : (L intersects M at X) ∧ (L intersects M at Y) -> X = Y := by
   unfold Intersects
   intro ⟨LMatX, LMatY⟩
@@ -300,12 +300,12 @@ atlas lemma 1.0.30 "Two pointed intersections of the same line pair share their 
 
 
 atlas commentary := by
-  ref lemma 1.0.31
+  ref lemma 1.0.13
   name "Pointed intersection is symmetric in its line arguments"
   preface "L intersects M is the same as M intersects L."
   tags ["obvious.intersects"]
 
-atlas lemma 1.0.31 "Pointed intersection is symmetric in its line arguments"
+atlas lemma 1.0.13 "Pointed intersection is symmetric in its line arguments"
   : (L intersects M at X) ↔ (M intersects L at X) := by
   unfold Intersects
   refine Eq.congr ?_ rfl
@@ -321,12 +321,12 @@ attribute [symm] «Pointed intersection is symmetric in its line arguments»
 
 
 atlas commentary := by
-  ref lemma 1.0.32
+  ref lemma 1.0.14
   name "A pointed intersection's witness point lies on the left line"
   preface "If L intersects M at X, then X is on L"
   tags ["obvious.intersects"]
 
-atlas lemma 1.0.32 "A pointed intersection's witness point lies on the left line"
+atlas lemma 1.0.14 "A pointed intersection's witness point lies on the left line"
   : (L intersects M at X) -> (X on L) := by
   unfold Intersects
   intro LMintX
@@ -335,12 +335,12 @@ atlas lemma 1.0.32 "A pointed intersection's witness point lies on the left line
 
 
 atlas commentary := by
-  ref lemma 1.0.33
+  ref lemma 1.0.15
   name "A pointed intersection's witness point lies on the right line"
   preface "If L intersects M at X, then X is on M"
   tags ["obvious.intersects"]
 
-atlas lemma 1.0.33 "A pointed intersection's witness point lies on the right line"
+atlas lemma 1.0.15 "A pointed intersection's witness point lies on the right line"
   : (L intersects M at X) -> (X on M) := by
   unfold Intersects
   intro LMintX
@@ -349,20 +349,20 @@ atlas lemma 1.0.33 "A pointed intersection's witness point lies on the right lin
 
 
 atlas commentary := by
-  ref lemma 1.0.34
+  ref lemma 1.0.16
   name "A pointed intersection's witness point lies on both lines"
   preface "If L intersects M at X, then X is on L and M"
 
-atlas lemma 1.0.34 "A pointed intersection's witness point lies on both lines"
-  : (L intersects M at X) -> (X on L) ∧ (X on M) := by intro inter; exact ⟨ref lemma 1.0.32 inter, ref lemma 1.0.33 inter⟩
+atlas lemma 1.0.16 "A pointed intersection's witness point lies on both lines"
+  : (L intersects M at X) -> (X on L) ∧ (X on M) := by intro inter; exact ⟨ref lemma 1.0.14 inter, ref lemma 1.0.15 inter⟩
 
 
 atlas commentary := by
-  ref lemma 1.0.35
+  ref lemma 1.0.17
   name "On distinct lines crossing at X every other point on L is off M"
   preface "If L intersects M at X, then forall P not equal to X, if P on L, then P off M."
 
-atlas lemma 1.0.35 "On distinct lines crossing at X every other point on L is off M"
+atlas lemma 1.0.17 "On distinct lines crossing at X every other point on L is off M"
   : (L ≠ M) ∧ (L intersects M at X) -> (∀ P : Point, (P ≠ X) ∧ (P on L) -> (P off M)) := by
   intro ⟨LneM, LintMatX⟩ P ⟨PneX, PonL⟩
   unfold Intersects at LintMatX
@@ -376,12 +376,12 @@ end Intersection
 namespace Betweenness
 
 atlas commentary := by
-  ref lemma 1.0.36
+  ref lemma 1.0.18
   name "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
   preface "With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
 one another"
 
-atlas lemma 1.0.36 "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
+atlas lemma 1.0.18 "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
   : A - B - C ∧ B - A - C -> False := by
   intro ⟨ABC, _⟩
   obtain ⟨distinctABC, colABC, _⟩ := ref axiom B.1 ABC
@@ -390,12 +390,12 @@ atlas lemma 1.0.36 "Betweenness contradiction: A-B-C cannot coexist with B-A-C"
 
 
 atlas commentary := by
-  ref lemma 1.0.37
+  ref lemma 1.0.19
   name "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
   preface "With respect to a fixed point, every pair of points can be said to either be 'to the left' or 'to the right' of
 one another"
 
-atlas lemma 1.0.37 "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
+atlas lemma 1.0.19 "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
   : A - B - C ∧ A - C - B -> False := by
   intro ⟨ABC, _⟩
   obtain ⟨distinctABC, colABC, _⟩ := ref axiom B.1 ABC
@@ -404,11 +404,11 @@ atlas lemma 1.0.37 "Betweenness contradiction: A-B-C cannot coexist with A-C-B"
 
 
 atlas commentary := by
-  ref lemma 1.0.38
+  ref lemma 1.0.20
   name "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
   preface "With respect to a pair of fixed points, another point is either 'to the left' or 'to the right' of the pair"
 
-atlas lemma 1.0.38 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
+atlas lemma 1.0.20 "Betweenness contradiction: A-B-C cannot coexist with C-A-B"
   : A - B - C ∧ C - A - B -> False := by
   intro ⟨ABC, CAB⟩
   obtain ⟨distinctABC, colABC, _⟩ := ref axiom B.1 ABC
