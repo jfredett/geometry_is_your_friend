@@ -3,7 +3,7 @@ import Geometry.Theory.Axioms
 import Geometry.Tactics
 
 import Geometry.Ch3.Prop.P3
-import Geometry.Ch3.Ex.Ex1
+import Geometry.Ch3.Ex.Betweenness.Ex1
 
 import Atlas
 
@@ -26,11 +26,11 @@ theorem Arrangement.tri {pts : List Point} (arr : Arrangement pts)
   arr.ordered_triple ⟨i, hi⟩ ⟨j, hj⟩ ⟨k, hk⟩ hij hjk
 
 atlas commentary := by
-  ref lemma 1.0.39
+  ref lemma 1.0.21
   name "Arrangement.of_3"
   preface "A single A-B-C is a 3-arrangement."
 
-atlas lemma 1.0.39 "Arrangement.of_3"
+atlas lemma 1.0.21 "Arrangement.of_3"
   {A B C : Point} (h : A - B - C) : Arrangement [A, B, C] := by
   refine ⟨by simp, ?_⟩
   intro i j k hij hjk
@@ -302,7 +302,7 @@ private def buildArrangement
       if let .bet _ _ _ _ := facts[i] then
         let r := factRanks[i]!
         if r.size == 3 && r[0]! == 0 && r[1]! == 1 && r[2]! == 2 then
-          let lem ← lookupAtlasConst "lemma" "1.0.39"
+          let lem ← lookupAtlasConst "lemma" "1.0.21"
           return ← Meta.mkAppM lem #[facts[i].proof]
     throwError "organize: 3 points but no Between covering them in order"
   | 4 =>
@@ -763,7 +763,7 @@ atlas commentary := by
 atlas alternate 3.3 "full chain arrangement from overlapping outer-pair triples"
   {A B C D : Point} (h₁ : A - B - C) (h₂ : A - C - D) : A - B - C - D := by
   have hBCD : B - C - D := via proposition 3.3.i ⟨h₁, h₂⟩
-  exact via lemma 3.0.5 h₁ (ref lemma 1.0.39 hBCD)
+  exact via lemma 3.0.5 h₁ (ref lemma 1.0.21 hBCD)
 
 atlas commentary := by
   ref lemma 3.0.6
@@ -882,7 +882,7 @@ atlas commentary := by
   ref lemma 3.0.10
   name "Inner-pair trichotomy: from A-B-C and A-P-C, either A-P-B, P=B, or B-P-C"
   preface ""
-  notes "Resolves the topological ambiguity between two points (B, P) that are both strictly between the same outer pair (A, C). The proof case-splits on `P = B`; in the inequality branch it applies axiom B-3 to the three distinct collinear points {A, P, B} and discharges the impossible P-A-B case via corollary 3.3.i + lemma 1.0.36, and the A-B-P case via proposition 3.3.i."
+  notes "Resolves the topological ambiguity between two points (B, P) that are both strictly between the same outer pair (A, C). The proof case-splits on `P = B`; in the inequality branch it applies axiom B-3 to the three distinct collinear points {A, P, B} and discharges the impossible P-A-B case via corollary 3.3.i + lemma 1.0.18, and the A-B-P case via proposition 3.3.i."
 
 atlas lemma 3.0.10 "Inner-pair trichotomy: from A-B-C and A-P-C, either A-P-B, P=B, or B-P-C"
   {A B C P : Point} (h₁ : A - B - C) (h₂ : A - P - C) :
@@ -916,7 +916,7 @@ atlas lemma 3.0.10 "Inner-pair trichotomy: from A-B-C and A-P-C, either A-P-B, P
   · exfalso
     have BAP : B - A - P := PAB.symm
     have BAC : B - A - C := via corollary 3.3.i ⟨BAP, h₂⟩
-    exact ref lemma 1.0.36 ⟨h₁, BAC⟩
+    exact ref lemma 1.0.18 ⟨h₁, BAC⟩
   · right; right
     exact via proposition 3.3.i ⟨ABP, h₂⟩
 

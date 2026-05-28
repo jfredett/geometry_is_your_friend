@@ -49,7 +49,7 @@ register_simp_attr obvious.parallel
 
 /-- Stage-specific simp set for `obvious`'s `unfold Intersects` stage.
     Pointed-intersection facts that need the `Intersects` def opened —
-    `1.0.30 .. 1.0.33`, witness-on-left / -right etc. -/
+    `1.0.12 .. 1.0.15`, witness-on-left / -right etc. -/
 register_simp_attr obvious.intersects
 
 /-- Stage-specific simp set for `obvious`'s `unfold Guards` stage.

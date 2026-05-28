@@ -89,24 +89,24 @@ atlas lemma 2.0.3 "Line Commutativity"
 
 
 atlas commentary := by
-  ref lemma 2.0.5
+  ref lemma 2.0.4
   name "Segment A B is a subset of line A B"
   preface "A segment is a subset of the line A B"
 
-atlas lemma 2.0.5 "Segment A B is a subset of line A B"
+atlas lemma 2.0.4 "Segment A B is a subset of line A B"
   : (segment A B : Line) ⊆ (line A B : Line) := by
   have h₁ : (segment A B : Line) ⊆ (ray A B : Line) := obvious
-  have h₂ : (ray A B : Line) ⊆ (line A B : Line) := ref lemma 1.0.18
+  have h₂ : (ray A B : Line) ⊆ (line A B : Line) := ref lemma 1.0.8
   intro P PonSeg
   rcases PonSeg with APB | AorBeqP
   repeat obvious
 
 atlas commentary := by
-  ref lemma 2.0.6
+  ref lemma 2.0.5
   name "Line Points are Collinear"
   preface "All points on a line are collinear"
 
-atlas lemma 2.0.6 "Line Points are Collinear"
+atlas lemma 2.0.5 "Line Points are Collinear"
   {AneB : A ≠ B} : P on line A B -> collinear A B P := by
   -- Direct Proof
   intro PonAB
@@ -114,55 +114,55 @@ atlas lemma 2.0.6 "Line Points are Collinear"
   rcases PonAB with PeqA | PeqB | tween | tween | tween
   todo "These should be reducible to a single invocation, maybe a suffices?"
   · rw [<- PeqA];
-    apply (ref lemma 1.0.17 B P).mpr
+    apply (ref lemma 1.0.7 B P).mpr
     by_cases suppose: B = P
     · rw [<- PeqA, suppose] at AneB; contradiction
-    · exact ref lemma 1.0.14 suppose
+    · exact ref lemma 1.0.5 suppose
   · rw [<- PeqB]
-    apply (ref lemma 1.0.16 A P).mpr
+    apply (ref lemma 1.0.6 A P).mpr
     by_cases suppose: A = P
     · rw [<- PeqB, suppose] at AneB; contradiction
-    · exact ref lemma 1.0.14 suppose
+    · exact ref lemma 1.0.5 suppose
   repeat exact Collinear.order_irrelevance (ref axiom B.1 tween).collinear
 
 
 atlas commentary := by
-  ref lemma 2.0.7
+  ref lemma 2.0.6
   name "Every point on extension A B is collinear with A and B"
   preface "All points on a extension are collinear"
 
-atlas lemma 2.0.7 "Every point on extension A B is collinear with A and B"
+atlas lemma 2.0.6 "Every point on extension A B is collinear with A and B"
   {A B : Point} : P on extension A B -> collinear A B P := by
   intro PonExtAB
   exact (ref axiom B.1 PonExtAB.left).collinear
 
 
 atlas commentary := by
-  ref lemma 2.0.8
+  ref lemma 2.0.7
   name "Every point on segment A B is collinear with A and B"
   preface "All points on a segment are collinear"
 
-atlas lemma 2.0.8 "Every point on segment A B is collinear with A and B"
+atlas lemma 2.0.7 "Every point on segment A B is collinear with A and B"
   {AneB : A ≠ B} : P on segment A B -> collinear A B P := by
   intro PonSegAB
-  apply ref lemma 2.0.5 at PonSegAB
+  apply ref lemma 2.0.4 at PonSegAB
   exact @«Line Points are Collinear» A B P AneB PonSegAB
 
 
 atlas commentary := by
-  ref lemma 2.0.9
+  ref lemma 2.0.8
   name "Ray Points are Collinear"
   preface "All points on a ray are collinear"
 
-atlas lemma 2.0.9 "Ray Points are Collinear"
+atlas lemma 2.0.8 "Ray Points are Collinear"
   {AneB : A ≠ B} : P on ray A B -> collinear A B P := by
   intro PonAB
-  apply ref lemma 1.0.18 at PonAB
+  apply ref lemma 1.0.8 at PonAB
   exact @«Line Points are Collinear» A B P AneB PonAB
 
 
 
-atlas lemma 2.0.10 "Segment A B and extension A B are disjoint"
+atlas lemma 2.0.9 "Segment A B and extension A B are disjoint"
   : (segment A B : Line) ∩ extension A B = ∅ := by
   apply Line.ext_set
   rw [Line.inter_toSet, Line.empty_toSet]
@@ -170,7 +170,7 @@ atlas lemma 2.0.10 "Segment A B and extension A B are disjoint"
   · intro P ⟨PonSeg, PonExt⟩
     have ⟨ABP, AneP, BneP⟩ := PonExt
     rcases PonSeg with APB | AeqP | BeqP
-    · exfalso; exact ref lemma 1.0.37 ⟨ABP, APB⟩
+    · exfalso; exact ref lemma 1.0.19 ⟨ABP, APB⟩
     · contradiction
     · contradiction
   · intro _ absurdity; exfalso; contradiction
@@ -178,15 +178,15 @@ atlas lemma 2.0.10 "Segment A B and extension A B are disjoint"
 
 
 atlas commentary := by
-  ref lemma 2.0.12
+  ref lemma 2.0.10
   name "A ray A B is never equal to any line L"
   preface "A line is 'bigger' than a ray in the same way that a line is bigger than a segment"
 
-atlas lemma 2.0.12 "A ray A B is never equal to any line L"
+atlas lemma 2.0.10 "A ray A B is never equal to any line L"
   { L : Line } {A B : Point}  (AneB : A ≠ B := by assumption) : ray A B ≠ L := by
   by_contra ABeqL
   idea "construct a point X - A - B, X is on L, by definition, but off AB, also by def. but under the hypothesis L = AB, -><-"
-  have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.5 A B AneB
+  have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.1 A B AneB
   separate at distinctXAB;
   have XonL : X on L := by
     idea "L = AB, and L = colXAB.line by the ref lemma 2.0.2"
@@ -199,19 +199,19 @@ atlas lemma 2.0.12 "A ray A B is never equal to any line L"
   rw [<- ABeqL] at XonL
   rcases XonL with XonSeg | XonExt
   · rcases XonSeg with AXB | AeqX | BeqX
-    · exact ref lemma 1.0.36 ⟨XAB, AXB⟩
+    · exact ref lemma 1.0.18 ⟨XAB, AXB⟩
     · exact absurd AeqX XneA.symm
     · exact absurd BeqX XneB.symm
   · have ⟨ABX, _, _⟩ := XonExt
-    exact ref lemma 1.0.38 ⟨ABX, XAB⟩
+    exact ref lemma 1.0.20 ⟨ABX, XAB⟩
 
 
 atlas commentary := by
-  ref lemma 2.0.13
+  ref lemma 2.0.11
   name "Segment Commutativity"
   preface "It helps to be able to commute these around, when we get to congruence this will make part of it trivial"
 
-atlas lemma 2.0.13 "Segment Commutativity"
+atlas lemma 2.0.11 "Segment Commutativity"
   : (segment A B : Line) = segment B A := by
   suffices subset : ∀ A B : Point, (segment A B : Line) ⊆ segment B A by
     exact Line.eq_of_subset (subset A B) (subset B A)
@@ -223,16 +223,16 @@ attribute [obvious] «Segment Commutativity»
 
 
 atlas commentary := by
-  ref lemma 2.0.14
+  ref lemma 2.0.12
   name "A segment A B is never equal to any line L"
-  preface "A line is 'bigger' than a segment, in the same way that a line is bigger than a ray (2.0.12)"
+  preface "A line is 'bigger' than a segment, in the same way that a line is bigger than a ray (2.0.10)"
 
-atlas lemma 2.0.14 "A segment A B is never equal to any line L"
+atlas lemma 2.0.12 "A segment A B is never equal to any line L"
   { L : Line } {A B : Point}  (AneB : A ≠ B := by assumption) : segment A B ≠ L := by
   intro ABeqL
   have AonL : A on L := by rw [<- ABeqL]; obvious
   have BonL : B on L := by rw [<- ABeqL]; obvious
-  have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.5 A B AneB
+  have ⟨X, colXAB, distinctXAB, XAB⟩ := ref lemma 1.0.1 A B AneB
   separate at distinctXAB
   have XonL : X on L := by
     have LeqXAB : L = colXAB.line :=
@@ -240,7 +240,7 @@ atlas lemma 2.0.14 "A segment A B is never equal to any line L"
     rw [LeqXAB]; exact colXAB.mem X
   rw [<- ABeqL] at XonL
   rcases XonL with AXB | AeqX | BeqX
-  · exact ref lemma 1.0.36 ⟨XAB, AXB⟩
+  · exact ref lemma 1.0.18 ⟨XAB, AXB⟩
   · exact absurd AeqX XneA.symm
   · exact absurd BeqX XneB.symm
 
@@ -258,11 +258,11 @@ instance {L M : Line} {X : Point} : Coe (Intersects L M X) (X ∈ L ∩ M) where
     exact Set.mem_singleton X
 
 atlas commentary := by
-  ref lemma 2.0.15
+  ref lemma 2.0.13
   name "Segment A B and the related extension A B have empty intersection"
   preface "No points are contained on the intersection of a segment and it's related extension"
 
-atlas lemma 2.0.15 "Segment A B and the related extension A B have empty intersection"
+atlas lemma 2.0.13 "Segment A B and the related extension A B have empty intersection"
   : (segment A B : Line) ∩ extension A B = ∅ := by
   apply Line.ext_set
   rw [Line.inter_toSet, Line.empty_toSet]
@@ -272,7 +272,7 @@ atlas lemma 2.0.15 "Segment A B and the related extension A B have empty interse
   · simp only [ne_eq, mem_inter_iff, Segment.carrier, Extension.carrier, mem_setOf_eq,
       mem_empty_iff_false, imp_false, not_and, not_not] ; intro opts ABP AneP
     rcases opts with APB | AeqP | BeqP
-    · exfalso ; exact ref lemma 1.0.37 ⟨ABP, APB⟩
+    · exfalso ; exact ref lemma 1.0.19 ⟨ABP, APB⟩
     · contradiction
     · exact BeqP
   -- Reverse
@@ -281,41 +281,41 @@ atlas lemma 2.0.15 "Segment A B and the related extension A B have empty interse
 
 
 atlas commentary := by
-  ref lemma 2.0.16
+  ref lemma 2.0.14
   name "A point on a segment lies off the related extension"
   preface "Points on a segment are not included in the related extension"
 
-atlas lemma 2.0.16 "A point on a segment lies off the related extension"
+atlas lemma 2.0.14 "A point on a segment lies off the related extension"
   : X on segment A B -> X off extension A B := by
   intro XonAB
   by_contra! hNeg
-  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
+  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.13
   have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by obvious
   rw [interEmpty] at XinInter
   contradiction
 
 
 atlas commentary := by
-  ref lemma 2.0.17
+  ref lemma 2.0.15
   name "A point on an extension lies off the related segment"
   preface "Points on an extension are off the related segment"
 
-atlas lemma 2.0.17 "A point on an extension lies off the related segment"
+atlas lemma 2.0.15 "A point on an extension lies off the related segment"
   : X on extension A B -> X off segment A B := by
   intro XonAB
   by_contra! hNeg
-  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.15
+  have interEmpty : (segment A B : Line) ∩ (extension A B : Line) = ∅ := ref lemma 2.0.13
   have XinInter : X ∈ ((segment A B : Line) ∩ (extension A B : Line)) := by obvious
   rw [interEmpty] at XinInter
   contradiction
 
 
 atlas commentary := by
-  ref lemma 2.0.18
+  ref lemma 2.0.16
   name "Two points in the intersection of distinct nonparallel lines coincide"
   preface "If L and M are distinct, nonparallel lines, and X and Y are found in their intersection, X and Y are equal"
 
-atlas lemma 2.0.18 "Two points in the intersection of distinct nonparallel lines coincide"
+atlas lemma 2.0.16 "Two points in the intersection of distinct nonparallel lines coincide"
   : ∀ L M : Line, L ≠ M -> (L ∦ M) -> X ∈ L ∩ M ∧ Y ∈ L ∩ M -> X = Y := by
   intro L M LneM LnparM ⟨XonInt, YonInt⟩
   have ⟨P, LinterMatP, Puniq⟩ : ∃! X : Point, L intersects M at X := proposition 2.1 LneM LnparM
@@ -328,11 +328,11 @@ atlas lemma 2.0.18 "Two points in the intersection of distinct nonparallel lines
 
 
 atlas commentary := by
-  ref lemma 2.0.20
+  ref lemma 2.0.17
   name "Membership in the intersection of distinct nonparallel lines is the pointed intersection"
   preface "Intersections of distinct, nonparallel lines contain exactly one point"
 
-atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines is the pointed intersection"
+atlas lemma 2.0.17 "Membership in the intersection of distinct nonparallel lines is the pointed intersection"
   : ∀ P : Point, ∀ L M : Line, L ≠ M ∧ (L ∦ M) -> (P ∈ L ∩ M ↔ L intersects M at P) := by
   intro P L M ⟨LneM, LnparM⟩
   constructor
@@ -340,7 +340,7 @@ atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines
     unfold Intersects
     apply Line.eq_of_subset
     · intro Q QinInter
-      have h := ref lemma 2.0.18 L M LneM LnparM ⟨QinInter, PinInter⟩
+      have h := ref lemma 2.0.16 L M LneM LnparM ⟨QinInter, PinInter⟩
       trivial
     · intro Q QisP
       have QeqP : Q = P := by obvious
@@ -351,15 +351,15 @@ atlas lemma 2.0.20 "Membership in the intersection of distinct nonparallel lines
 
 
 atlas commentary := by
-  ref lemma 2.0.21
+  ref lemma 2.0.18
   name "A line intersecting a segment intersects its containing ray at the same point"
   preface "If a line intersects a segment, then it intersects the ray containing that segment"
 
-atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray at the same point"
+atlas lemma 2.0.18 "A line intersecting a segment intersects its containing ray at the same point"
   : (A ≠ B) -> (L intersects segment A B at X) -> (L intersects ray A B at X) := by
   intro AneB LintABatX
-  have XonSegAB : X on segment A B := ref lemma 1.0.33 LintABatX
-  have XonL : X on L := ref lemma 1.0.32 LintABatX
+  have XonSegAB : X on segment A B := ref lemma 1.0.15 LintABatX
+  have XonL : X on L := ref lemma 1.0.14 LintABatX
   have LneRayAB : L ≠ (ray A B : Line) := by
     by_contra! hNeg
     rw [hNeg] at LintABatX
@@ -381,7 +381,7 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
     apply Line.eq_of_subset
     · intro P PonLintRay
       have XonLintRay : X ∈ L ∩ ray A B := Line.mem_inter.mpr ⟨XonL, obvious⟩
-      have PeqX : P = X := ref lemma 2.0.18 L (ray A B) LneRayAB LnparRayAB ⟨PonLintRay, XonLintRay⟩
+      have PeqX : P = X := ref lemma 2.0.16 L (ray A B) LneRayAB LnparRayAB ⟨PonLintRay, XonLintRay⟩
       rw [PeqX]
       trivial
     · intro P PinSingleX
@@ -390,11 +390,11 @@ atlas lemma 2.0.21 "A line intersecting a segment intersects its containing ray 
 
 
 atlas commentary := by
-  ref lemma 2.0.22
+  ref lemma 2.0.19
   name "If two lines have a pointed intersection they are not parallel"
   preface "If L intersects M anywhere, then L cannot be parallel to M"
 
-atlas lemma 2.0.22 "If two lines have a pointed intersection they are not parallel"
+atlas lemma 2.0.19 "If two lines have a pointed intersection they are not parallel"
   : (L intersects M at P) -> (L ∦ M) := by
   intro LintMatP
   unfold Parallel
@@ -406,27 +406,27 @@ atlas lemma 2.0.22 "If two lines have a pointed intersection they are not parall
 
 
 atlas commentary := by
-  ref lemma 2.0.23
+  ref lemma 2.0.20
   name "A line intersecting a ray intersects its containing line at the same point"
   preface "If a line intersects a ray, then it intersects the line containing the ray"
 
-atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at the same point"
+atlas lemma 2.0.20 "A line intersecting a ray intersects its containing line at the same point"
   {AneB : A ≠ B} : (L intersects ray A B at X) -> (L intersects line A B at X) := by
   intro LintRay
-  have XonRayAB : X on ray A B := ref lemma 1.0.33 LintRay
-  have XonL : X on L := ref lemma 1.0.32 LintRay
+  have XonRayAB : X on ray A B := ref lemma 1.0.15 LintRay
+  have XonL : X on L := ref lemma 1.0.14 LintRay
   have XABCol := @Line.«Ray Points are Collinear» A B X AneB XonRayAB
-  have XonLineAB : X on line A B := ref lemma 1.0.18 XonRayAB
+  have XonLineAB : X on line A B := ref lemma 1.0.8 XonRayAB
   have XonRayAB : X on ray A B := by obvious
   have XinInter : X ∈ L ∩ line A B := by obvious
-  have LnparRayAB : L ∦ ray A B := ref lemma 2.0.22 LintRay
+  have LnparRayAB : L ∦ ray A B := ref lemma 2.0.19 LintRay
   have LnparLineAB : L ∦ line A B := by
     unfold Parallel
     push Not
     intro LneLineAB
     use X
     obvious
-  have LneRayAB : L ≠ ray A B := Ne.symm (ref lemma 2.0.12)
+  have LneRayAB : L ≠ ray A B := Ne.symm (ref lemma 2.0.10)
   have LneLineAB : L ≠ line A B := by
     by_contra! hNeg
     have AonLineAB : A on line A B := by obvious
@@ -439,8 +439,8 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     have BonL : B on L := by
       have h : B ∈ (line A B : Line) := BonLineAB
       rw [<- hNeg] at h; obvious
-    have LintABatA : L intersects ray A B at A := (ref lemma 2.0.20 A L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp obvious
-    have LintABatB : L intersects ray A B at B := (ref lemma 2.0.20 B L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp obvious
+    have LintABatA : L intersects ray A B at A := (ref lemma 2.0.17 A L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp obvious
+    have LintABatB : L intersects ray A B at B := (ref lemma 2.0.17 B L (ray A B : Line) ⟨LneRayAB, LnparRayAB⟩).mp obvious
     unfold Intersects at *
     rw [LintRay] at LintABatA
     rw [LintRay] at LintABatB
@@ -453,12 +453,12 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
     have PinInter : P ∈ L ∩ line A B := by
       rw [LintABatP]
       trivial
-    have PeqX : P = X := ref lemma 2.0.18 L (line A B) LneLineAB LnparLineAB ⟨PinInter, XinInter⟩
+    have PeqX : P = X := ref lemma 2.0.16 L (line A B) LneLineAB LnparLineAB ⟨PinInter, XinInter⟩
     contradiction
   · push Not at counter
     apply Line.eq_of_subset
     · intro P PinInter
-      exact counter P ((ref lemma 2.0.20 P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
+      exact counter P ((ref lemma 2.0.17 P L (line A B) ⟨LneLineAB, LnparLineAB⟩).mp PinInter)
     · intro P PisX
       have PeqX : P = X := by obvious
       rw [PeqX]
@@ -466,25 +466,25 @@ atlas lemma 2.0.23 "A line intersecting a ray intersects its containing line at 
 
 
 atlas commentary := by
-  ref lemma 2.0.24
+  ref lemma 2.0.21
   name "A line intersecting a segment intersects its containing line at the same point"
   preface "If a line intersects a segment, then it intersects the line containing the segment"
 
-atlas lemma 2.0.24 "A line intersecting a segment intersects its containing line at the same point"
+atlas lemma 2.0.21 "A line intersecting a segment intersects its containing line at the same point"
   {AneB : A ≠ B} : (L intersects segment A B at X) -> (L intersects line A B at X) := by
   intro LintSeg
-  apply ref lemma 2.0.21 at LintSeg
+  apply ref lemma 2.0.18 at LintSeg
   apply @«A line intersecting a ray intersects its containing line at the same point» A B L X AneB at LintSeg
   exact LintSeg
   exact AneB
 
 
 atlas commentary := by
-  ref lemma 2.0.25
+  ref lemma 2.0.22
   name "If A-X-B and L meets the segment at X then L splits A and B"
   preface "If A - X - B, and L intersects a segment A B at X, then L splits A and B"
 
-atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
+atlas lemma 2.0.22 "If A-X-B and L meets the segment at X then L splits A and B"
   {L : Line} {A X B : Point} (AXB : A - X - B) :
   (L intersects M at X) -> (L splits A and B) := by
   intro LintAXBatX
@@ -496,32 +496,32 @@ atlas lemma 2.0.25 "If A-X-B and L meets the segment at X then L splits A and B"
   use X
   constructor
   · simp only [Segment.mem_def]; left; exact AXB
-  · exact ref lemma 1.0.32 LintAXBatX
+  · exact ref lemma 1.0.14 LintAXBatX
 
 atlas commentary := by
-  ref corollary 2.0.25
-  name "Drop the strict-betweenness premise from 2.0.25 by case analysis"
-  preface "If L intersects segment A B at X (no a priori betweenness assumption on X), then L splits A and B. Generalizes lemma 2.0.25 by handling the endpoint cases (X = A or X = B) via case analysis on the segment trichotomy. Shares number 2.0.25 with the parent lemma — call sites must use `via lemma 2.0.25 …` (type-dispatched across paired decls) rather than `ref lemma 2.0.25 …` (single-match)."
+  ref corollary 2.0.22
+  name "Drop the strict-betweenness premise from 2.0.22 by case analysis"
+  preface "If L intersects segment A B at X (no a priori betweenness assumption on X), then L splits A and B. Generalizes lemma 2.0.22 by handling the endpoint cases (X = A or X = B) via case analysis on the segment trichotomy. Shares number 2.0.22 with the parent lemma — call sites must use `via lemma 2.0.22 …` (type-dispatched across paired decls) rather than `ref lemma 2.0.22 …` (single-match)."
 
-atlas corollary 2.0.25 "If L intersects segment A B at X, then L splits A and B"
+atlas corollary 2.0.22 "If L intersects segment A B at X, then L splits A and B"
   {L : Line} {A B X : Point} :
   (L intersects (segment A B) at X) -> (L splits A and B) := by
     intro LintABatX
-    have XonL : X on L := ref lemma 1.0.32 LintABatX
+    have XonL : X on L := ref lemma 1.0.14 LintABatX
     -- X ∈ Segment A B is the closed-segment trichotomy.
-    have hX : (A - X - B) ∨ A = X ∨ B = X := ref lemma 1.0.33 LintABatX
+    have hX : (A - X - B) ∨ A = X ∨ B = X := ref lemma 1.0.15 LintABatX
     rcases hX with AXB | AeqX | BeqX
-    · exact ref lemma 2.0.25 AXB LintABatX
+    · exact ref lemma 2.0.22 AXB LintABatX
     · intro Hsame; apply Hsame.1; rw [AeqX]; exact XonL
     · intro Hsame; apply Hsame.2.1; rw [BeqX]; exact XonL
 
 
 atlas commentary := by
-  ref lemma 2.0.26
+  ref lemma 2.0.23
   name "A point different from the meet of two lines lies off at least one of them"
   preface "If L intersect M at X, and A is not X, then either A is off L or M or both."
 
-atlas lemma 2.0.26 "A point different from the meet of two lines lies off at least one of them"
+atlas lemma 2.0.23 "A point different from the meet of two lines lies off at least one of them"
   {L M : Line} {A X : Point} : A ≠ X -> (L intersects M at X) -> (A off L) ∨ (A off M) := by
   intro AneX LintMatX
   by_contra! AonLandM
@@ -532,26 +532,26 @@ atlas lemma 2.0.26 "A point different from the meet of two lines lies off at lea
 
 
 atlas commentary := by
-  ref lemma 2.0.27
+  ref lemma 2.0.24
   name "Crossing point of L through M between A and B forces A-X-B when M splits A B"
   preface "Let L and M be lines, with A and B on L. If L intersects M at some X not A or B; and
   if M splits A and B, then A - X - B"
   notes "This extracts the common argument at the end of p3.3 and it's corollaries."
 
-atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B when M splits A B"
+atlas lemma 2.0.24 "Crossing point of L through M between A and B forces A-X-B when M splits A B"
   (AneX : A ≠ X) (BneX : B ≠ X) :
   (L intersects M at X) -> (A on L ∧ B on L) -> (M splits A and B) -> (A - X - B) := by
   intro LintMatX ⟨AonL, BonL⟩ MsplitsAB
   have ⟨AoffM, BoffM⟩  : (A off M) ∧ (B off M) := by
-    have hA := ref lemma 2.0.26 AneX LintMatX
-    have hB := ref lemma 2.0.26 BneX LintMatX
+    have hA := ref lemma 2.0.23 AneX LintMatX
+    have hB := ref lemma 2.0.23 BneX LintMatX
     obvious
   unfold Splits Guards at MsplitsAB; push Not at MsplitsAB
   specialize MsplitsAB AoffM BoffM
   obtain ⟨AneB, P, PonSeg, PonM⟩ := MsplitsAB
   have LeqAB : L = line A B := ref lemma 2.0.2 AneB ⟨AonL, obvious, BonL, obvious⟩
   have PonL : P on L := by
-    apply ref lemma 2.0.5 at PonSeg
+    apply ref lemma 2.0.4 at PonSeg
     rw [<- LeqAB] at PonSeg
     trivial
   have PeqX : P = X := by
@@ -565,14 +565,14 @@ atlas lemma 2.0.27 "Crossing point of L through M between A and B forces A-X-B w
 
 
 atlas commentary := by
-  ref lemma 2.0.28
+  ref lemma 2.0.25
   name "Through X on L and E off L: L and line E X are distinct, nonparallel, meet at X"
   preface "If X is on a line L, and E is not on L, then:
   1. L and EX are distinct lines
   2. L and EX are not parallel
   3. L intersects EX at X"
 
-atlas lemma 2.0.28 "Through X on L and E off L: L and line E X are distinct, nonparallel, meet at X"
+atlas lemma 2.0.25 "Through X on L and E off L: L and line E X are distinct, nonparallel, meet at X"
   {L : Line} {X E : Point} (XonL : X on L) (EoffL : E off L)
     : (L ≠ (line E X)) ∧ (L ∦ (line E X)) ∧ (L intersects (line E X) at X) := by
   have XonEX : X on (line E X) := by obvious
@@ -586,16 +586,16 @@ atlas lemma 2.0.28 "Through X on L and E off L: L and line E X are distinct, non
     rw [hEmpty] at XinInter
     exact absurd XinInter (Set.notMem_empty X)
   have XonLintEX : X ∈ L ∩ (line E X) := by obvious
-  have int : L intersects (line E X) at X := (ref lemma 2.0.20 X L (line E X) ⟨ne, npar⟩).mp XonLintEX
+  have int : L intersects (line E X) at X := (ref lemma 2.0.17 X L (line E X) ⟨ne, npar⟩).mp XonLintEX
   obvious
 
 
 atlas commentary := by
-  ref lemma 2.0.29
+  ref lemma 2.0.26
   name "A line crossing L at Z (not between A and B on L) guards A and B"
   preface "If A, B, and Z are on L, a line M passes through L at Z, and Z is not between A and B, then M guards A and B."
 
-atlas lemma 2.0.29 "A line crossing L at Z (not between A and B on L) guards A and B"
+atlas lemma 2.0.26 "A line crossing L at Z (not between A and B on L) guards A and B"
   {L M : Line} {Z A B : Point}
     (AneZ : A ≠ Z) (BneZ : B ≠ Z)
     (LintMatZ : L intersects M at Z)
@@ -604,37 +604,37 @@ atlas lemma 2.0.29 "A line crossing L at Z (not between A and B on L) guards A a
     : M guards A and B := by
   rcases Classical.em (Guards A B M) with guard | split
   · exact guard
-  · exact absurd (ref lemma 2.0.27 AneZ BneZ LintMatZ onL split) notAZB
+  · exact absurd (ref lemma 2.0.24 AneZ BneZ LintMatZ onL split) notAZB
 
 atlas commentary := by
-  ref lemma 2.0.30
+  ref lemma 2.0.27
   name "The left outer point of a Between triple lies off the inner segment"
   preface "If X - Y - Z, then X lies off segment Y Z."
-  notes "The inner segment is the closed segment from Y to Z; X being off it means X ≠ Y, X ≠ Z, and ¬(Y - X - Z). The first two come from B-1 distinctness on the Between hypothesis; the third comes from lemma 1.0.36 (Y - X - Z and X - Y - Z cannot coexist)."
+  notes "The inner segment is the closed segment from Y to Z; X being off it means X ≠ Y, X ≠ Z, and ¬(Y - X - Z). The first two come from B-1 distinctness on the Between hypothesis; the third comes from lemma 1.0.18 (Y - X - Z and X - Y - Z cannot coexist)."
 
-atlas lemma 2.0.30 "The left outer point of a Between triple lies off the inner segment"
+atlas lemma 2.0.27 "The left outer point of a Between triple lies off the inner segment"
   {X Y Z : Point} (h : X - Y - Z) : X off segment Y Z := by
   intro hMem
   obtain ⟨distinctXYZ, _, _⟩ := ref axiom B.1 h
   rcases hMem with YXZ | YeqX | ZeqX
-  · exact ref lemma 1.0.36 ⟨h, YXZ⟩
+  · exact ref lemma 1.0.18 ⟨h, YXZ⟩
   · have : X ≠ Y := by distinguish
     exact this YeqX.symm
   · have : X ≠ Z := by distinguish
     exact this ZeqX.symm
 
 atlas commentary := by
-  ref corollary 2.0.30
+  ref corollary 2.0.27
   name "The right outer point of a Between triple lies off the inner segment"
   preface "If X - Y - Z, then Z lies off segment X Y."
-  notes "Symmetric variant of lemma 2.0.30 — same shape, the Y-Z-X betweenness contradiction here is via lemma 1.0.37 (X-Y-Z and X-Z-Y cannot coexist). Shares number 2.0.30 with the parent; use `via lemma 2.0.30 …` for type-directed dispatch."
+  notes "Symmetric variant of lemma 2.0.27 — same shape, the Y-Z-X betweenness contradiction here is via lemma 1.0.19 (X-Y-Z and X-Z-Y cannot coexist). Shares number 2.0.27 with the parent; use `via lemma 2.0.27 …` for type-directed dispatch."
 
-atlas corollary 2.0.30 "The right outer point of a Between triple lies off the inner segment"
+atlas corollary 2.0.27 "The right outer point of a Between triple lies off the inner segment"
   {X Y Z : Point} (h : X - Y - Z) : Z off segment X Y := by
   intro hMem
   obtain ⟨distinctXYZ, _, _⟩ := ref axiom B.1 h
   rcases hMem with XZY | XeqZ | YeqZ
-  · exact ref lemma 1.0.37 ⟨h, XZY⟩
+  · exact ref lemma 1.0.19 ⟨h, XZY⟩
   · have : X ≠ Z := by distinguish
     exact this XeqZ
   · have : Y ≠ Z := by distinguish

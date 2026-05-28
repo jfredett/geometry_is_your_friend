@@ -637,3 +637,10 @@ elab). This generates a finite suite of instances to do each coercion for each f
 natively support arbitrary arrangements without introducing a tactic, which would ruin the drop-in ability, but
 practially arrangements of up to 7 points are supported for about ~2s of compile time over the n=5 case. The book never
 gets above 5 points in a line from my brief survey, so should be fine.
+
+## 1602
+
+Currently renaming all of the lemmas/exercises and reorganizing again. LLMs are a godsend for fiddling with this kind of
+thing.
+
+
