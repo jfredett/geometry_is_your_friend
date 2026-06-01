@@ -14,10 +14,20 @@ input DSL  ─────────►  Construction (IR)  ──────
                                                     (debug / round-trip)
 ```
 
-The input DSL (still un-named — provisional working name: the
-"figure DSL") is the source the user writes inside `figure := by …`
-blocks; the parser is a follow-up. `toSource` is its inverse, useful
-for `#eval` checks and diff-friendly artifacts.
+The input DSL is the source the user writes inside a `construction`
+tactic block — the canonical form is:
+
+```
+figure := by construction
+  exists A B C : Point
+  exists L : Line
+  assert distinct A B C
+  …
+```
+
+The `construction` tactic enters a state-monad over the IR that
+accumulates `Step`s; the parser is a follow-up. `toSource` is its
+inverse, useful for `#eval` checks and diff-friendly artifacts.
 
 Design notes:
 - IR is **purely symbolic**: objects are stable string names referring
@@ -29,16 +39,16 @@ Design notes:
 - IR has **three layers of additions** (matching the surface syntax
   in pasch.lean):
   1. `base` — the initial figure as described by the theorem statement
-     (`figure := by …`).
+     (`figure := by construction …`).
   2. `extensions` — proof-time additions (`figure := auxillary …`
      inside a `clearly` block). Ordered; renderers may walk this list
      to show "diagram state at proof step K".
   3. `annotations` — call-outs / labels / highlights. Do not introduce
      objects; reference existing ones.
 
-Surface DSL (`figure := by`, `construct`, `assert`, …) is not in this
-file — that's a follow-up. This file only models the data the DSL
-elaborates into.
+Surface DSL (`construction`, `exists`, `construct`, `assert`, …) is not
+in this file — that's a follow-up. This file only models the data the
+DSL elaborates into.
 
 Self-contained: no Mathlib, no Lean.Meta. The IR is plain Lean data,
 so it can lift to a standalone library if/when we extract it.

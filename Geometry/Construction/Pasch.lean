@@ -9,6 +9,7 @@ sanity check.
 -/
 
 import Geometry.Construction
+import Geometry.Construction.SVG
 
 namespace Geometry.Construction.Examples
 
@@ -65,9 +66,16 @@ def pasch : Construction := {
   ]
 }
 
-/-- Round-trip the IR back to source DSL form. `IO.println` so newlines
-in the output render as actual line breaks in the InfoView, rather than
-`\n` literals from `String`'s default `repr`. -/
+-- Round-trip the IR back to source DSL form. `IO.println` so newlines
+-- in the output render as actual line breaks in the InfoView, rather
+-- than `\n` literals from `String`'s default `repr`.
 #eval IO.println pasch.toSource
+
+-- Naive-layout SVG render of the same IR. The diagram is geometrically
+-- wrong (X won't actually be on segment AB, L won't actually pass
+-- through X) but the pipeline shape is exercised. Constraint-aware
+-- layout is a follow-up. Pipe to a file and open in a browser, or
+-- drop into a `ProofWidgets.Html` parser for in-editor display.
+#eval IO.println pasch.toSvg
 
 end Geometry.Construction.Examples

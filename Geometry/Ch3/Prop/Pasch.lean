@@ -51,7 +51,7 @@ another side."
     infer from statement
 
   -- Manual alternative
-  figure := by
+  figure := by construction
     exists A B C : Point -- introduce points unconditionally
     exists L : Line
     assert distinct A B C -- assert a constraint on prior objects
