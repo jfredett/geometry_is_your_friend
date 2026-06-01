@@ -8,12 +8,12 @@ then, this is a hand-encoded reference and a `#eval` round-trip
 sanity check.
 -/
 
-import Geometry.Construction
-import Geometry.Construction.SVG
+import Figures
+import Figures.SVG
 
 namespace Geometry.Construction.Examples
 
-open Geometry.Construction
+open Figures
 
 /-- Pasch's theorem figure.
 

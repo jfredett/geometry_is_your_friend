@@ -47,19 +47,19 @@ another side."
   possible off-by-one situation. Perhaps our disappointment was worth it after all."
 
   -- Ideal alternative, but sometimes the inference will be weird and I'll want to override.
-  figure := by
-    infer from statement
+  /- figure := by -/
+  /-   infer from statement -/
 
   -- Manual alternative
-  figure := by construction
-    exists A B C : Point -- introduce points unconditionally
-    exists L : Line
-    assert distinct A B C -- assert a constraint on prior objects
-    assert ¬(collinear A B C) -- can assert negative constraints
-    construct segment A B -- construct new objects from old
-    construct segment B C
-    construct segment A C
-    assert L instersects A B -- complicated assertions are fine
+  /- figure := by construction -/
+  /-   exists A B C : Point -- introduce points unconditionally -/
+  /-   exists L : Line -/
+  /-   assert distinct A B C -- assert a constraint on prior objects -/
+  /-   assert ¬(collinear A B C) -- can assert negative constraints -/
+  /-   construct segment A B -- construct new objects from old -/
+  /-   construct segment B C -/
+  /-   construct segment A C -/
+  /-   assert L instersects A B -- complicated assertions are fine -/
     -- at this point the problem is a constraint problem, we would feed this to, e.g., geogebra in the html view and
     -- create a geogebra canvas that could have things dragged around. Ideally we would identify which points are
     -- presently unconstrained by giving them a different color or w/e
