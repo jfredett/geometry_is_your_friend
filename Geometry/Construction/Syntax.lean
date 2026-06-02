@@ -38,9 +38,13 @@ declare_syntax_cat constrArg
 syntax ident : constrArg
 
 declare_syntax_cat constructionStmt
-syntax "exists " ident+ " : " ident                : constructionStmt
-syntax "assert " ident constrArg*                  : constructionStmt
-syntax "construct " ident " := " ident constrArg*  : constructionStmt
+-- `rawIdent` (not `ident`) for head positions so Greenberg keywords
+-- like `distinct` and `collinear`, which are reserved as term-level
+-- syntax in Geometry.Theory, still parse as construction heads here.
+syntax "exists " ident+ " : " ident                      : constructionStmt
+syntax "assert " rawIdent constrArg*                     : constructionStmt
+syntax "assert " "¬" rawIdent constrArg*                 : constructionStmt
+syntax "construct " ident " := " rawIdent constrArg*     : constructionStmt
 
 syntax (name := constructionBlock) "construction" "{" constructionStmt* "}" : term
 
@@ -72,6 +76,11 @@ private def stmtToTerm (s : TSyntax `constructionStmt) : MacroM (TSyntax `term) 
     let headStr := Syntax.mkStrLit head.getId.toString
     let argsList ← argsListExpr args
     `(Geometry.Construction.DSL.Stmt.assert (Figures.ConstraintExpr.app $headStr $argsList))
+  | `(constructionStmt| assert ¬ $head:ident $args:constrArg*) => do
+    let headStr := Syntax.mkStrLit head.getId.toString
+    let argsList ← argsListExpr args
+    `(Geometry.Construction.DSL.Stmt.assert
+        (Figures.ConstraintExpr.app "¬" [Figures.ConstraintExpr.app $headStr $argsList]))
   | `(constructionStmt| construct $name:ident := $head:ident $args:constrArg*) => do
     let nameStr := Syntax.mkStrLit name.getId.toString
     let headStr := Syntax.mkStrLit head.getId.toString

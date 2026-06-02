@@ -16,6 +16,10 @@ import Geometry.Theory.Distinct
 import Geometry.Theory.Interpendices.A
 import Geometry.Theory.Interpendices.B
 import Geometry.Theory.Forgetting
+import Geometry.Construction.DSL
+import Geometry.Construction.Syntax
+import Geometry.Construction.Lowering
+import Geometry.Construction.AtlasField
 import Atlas
 
 namespace Geometry.Ch3.Prop
@@ -46,27 +50,22 @@ another side."
   While this dodge is sad, it is the case, and theorems are fortunately numbered separately from propositions, solving our
   possible off-by-one situation. Perhaps our disappointment was worth it after all."
 
-  -- Ideal alternative, but sometimes the inference will be weird and I'll want to override.
-  /- figure := by -/
-  /-   infer from statement -/
-
-  -- Manual alternative
-  /- figure := by construction -/
-  /-   exists A B C : Point -- introduce points unconditionally -/
-  /-   exists L : Line -/
-  /-   assert distinct A B C -- assert a constraint on prior objects -/
-  /-   assert ¬(collinear A B C) -- can assert negative constraints -/
-  /-   construct segment A B -- construct new objects from old -/
-  /-   construct segment B C -/
-  /-   construct segment A C -/
-  /-   assert L instersects A B -- complicated assertions are fine -/
-    -- at this point the problem is a constraint problem, we would feed this to, e.g., geogebra in the html view and
-    -- create a geogebra canvas that could have things dragged around. Ideally we would identify which points are
-    -- presently unconstrained by giving them a different color or w/e
-    --
-    -- the idea is the IR is not concerned with maintaining the consistency of the diagram, if I specify two contradictory
-    -- constraints that's a warning, not an error. the system may produce garbage or nothing after that has occurred, but it
-    -- shouldn't block compilation.
+  figure := by
+    construction {
+      exists A B C : Point
+      exists X : Point
+      exists L : Line
+      assert distinct A B C
+      assert ¬ collinear A B C
+      assert between A X B
+      assert incident X L
+      construct segAB := segment A B
+      construct segBC := segment B C
+      construct segAC := segment A C
+    }
+    title "Pasch's Theorem"
+    index 1
+    caption "Line L meets the interior of segment AB at X. The conclusion of Pasch is that L also meets exactly one of the other two segments — AC or BC — provided C is off L."
     
     
 
@@ -83,7 +82,7 @@ atlas theorem 3.0 "Pasch's Theorem"
     clearly (segment A B : Line) ≠ (segment B C : Line) := by
       idea "if AB = BC, then ABC are collinear, which is a contradiction"
       -- not sure on this syntax.
-      figure := auxillary (assert segment A B = segment B C)
+      -- figure := auxillary (assert segment A B = segment B C)
       have colABC : collinear A B C := by
         use (segment A B : Line)
         intro P PisABorC
