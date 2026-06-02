@@ -169,35 +169,44 @@ private def lineAnchor (b : Bindings) (lineName : Name) : Option Pos2 :=
       else none
     | _ => none
 
-/-- Default direction vector for an existentially-introduced line.
-Slope ~45° so a line through a point on the AB base crosses AC (or
-BC) closer to the middle of those segments, not at the bottom corner. -/
-private def defaultLineDir : Pos2 := (100, 100)
+/-- Direction vector for the `idx`-th existentially-declared Line.
+Cycles through four slopes so multiple lines sharing the same anchor
+(e.g. two `assert incident X L`/`incident X M` on the same point) don't
+draw on top of each other. -/
+private def lineDir (idx : Nat) : Pos2 :=
+  match idx % 4 with
+  | 0 => (100, 100)
+  | 1 => (100, -100)
+  | 2 => (140, 30)
+  | _ => (30, 140)
 
 /-- Phase 3: emit shapes for each `exists`-declared name now that
 positions are final.
 - `Point`: emit `.point` + auto-label.
 - `Line`: if some constraint anchors it (`incident P L` / `on P L`),
-  emit a `.line` through P with a default direction; otherwise skip
-  (no anchor → nothing to draw). -/
+  emit a `.line` through P with a per-line-index default direction so
+  multiple lines through the same anchor render at different slopes;
+  otherwise skip (no anchor → nothing to draw). -/
 private def emitDeclaredShapes (b : Bindings) : Bindings :=
-  b.sorts.foldr (init := b) fun (n, sort) acc =>
+  let (final, _) := b.sorts.foldr (init := (b, 0)) fun (n, sort) (acc, lineIdx) =>
     match sort with
     | "Point" =>
       match lookupArg acc (.name n) with
       | some pos =>
         let acc := addShape acc (.point n pos)
-        addAnnotation acc (.label n n)
-      | none => acc
+        (addAnnotation acc (.label n n), lineIdx)
+      | none => (acc, lineIdx)
     | "Line" =>
       match lineAnchor acc n with
       | some anchor =>
-        let p₁ : Pos2 := (anchor.x - defaultLineDir.x, anchor.y - defaultLineDir.y)
-        let p₂ : Pos2 := (anchor.x + defaultLineDir.x, anchor.y + defaultLineDir.y)
+        let dir := lineDir lineIdx
+        let p₁ : Pos2 := (anchor.x - dir.x, anchor.y - dir.y)
+        let p₂ : Pos2 := (anchor.x + dir.x, anchor.y + dir.y)
         let acc := addShape acc (.line n p₁ p₂ .bold)
-        addAnnotation acc (.label n n)
-      | none => acc
-    | _ => acc
+        (addAnnotation acc (.label n n), lineIdx + 1)
+      | none => (acc, lineIdx)
+    | _ => (acc, lineIdx)
+  final
 
 
 /-! ## Axis pair
@@ -331,29 +340,68 @@ private def edgeConstructs (stmts : Array Stmt) : Array (Name × Name) :=
     | .construct _ (.app "ray" [.name a, .name b])          => some (a, b)
     | _ => none
 
-/-- Collect projections from `assert` stmts. `between A X B` becomes
-`Projections.between`; `collinear A B C ...` becomes
-`Projections.collinear` (projects the rest onto the line through the
-first two). Single-anchor `incident P L` doesn't yield a projection
-— the line's geometry is defined by the first point and a default
-direction in `emitDeclaredShapes`. Pure metadata asserts
-(`distinct`, `¬`, `noncollinear`, ...) produce no projection. -/
-private def buildProjections (stmts : Array Stmt) (nameToIdx : Name → Option Nat) :
-    Array Solver.Projection :=
+/-- All `between A X B` triples in stmts, projected through `nameToIdx`. -/
+private def collectBetweens (stmts : Array Stmt) (nameToIdx : Name → Option Nat) :
+    Array (Nat × Nat × Nat) :=
   stmts.filterMap fun
     | .assert (.app "between" [.name a, .name x, .name b]) _ => do
       let ia ← nameToIdx a
       let ix ← nameToIdx x
       let ib ← nameToIdx b
-      some (Solver.Projections.between ia ix ib)
+      some (ia, ix, ib)
+    | _ => none
+
+/-- Collect projections from `assert` stmts.
+
+- A `between A X B` whose middle particle X appears in only one
+  `between` assert becomes `Projections.between`, snapping X onto
+  segment AB interior.
+- When two `between` asserts share the same middle X (e.g. `between
+  A X B` and `between C X D`), they collapse into one
+  `Projections.intersect2` that snaps X to the intersection of lines
+  AB and CD. Serial single-segment projections would oscillate when
+  the segments don't overlap; the intersection projection satisfies
+  both in one shot and lets the surrounding springs adjust segment
+  endpoints to actually meet there.
+- `collinear A B C ...` snaps the rest onto the line through the
+  first two.
+- Single-anchor `incident P L` doesn't yield a projection — the
+  line's geometry is defined by the first point and the cycled
+  default direction in `emitDeclaredShapes`.
+- Pure metadata asserts (`distinct`, `¬`, ...) produce no
+  projection. -/
+private def buildProjections (stmts : Array Stmt) (nameToIdx : Name → Option Nat) :
+    Array Solver.Projection := Id.run do
+  let betweens := collectBetweens stmts nameToIdx
+  -- Group betweens by their middle particle. Build a list of
+  -- (xIdx, [(a, b)]) pairs.
+  let mut grouped : List (Nat × List (Nat × Nat)) := []
+  for (a, x, b) in betweens do
+    grouped := match grouped.find? (·.1 == x) with
+      | some _ =>
+        grouped.map fun (xi, abs) => if xi == x then (xi, (a, b) :: abs) else (xi, abs)
+      | none => (x, [(a, b)]) :: grouped
+  let mut projs : Array Solver.Projection := #[]
+  for (x, abs) in grouped do
+    match abs with
+    | [(a, b)] =>
+      projs := projs.push (Solver.Projections.between a x b)
+    | (a1, b1) :: (a2, b2) :: _ =>
+      -- ≥2 betweens on the same particle: project to line intersection.
+      -- Extra betweens past the first two are ignored — handling k>2
+      -- needs a least-squares formulation we don't have yet.
+      projs := projs.push (Solver.Projections.intersect2 a1 b1 a2 b2 x)
+    | [] => pure ()
+  for s in stmts do
+    match s with
     | .assert (.app "collinear" args) _ =>
       let ids := args.filterMap fun
         | .name n => nameToIdx n
         | _ => none
       if ids.length ≥ 2 then
-        some (Solver.Projections.collinear ids)
-      else none
-    | _ => none
+        projs := projs.push (Solver.Projections.collinear ids)
+    | _ => pure ()
+  return projs
 
 /-- Build a `Solver.World` from the seeded `Bindings` plus the
 construction stmts. Each Point becomes a Particle; each edge construct
@@ -365,25 +413,50 @@ private def buildWorld (b : Bindings) (stmts : Array Stmt) (seed : UInt64)
   let positionsArr := b.positions.toArray
   let nameToIdx (n : Name) : Option Nat :=
     positionsArr.findIdx? (fun p => p.1 == n)
-  -- Pin both endpoints of the alphabetically-earliest axis pair.
-  -- The warm-start places them at (cx ± r·√3/2, cy + r/2) — same y,
-  -- A on the left. Pinning makes AB horizontal trivially and removes
-  -- the left/right reflection ambiguity from the spring equilibrium,
-  -- without needing a strong post-pass to rotate or flip.
-  let axisIds? : Option (Nat × Nat) := do
-    let pair ← (axisCandidates stmts)[0]?
-    let ia ← nameToIdx pair.1
-    let ib ← nameToIdx pair.2
-    some (ia, ib)
-  let isPinned (i : Nat) : Bool := match axisIds? with
-    | some (a, b) => i == a || i == b
-    | none => false
+  -- Pin both endpoints of the alphabetically-earliest axis pair at
+  -- canonical horizontal positions: (cx − r·√3/2, cy + r/2) and
+  -- (cx + r·√3/2, cy + r/2). Alphabetically-first endpoint goes left.
+  -- Overriding the warm-start positions here (rather than reusing
+  -- them) makes the horizon trivially right for axis pairs whose
+  -- endpoints aren't (A, B) — e.g. when the axis is (A, E) the warm
+  -- start would place them on a vertical, not horizontal, line.
+  --
+  -- Exception: when two `between` asserts share a middle particle
+  -- (which collapses to an `intersect2` projection), the axis pair
+  -- fights the intersection — A and B want to be at canonical
+  -- positions but the projection wants X at AB ∩ CD, and the spring
+  -- network can't reach a scissor configuration with A, B pinned.
+  -- Skip pinning in that case and let springs find their own
+  -- equilibrium.
+  let hasMultiBetween : Bool := Id.run do
+    let xs := (collectBetweens stmts nameToIdx).map (·.2.1)
+    for x in xs do
+      let c := xs.foldl (init := 0) fun acc y => if y == x then acc + 1 else acc
+      if c ≥ 2 then return true
+    return false
+  let axisIds? : Option (Nat × Nat) :=
+    if hasMultiBetween then none
+    else do
+      let pair ← (axisCandidates stmts)[0]?
+      let ia ← nameToIdx pair.1
+      let ib ← nameToIdx pair.2
+      some (ia, ib)
+  let axisLeft  : Pos2 := (cx - r * 0.866, cy + r * 0.5)
+  let axisRight : Pos2 := (cx + r * 0.866, cy + r * 0.5)
   let particles : Array Solver.Particle :=
     positionsArr.mapIdx fun i np =>
-      { id := i, name := np.1, pos := np.2, prev := np.2,
-        pinned := isPinned i }
+      match axisIds? with
+      | some (a, b) =>
+        if i == a then
+          { id := i, name := np.1, pos := axisLeft,  prev := axisLeft,  pinned := true }
+        else if i == b then
+          { id := i, name := np.1, pos := axisRight, prev := axisRight, pinned := true }
+        else
+          { id := i, name := np.1, pos := np.2, prev := np.2, pinned := false }
+      | none =>
+        { id := i, name := np.1, pos := np.2, prev := np.2, pinned := false }
   let edges := edgeConstructs stmts
-  let springs : Array Solver.Spring := edges.zipIdx.filterMap fun (e, idx) => do
+  let constructSprings : Array Solver.Spring := edges.zipIdx.filterMap fun (e, idx) => do
     let ia ← nameToIdx e.1
     let ib ← nameToIdx e.2
     some {
@@ -391,6 +464,29 @@ private def buildWorld (b : Bindings) (stmts : Array Stmt) (seed : UInt64)
       rest := r * jitterAt seed (idx.toUInt64) 0.5 1.5,
       stiffness := jitterAt seed (idx.toUInt64 * 2 + 1) 0.7 1.3
     }
+  -- For each `between A X B`, also add springs A-X and X-B at half
+  -- the baseline rest length so the endpoints A, B are pulled toward
+  -- bracketing X. Important when X has an `intersect2` projection: X
+  -- is held at the line intersection, and these springs pull A and B
+  -- in along the lines so the visible segments actually pass through
+  -- X rather than terminate before reaching it.
+  let betweenSprings : Array Solver.Spring := Id.run do
+    let mut ss : Array Solver.Spring := #[]
+    let mut idx : UInt64 := 1000
+    for (ia, ix, ib) in collectBetweens stmts nameToIdx do
+      ss := ss.push {
+        a := ia, b := ix,
+        rest := r * 0.5 * jitterAt seed idx 0.8 1.2,
+        stiffness := jitterAt seed (idx + 1) 0.7 1.3
+      }
+      ss := ss.push {
+        a := ix, b := ib,
+        rest := r * 0.5 * jitterAt seed (idx + 2) 0.8 1.2,
+        stiffness := jitterAt seed (idx + 3) 0.7 1.3
+      }
+      idx := idx + 4
+    return ss
+  let springs := constructSprings ++ betweenSprings
   let projections := buildProjections stmts nameToIdx
   -- Soft preferences. The axis pair (alphabetically earliest segment-
   -- like construct) drives horizon + apex-up forces. `pairRepulsion`
@@ -427,6 +523,93 @@ AST change perturbs the seed. -/
 private def constructionSeed (c : Construction) : UInt64 :=
   hash (printConstruction c)
 
+
+/-! ## Label layout pass
+
+After all shapes are emitted and fit-to-canvas has finalized positions,
+each `.label` annotation gets a solved offset via the label sub-solver
+(`Figures.Solver.Labels`). Each labeled anchor becomes a "ghost"
+particle tethered to its anchor at the standoff distance; the ghosts
+repel each other and the visible segments. The resulting offsets are
+written back into the annotation list so the SVG backend uses them
+directly instead of falling back to its center-radial heuristic. -/
+
+private def shapeAnchorFor (canvasW canvasH : Float) (shapes : Array (Shape Pos2))
+    (target : Name) : Option Pos2 :=
+  shapes.findSome? fun
+    | .point id pos _ =>
+      if id == target then some pos else none
+    | .segment id a b _ =>
+      if id == target then some ((a.x + b.x) / 2, (a.y + b.y) / 2) else none
+    | .ray id a b _ =>
+      if id == target then
+        let dx := b.x - a.x
+        let dy := b.y - a.y
+        some (b.x + dx * 0.25, b.y + dy * 0.25)
+      else none
+    | .line id _ _ _ =>
+      -- Approximate the line anchor as roughly the upper-left margin
+      -- — the same convention the SVG backend uses for line labels.
+      if id == target then some (60, 60) else none
+    | .circle id c _ _ =>
+      if id == target then some c else none
+    | .text id pos _ =>
+      if id == target then some pos else none
+
+/-- Extract the endpoints of every visible-segment shape (segments,
+rays, lines) so the label solver can repel ghosts away from them.
+Points and circles aren't repulsive. -/
+private def visibleSegments (shapes : Array (Shape Pos2)) :
+    Array Solver.Labels.VisibleSegment :=
+  shapes.filterMap fun
+    | .segment _ a b _ => some { a, b }
+    | .ray _ a b _     => some { a, b }
+    | .line _ a b _    => some { a, b }
+    | _ => none
+
+/-- Run the label sub-solver and rewrite each `.label` annotation
+with its solved offset. Annotations whose target has no anchor in
+the shapes list are preserved as-is. -/
+private def solveLabels (canvasW canvasH : Float) (shapes : Array (Shape Pos2))
+    (annotations : Array Annotation) : Array Annotation := Id.run do
+  let segments := visibleSegments shapes
+  -- Pair each label with (anchor, initial ghost position).
+  -- Initial ghost = anchor + standoff in the canvas-center-outward
+  -- direction (matching the SVG heuristic). The solver moves it from
+  -- there to clear segments and other ghosts.
+  let standoff : Float := 28
+  let cx := canvasW / 2
+  let cy := canvasH / 2
+  let initial : Array (Option (Solver.Labels.Ghost × Nat)) :=
+    annotations.mapIdx fun idx ann => match ann with
+      | .label target _ _ =>
+        match shapeAnchorFor canvasW canvasH shapes target with
+        | none => none
+        | some anchor =>
+          let dx := anchor.x - cx
+          let dy := anchor.y - cy
+          let len := (dx * dx + dy * dy).sqrt
+          let init : Pos2 :=
+            if len < 1e-9 then (anchor.x, anchor.y - standoff)
+            else (anchor.x + dx / len * standoff, anchor.y + dy / len * standoff)
+          some ({ anchor, pos := init, prev := init }, idx)
+      | _ => none
+  let ghosts := initial.filterMap id |>.map (·.1)
+  let idxMap := initial.filterMap id |>.map (·.2)
+  if ghosts.isEmpty then return annotations
+  let w₀ : Solver.Labels.World := { ghosts, segments }
+  let solved := Solver.Labels.solve {} w₀
+  -- Write each ghost's offset (pos − anchor) into the matching annotation.
+  let mut anns := annotations
+  for i in [0 : solved.ghosts.size] do
+    let g := solved.ghosts[i]!
+    let off : Pos2 := (g.pos.x - g.anchor.x, g.pos.y - g.anchor.y)
+    let annIdx := idxMap[i]!
+    anns := anns.modify annIdx fun
+      | .label target text _ => .label target text (some off)
+      | other => other
+  return anns
+
 def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) : Scene Pos2 :=
   let cx := canvasW / 2
   let cy := canvasH / 2
@@ -451,9 +634,10 @@ def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) 
     | .construct name expr => applyConstruct acc .default name expr
     | _ => acc
   let fitted := fitToCanvas b₄.shapes canvasW canvasH
+  let labeled := solveLabels canvasW canvasH fitted b₄.annotations
   {
     shapes      := fitted
-    annotations := b₄.annotations
+    annotations := labeled
     constraints := b₄.constraints
   }
 
@@ -491,9 +675,10 @@ def lowerAuxiliary (base : Construction) (addendum : Construction)
     | .construct name expr => applyConstruct acc .dashed name expr
     | _ => acc
   let fitted := fitToCanvas b₅.shapes canvasW canvasH
+  let labeled := solveLabels canvasW canvasH fitted b₅.annotations
   {
     shapes      := fitted
-    annotations := b₅.annotations
+    annotations := labeled
     constraints := b₅.constraints
   }
 
