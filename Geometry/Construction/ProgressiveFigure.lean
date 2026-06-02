@@ -165,9 +165,16 @@ private def saveProgressiveFigures
   let fileMap ← getFileMap
   let scopes := collectScopes seq
   let steps := collectStepSyntax seq
+  -- Dedup by source line: chained leaf tactics on one line (e.g.
+  -- `· contrapose!; intro _; exact ConL`) would otherwise each emit
+  -- an identical figure widget. Save once per line; subsequent leaf
+  -- tactics on that line are skipped.
+  let mut seenLines : Std.HashSet Nat := {}
   for stx in steps do
     let some pos := stx.getPos? | continue
     let line := fileMap.toPosition pos |>.line
+    if seenLines.contains line then continue
+    seenLines := seenLines.insert line
     -- Scope-aware filter: an auxillary is in scope iff its enclosing
     -- `tacticSeq` contains the current step's enclosing `tacticSeq`
     -- (i.e. they share lexical lineage), AND the aux was declared at

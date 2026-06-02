@@ -151,31 +151,11 @@ private def applyExists (b : Bindings) (alphabetized : Array Name) (cx cy r : Fl
     | _ =>
       { acc with sorts := (n, sort) :: acc.sorts }
 
-/-- Update a name's existing position. Used by position-affecting
-asserts. No-op if the name isn't already bound. -/
-private def setPosition (b : Bindings) (n : Name) (pos : Pos2) : Bindings :=
-  { b with positions := b.positions.map (fun p => if p.1 == n then (n, pos) else p) }
-
-/-- Interpolate at parameter `t` from `a` toward `b`. -/
-private def interp (a b : Pos2) (t : Float) : Pos2 :=
-  (a.x + t * (b.x - a.x), a.y + t * (b.y - a.y))
-
-/-- Phase 2: realize position-affecting asserts, then record the
-assert as Scene metadata regardless. `between A X B` snaps X to a
-fixed interior parameter of AB (no solver — heuristic suffices for
-visualization). Unknown / non-positional asserts fall through to
-constraint metadata only. -/
+/-- Phase 2: record the assert as Scene metadata. Position-affecting
+asserts are handled by the solver (`buildWorld` collects projections);
+this pass is pure metadata now. -/
 private def applyAssert (b : Bindings) (claim : ConstraintExpr) (desc : String) : Bindings :=
-  let b' := match claim with
-    | .app "between" [.name a, .name x, .name b'] =>
-      -- 0.4 = 10% off midpoint toward the first endpoint. Far enough
-      -- to signal "not the midpoint" but close enough to keep the
-      -- crossing near the centre of the diagram.
-      match lookupArg b (.name a), lookupArg b (.name b') with
-      | some pa, some pb => setPosition b x (interp pa pb 0.4)
-      | _, _ => b
-    | _ => b
-  addConstraint b' ⟨claim, desc⟩
+  addConstraint b ⟨claim, desc⟩
 
 /-- Find the first point name P such that `incident P L` or `on P L`
 appears in the recorded constraints. Returns that point's position
@@ -220,20 +200,17 @@ private def emitDeclaredShapes (b : Bindings) : Bindings :=
     | _ => acc
 
 
-/-! ## Principal-axis rotation
+/-! ## Axis pair
 
-To match standard diagram conventions ("the first segment of the
-figure is horizontal"), pick the alphabetically-earliest pair of
-points that participate in some line or segment, and rotate the
-entire figure around its centroid so that pair becomes horizontal.
-For Pasch (segments AB, BC, AC), the principal axis is AB → A on the
-left, B on the right after rotation. For TwoPointsLine (line PQ), the
-line becomes horizontal. -/
+Used by the solver to pin the figure's canonical orientation. We pick
+the alphabetically-earliest pair of points that anchor a segment / line
+/ ray construct — for Pasch (segments AB, BC, AC) this is (A, B); for
+TwoPointsLine (line PQ) it is (P, Q). Both endpoints are pinned at
+their warm-start positions so the resulting figure reads "A on the
+left, B on the right, AB horizontal" without a post-pass rotation. -/
 
 /-- Collect (name, name) pairs of points that anchor a segment or
-line. Pulls from both `construct segment/line_through A B` and from
-the line-anchor heuristic (`incident P L`). Each pair is sorted
-internally so (A, B) and (B, A) collide. -/
+line. Each pair is sorted internally so (A, B) and (B, A) collide. -/
 private def axisCandidates (stmts : Array Stmt) : Array (Name × Name) :=
   let fromConstructs := stmts.filterMap fun
     | .construct _ (.app "segment" [.name a, .name b]) =>
@@ -246,116 +223,6 @@ private def axisCandidates (stmts : Array Stmt) : Array (Name × Name) :=
   fromConstructs.qsort (fun (a₁, b₁) (a₂, b₂) =>
     if a₁ != a₂ then a₁ < a₂ else b₁ < b₂)
 
-private def shapeRotate (cx cy : Float) (cosθ sinθ : Float) : Shape Pos2 → Shape Pos2 :=
-  let rot (p : Pos2) : Pos2 :=
-    let dx := p.x - cx
-    let dy := p.y - cy
-    (cx + dx * cosθ - dy * sinθ, cy + dx * sinθ + dy * cosθ)
-  fun s => match s with
-  | .point id p st       => .point id (rot p) st
-  | .segment id a b st   => .segment id (rot a) (rot b) st
-  | .ray id a b st       => .ray id (rot a) (rot b) st
-  | .line id a b st      => .line id (rot a) (rot b) st
-  | .circle id c r st    => .circle id (rot c) r st
-  | .text id p t         => .text id (rot p) t
-
-private def lookupPosArr (positions : List (Name × Pos2)) (n : Name) : Option Pos2 :=
-  (positions.find? (fun p => p.1 == n)).map (·.2)
-
-/-- Rotate every shape around the centroid by -atan2(dy, dx) where
-(dx, dy) is the principal-axis vector. The minus sign maps the axis
-onto y = const (horizontal). No-op if no axis candidate is found or
-either endpoint is missing. -/
-private def applyPrincipalAxisRotation (b : Bindings) (stmts : Array Stmt)
-    (cx cy : Float) : Bindings :=
-  match (axisCandidates stmts)[0]? with
-  | none => b
-  | some (a, c) =>
-    match lookupPosArr b.positions a, lookupPosArr b.positions c with
-    | some pa, some pc =>
-      let dx := pc.x - pa.x
-      let dy := pc.y - pa.y
-      let len := (dx * dx + dy * dy).sqrt
-      if len < 1e-9 then b
-      else
-        let cosθ := dx / len
-        let sinθ := -dy / len  -- rotate by -atan2(dy, dx)
-        { b with shapes := b.shapes.map (shapeRotate cx cy cosθ sinθ) }
-    | _, _ => b
-
-/-- Reflect a shape across the horizontal line y = yAxis (flips the
-y-coordinate of every position). Radii / styles are unchanged. -/
-private def shapeReflectY (yAxis : Float) : Shape Pos2 → Shape Pos2 :=
-  let refl (p : Pos2) : Pos2 := (p.x, 2 * yAxis - p.y)
-  fun s => match s with
-  | .point id p st       => .point id (refl p) st
-  | .segment id a b st   => .segment id (refl a) (refl b) st
-  | .ray id a b st       => .ray id (refl a) (refl b) st
-  | .line id a b st      => .line id (refl a) (refl b) st
-  | .circle id c r st    => .circle id (refl c) r st
-  | .text id p t         => .text id (refl p) t
-
-/-- After principal-axis rotation, ensure the "apex" of any triangle
-points up: if any point outside the axis pair sits below the
-horizontal AB line (in SVG coords, y > AB.y), reflect everything
-across that line so the apex lands above. Matches the standard
-geometry-text convention "C above AB" for figures like Pasch. No-op
-if no axis candidate or no non-axis point can be located. -/
-private def applyApexUp (b : Bindings) (stmts : Array Stmt) : Bindings :=
-  match (axisCandidates stmts)[0]? with
-  | none => b
-  | some (a, _) =>
-    -- The principal axis sits horizontal; pull A's current y from
-    -- the (post-rotation) shape positions, not the pre-rotation
-    -- bindings — the bindings aren't updated during shapeRotate.
-    let aPos? := b.shapes.findSome? fun
-      | .point id p _ => if id == a then some p else none
-      | _ => none
-    match aPos? with
-    | none => b
-    | some pa =>
-      let yAxis := pa.y
-      let belowExists := b.shapes.any fun
-        | .point id p _ =>
-          -- Skip axis endpoints themselves (they're on the line).
-          id != a && p.y > yAxis + 1e-6
-        | _ => false
-      if belowExists then
-        { b with shapes := b.shapes.map (shapeReflectY yAxis) }
-      else b
-
-
-/-! ## Centroid centering
-
-Position-affecting asserts (e.g. `between A X B` snapping X interior
-to AB) shift the figure's centroid away from the canvas center. A
-post-pass computes the centroid of all point positions and translates
-every shape by (canvas_center − centroid) so the figure stays
-visually balanced. Constraint metadata is unaffected. -/
-
-private def shapeTranslate (Δ : Pos2) : Shape Pos2 → Shape Pos2
-  | .point id p s        => .point id (p.x + Δ.x, p.y + Δ.y) s
-  | .segment id a b s    => .segment id (a.x + Δ.x, a.y + Δ.y) (b.x + Δ.x, b.y + Δ.y) s
-  | .ray id a b s        => .ray id (a.x + Δ.x, a.y + Δ.y) (b.x + Δ.x, b.y + Δ.y) s
-  | .line id a b s       => .line id (a.x + Δ.x, a.y + Δ.y) (b.x + Δ.x, b.y + Δ.y) s
-  | .circle id c r s     => .circle id (c.x + Δ.x, c.y + Δ.y) r s
-  | .text id p t         => .text id (p.x + Δ.x, p.y + Δ.y) t
-
-private def centroidOfPoints (shapes : Array (Shape Pos2)) : Option Pos2 :=
-  let points := shapes.filterMap fun
-    | .point _ p _ => some p
-    | _ => none
-  if points.isEmpty then none
-  else
-    let n := points.size.toFloat
-    let sum : Pos2 := points.foldl (init := ((0.0, 0.0) : Pos2)) fun (ax, ay) (px, py) =>
-      (ax + px, ay + py)
-    some ((Pos2.x sum) / n, (Pos2.y sum) / n)
-
-private def recenterShapes (shapes : Array (Shape Pos2)) (cx cy : Float) : Array (Shape Pos2) :=
-  match centroidOfPoints shapes with
-  | none => shapes
-  | some c => shapes.map (shapeTranslate (cx - c.x, cy - c.y))
 
 
 /-! ## Fit-to-canvas scaling
@@ -464,32 +331,85 @@ private def edgeConstructs (stmts : Array Stmt) : Array (Name × Name) :=
     | .construct _ (.app "ray" [.name a, .name b])          => some (a, b)
     | _ => none
 
+/-- Collect projections from `assert` stmts. `between A X B` becomes
+`Projections.between`; `collinear A B C ...` becomes
+`Projections.collinear` (projects the rest onto the line through the
+first two). Single-anchor `incident P L` doesn't yield a projection
+— the line's geometry is defined by the first point and a default
+direction in `emitDeclaredShapes`. Pure metadata asserts
+(`distinct`, `¬`, `noncollinear`, ...) produce no projection. -/
+private def buildProjections (stmts : Array Stmt) (nameToIdx : Name → Option Nat) :
+    Array Solver.Projection :=
+  stmts.filterMap fun
+    | .assert (.app "between" [.name a, .name x, .name b]) _ => do
+      let ia ← nameToIdx a
+      let ix ← nameToIdx x
+      let ib ← nameToIdx b
+      some (Solver.Projections.between ia ix ib)
+    | .assert (.app "collinear" args) _ =>
+      let ids := args.filterMap fun
+        | .name n => nameToIdx n
+        | _ => none
+      if ids.length ≥ 2 then
+        some (Solver.Projections.collinear ids)
+      else none
+    | _ => none
+
 /-- Build a `Solver.World` from the seeded `Bindings` plus the
-construction stmts. Each Point becomes a Particle keyed by its index
-in the particles array. Each edge construct adds a Spring; the rest
-length gets a jittered multiplier of `baseLen` so the equilibrium
-isn't accidentally regular. -/
+construction stmts. Each Point becomes a Particle; each edge construct
+adds a Spring with jittered rest length; each position-affecting
+assert adds a Projection; soft preferences (horizon, apex-up, pair
+repulsion, bounds cage) are registered as Forces. -/
 private def buildWorld (b : Bindings) (stmts : Array Stmt) (seed : UInt64)
-    (baseLen : Float) : Solver.World :=
+    (cx cy r : Float) : Solver.World :=
   let positionsArr := b.positions.toArray
-  let particles : Array Solver.Particle :=
-    positionsArr.mapIdx fun i np =>
-      { id := i, name := np.1, pos := np.2, prev := np.2 }
   let nameToIdx (n : Name) : Option Nat :=
     positionsArr.findIdx? (fun p => p.1 == n)
+  -- Pin both endpoints of the alphabetically-earliest axis pair.
+  -- The warm-start places them at (cx ± r·√3/2, cy + r/2) — same y,
+  -- A on the left. Pinning makes AB horizontal trivially and removes
+  -- the left/right reflection ambiguity from the spring equilibrium,
+  -- without needing a strong post-pass to rotate or flip.
+  let axisIds? : Option (Nat × Nat) := do
+    let pair ← (axisCandidates stmts)[0]?
+    let ia ← nameToIdx pair.1
+    let ib ← nameToIdx pair.2
+    some (ia, ib)
+  let isPinned (i : Nat) : Bool := match axisIds? with
+    | some (a, b) => i == a || i == b
+    | none => false
+  let particles : Array Solver.Particle :=
+    positionsArr.mapIdx fun i np =>
+      { id := i, name := np.1, pos := np.2, prev := np.2,
+        pinned := isPinned i }
   let edges := edgeConstructs stmts
   let springs : Array Solver.Spring := edges.zipIdx.filterMap fun (e, idx) => do
     let ia ← nameToIdx e.1
     let ib ← nameToIdx e.2
     some {
       a := ia, b := ib,
-      -- Wider rest-length range [0.5, 1.5] × baseLen + jittered
-      -- stiffness so equilibria are visibly asymmetric (otherwise
-      -- 3-point figures still read as roughly isoceles).
-      rest := baseLen * jitterAt seed (idx.toUInt64) 0.5 1.5,
+      rest := r * jitterAt seed (idx.toUInt64) 0.5 1.5,
       stiffness := jitterAt seed (idx.toUInt64 * 2 + 1) 0.7 1.3
     }
-  { particles := particles, springs := springs }
+  let projections := buildProjections stmts nameToIdx
+  -- Soft preferences. The axis pair (alphabetically earliest segment-
+  -- like construct) drives horizon + apex-up forces. `pairRepulsion`
+  -- prevents collapse; `boundsCage` keeps the figure inside the
+  -- working area so post-solver fit-to-canvas isn't ill-conditioned.
+  let forces : Array Solver.Force := Id.run do
+    let mut fs : Array Solver.Force := #[]
+    fs := fs.push (Solver.Forces.pairRepulsion (strength := 0.05) (cutoff := r * 0.6))
+    fs := fs.push (Solver.Forces.boundsCage cx cy (r * 1.1) (r * 1.1) 0.05)
+    -- Axis pair is pinned, so `horizonHorizontal` would no-op. The
+    -- `apexUp` force still applies to the non-axis particles, pushing
+    -- any below-axis points toward the upper half.
+    match axisIds? with
+    | some (ia, ib) =>
+      fs := fs.push (Solver.Forces.apexUp ia ib 0.5)
+    | none => pure ()
+    return fs
+  { particles := particles, springs := springs,
+    projections := projections, forces := forces }
 
 
 /-- Write solved particle positions back into `Bindings.positions`.
@@ -520,7 +440,7 @@ def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) 
   -- with jittered rest lengths perturb the layout off symmetric
   -- equilibria. Hard constraints (Phase B) are not yet wired in.
   let seed := constructionSeed c
-  let world := buildWorld b₁ c.stmts seed r
+  let world := buildWorld b₁ c.stmts seed cx cy r
   let solved := Solver.solve {} world
   let b₁' := mergeSolved b₁ solved
   let b₂ := c.stmts.foldl (init := b₁') fun acc s => match s with
@@ -530,13 +450,11 @@ def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) 
   let b₄ := c.stmts.foldl (init := b₃) fun acc s => match s with
     | .construct name expr => applyConstruct acc .default name expr
     | _ => acc
-  let b₅ := applyPrincipalAxisRotation b₄ c.stmts cx cy
-  let b₆ := applyApexUp b₅ c.stmts
-  let fitted := fitToCanvas b₆.shapes canvasW canvasH
+  let fitted := fitToCanvas b₄.shapes canvasW canvasH
   {
     shapes      := fitted
-    annotations := b₆.annotations
-    constraints := b₆.constraints
+    annotations := b₄.annotations
+    constraints := b₄.constraints
   }
 
 
@@ -552,12 +470,17 @@ def lowerAuxiliary (base : Construction) (addendum : Construction)
   let cy := canvasH / 2
   let r  := min cx cy * 0.75
   let combinedStmts := base.stmts ++ addendum.stmts
+  let combined : Construction := { stmts := combinedStmts }
   let alphabetized := (collectPointNames combinedStmts).qsort (· < ·)
   let b₀ : Bindings := {}
   let b₁ := combinedStmts.foldl (init := b₀) fun acc s => match s with
     | .«exists» names sort => applyExists acc alphabetized cx cy r names sort
     | _ => acc
-  let b₂ := combinedStmts.foldl (init := b₁) fun acc s => match s with
+  let seed := constructionSeed combined
+  let world := buildWorld b₁ combinedStmts seed cx cy r
+  let solved := Solver.solve {} world
+  let b₁' := mergeSolved b₁ solved
+  let b₂ := combinedStmts.foldl (init := b₁') fun acc s => match s with
     | .assert claim desc => applyAssert acc claim desc
     | _ => acc
   let b₃ := emitDeclaredShapes b₂
@@ -567,14 +490,11 @@ def lowerAuxiliary (base : Construction) (addendum : Construction)
   let b₅ := addendum.stmts.foldl (init := b₄) fun acc s => match s with
     | .construct name expr => applyConstruct acc .dashed name expr
     | _ => acc
-  let combined : Construction := { stmts := combinedStmts }
-  let b₆ := applyPrincipalAxisRotation b₅ combined.stmts cx cy
-  let b₇ := applyApexUp b₆ combined.stmts
-  let fitted := fitToCanvas b₇.shapes canvasW canvasH
+  let fitted := fitToCanvas b₅.shapes canvasW canvasH
   {
     shapes      := fitted
-    annotations := b₇.annotations
-    constraints := b₇.constraints
+    annotations := b₅.annotations
+    constraints := b₅.constraints
   }
 
 
