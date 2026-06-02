@@ -23,6 +23,7 @@ import Figures.SVG
 import Geometry.Construction.DSL
 import Geometry.Construction.Syntax
 import Geometry.Construction.Lowering
+import Geometry.Construction.Cache
 import Geometry.Construction.AtlasField
 import ProofWidgets.Component.HtmlDisplay
 
@@ -128,22 +129,42 @@ private def wrap (h : Html) : Html :=
     #[("style", Json.str "text-align: center; margin: 0.5em 0;")]
     #[h]
 
+/-- Look up cached positions for `c`; on miss, run the solver, cache
+the result, and return the freshly-solved positions. -/
+private def cachedSolve (c : DSL.Construction) :
+    TermElabM (Array (Figures.Name × Figures.Pos2)) := do
+  let env ← getEnv
+  match Cache.lookup env c with
+  | some v => return v
+  | none =>
+    let positions := Lowering.solvePositions c
+    Cache.store c positions
+    return positions
+
 /-- Render a `Construction` to a wrapped Html block (centered, with
-margin) for embedding in the InfoView. -/
+margin) for embedding in the InfoView. Uses `Geometry.Construction.Cache`
+to skip the solver on re-elabs of the same construction. -/
 private def renderConstructionHtml (c : DSL.Construction) :
     TermElabM Html := do
+  let positions ← cachedSolve c
   let svgStr : String := Figures.Renderable.render
-    (Lowering.lower c (canvasW := 1280) (canvasH := 720))
+    (Lowering.lower c (canvasW := 1280) (canvasH := 720)
+      (cachedPositions := some positions))
   match Atlas.SvgParser.parse svgStr with
   | .ok h => return wrap h
   | .error msg => throwError s!"progressive figure: SVG parse failed: {msg}"
 
 /-- Same as `renderConstructionHtml` but for a base+addendum pair so
-addendum constructs render with dashed style. -/
+addendum constructs render with dashed style. Cache key is the
+concatenation of base + addendum stmts via `lowerAuxiliary`'s
+internal `combined` construction. -/
 private def renderAuxHtml (base addendum : DSL.Construction) :
     TermElabM Html := do
+  let combined : DSL.Construction := { stmts := base.stmts ++ addendum.stmts }
+  let positions ← cachedSolve combined
   let svgStr : String := Figures.Renderable.render
-    (Lowering.lowerAuxiliary base addendum (canvasW := 1280) (canvasH := 720))
+    (Lowering.lowerAuxiliary base addendum (canvasW := 1280) (canvasH := 720)
+      (cachedPositions := some positions))
   match Atlas.SvgParser.parse svgStr with
   | .ok h => return wrap h
   | .error msg => throwError s!"progressive figure: SVG parse failed: {msg}"

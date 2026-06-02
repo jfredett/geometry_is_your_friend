@@ -148,6 +148,32 @@ def runStressSweep : IO UInt32 := do
     if !pass then failures := failures + 1
   if failures == 0 then return 0 else return 1
 
+/-- Phase E roundtrip: the cached-positions path must produce the
+identical Scene as the fresh-solve path. If this ever fails it means
+the cache stores positions that don't deterministically round-trip
+through the rest of the lowering pipeline. -/
+def runCacheRoundtrip : IO UInt32 := do
+  let mut failures : Nat := 0
+  for entry in fixtures do
+    let fixName := entry.1
+    let c := entry.2
+    let fresh := lower c
+    let positions := solvePositions c
+    let cached := lower c (cachedPositions := some positions)
+    let pointsMatch := fresh.shapes.size == cached.shapes.size
+      && (Array.zip fresh.shapes cached.shapes).all fun (a, b) => match a, b with
+        | .point ida pa _, .point idb pb _ =>
+          ida == idb && (pa.x - pb.x).abs < 0.001 && (pa.y - pb.y).abs < 0.001
+        | .segment ida a1 b1 _, .segment idb a2 b2 _ =>
+          ida == idb
+            && (a1.x - a2.x).abs < 0.001 && (a1.y - a2.y).abs < 0.001
+            && (b1.x - b2.x).abs < 0.001 && (b1.y - b2.y).abs < 0.001
+        | _, _ => true
+    let tag := if pointsMatch then "PASS" else "FAIL"
+    IO.println s!"{tag} {fixName}: cached path matches fresh path"
+    if !pointsMatch then failures := failures + 1
+  if failures == 0 then return 0 else return 1
+
 end Geometry.Construction.Tests.LabelStress
 
 open Geometry.Construction.Tests.LabelStress
@@ -230,4 +256,7 @@ atlas commentary := by
     index 1
     caption "AB and CD meet at X; L and M also pass through X at distinct slopes."
 
-def main : IO UInt32 := runStressSweep
+def main : IO UInt32 := do
+  let a ← runStressSweep
+  let b ← runCacheRoundtrip
+  return if a == 0 && b == 0 then 0 else 1

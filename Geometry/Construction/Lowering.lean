@@ -610,7 +610,25 @@ private def solveLabels (canvasW canvasH : Float) (shapes : Array (Shape Pos2))
       | other => other
   return anns
 
-def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) : Scene Pos2 :=
+/-- Override a bindings' positions from an externally-supplied list
+(e.g. cache hit). Names not in `provided` keep their current
+position; names in `provided` but not in `b.positions` are added. -/
+private def applyCachedPositions (b : Bindings) (provided : Array (Name × Pos2)) :
+    Bindings :=
+  let lookupCached (n : Name) : Option Pos2 :=
+    (provided.find? (fun p => p.1 == n)).map (·.2)
+  let updated := b.positions.map fun (n, oldPos) =>
+    match lookupCached n with
+    | some p => (n, p)
+    | none   => (n, oldPos)
+  { b with positions := updated }
+
+/-- Run the solver phase only: seed positions from the layout pool,
+build the World, run `Solver.solve`, return the solved positions
+keyed by name. This is the expensive step; `Geometry.Construction.Cache`
+memoizes its output across re-elabs. -/
+def solvePositions (c : Construction) (canvasW : Float := 1280)
+    (canvasH : Float := 720) : Array (Name × Pos2) :=
   let cx := canvasW / 2
   let cy := canvasH / 2
   let r  := min cx cy * 0.75
@@ -619,13 +637,28 @@ def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720) 
   let b₁ := c.stmts.foldl (init := b₀) fun acc s => match s with
     | .«exists» names sort => applyExists acc alphabetized cx cy r names sort
     | _ => acc
-  -- Phase A solver pass: warm-started from b₁'s positions, springs
-  -- with jittered rest lengths perturb the layout off symmetric
-  -- equilibria. Hard constraints (Phase B) are not yet wired in.
   let seed := constructionSeed c
   let world := buildWorld b₁ c.stmts seed cx cy r
   let solved := Solver.solve {} world
-  let b₁' := mergeSolved b₁ solved
+  solved.particles.map fun p => (p.name, p.pos)
+
+def lower (c : Construction) (canvasW : Float := 1280) (canvasH : Float := 720)
+    (cachedPositions : Option (Array (Name × Pos2)) := none) : Scene Pos2 :=
+  let cx := canvasW / 2
+  let cy := canvasH / 2
+  let r  := min cx cy * 0.75
+  let alphabetized := (collectPointNames c.stmts).qsort (· < ·)
+  let b₀ : Bindings := {}
+  let b₁ := c.stmts.foldl (init := b₀) fun acc s => match s with
+    | .«exists» names sort => applyExists acc alphabetized cx cy r names sort
+    | _ => acc
+  let b₁' := match cachedPositions with
+    | some positions => applyCachedPositions b₁ positions
+    | none =>
+      let seed := constructionSeed c
+      let world := buildWorld b₁ c.stmts seed cx cy r
+      let solved := Solver.solve {} world
+      mergeSolved b₁ solved
   let b₂ := c.stmts.foldl (init := b₁') fun acc s => match s with
     | .assert claim desc => applyAssert acc claim desc
     | _ => acc
@@ -649,7 +682,8 @@ Addendum's `exists`/`assert` stmts process normally and can move
 positions / declare new points; only the `construct` lines get the
 dashed override. -/
 def lowerAuxiliary (base : Construction) (addendum : Construction)
-    (canvasW : Float := 1280) (canvasH : Float := 720) : Scene Pos2 :=
+    (canvasW : Float := 1280) (canvasH : Float := 720)
+    (cachedPositions : Option (Array (Name × Pos2)) := none) : Scene Pos2 :=
   let cx := canvasW / 2
   let cy := canvasH / 2
   let r  := min cx cy * 0.75
@@ -660,10 +694,13 @@ def lowerAuxiliary (base : Construction) (addendum : Construction)
   let b₁ := combinedStmts.foldl (init := b₀) fun acc s => match s with
     | .«exists» names sort => applyExists acc alphabetized cx cy r names sort
     | _ => acc
-  let seed := constructionSeed combined
-  let world := buildWorld b₁ combinedStmts seed cx cy r
-  let solved := Solver.solve {} world
-  let b₁' := mergeSolved b₁ solved
+  let b₁' := match cachedPositions with
+    | some positions => applyCachedPositions b₁ positions
+    | none =>
+      let seed := constructionSeed combined
+      let world := buildWorld b₁ combinedStmts seed cx cy r
+      let solved := Solver.solve {} world
+      mergeSolved b₁ solved
   let b₂ := combinedStmts.foldl (init := b₁') fun acc s => match s with
     | .assert claim desc => applyAssert acc claim desc
     | _ => acc
