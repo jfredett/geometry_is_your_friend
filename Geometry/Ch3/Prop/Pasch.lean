@@ -16,6 +16,11 @@ import Geometry.Theory.Distinct
 import Geometry.Theory.Interpendices.A
 import Geometry.Theory.Interpendices.B
 import Geometry.Theory.Forgetting
+import Geometry.Construction.DSL
+import Geometry.Construction.Syntax
+import Geometry.Construction.Lowering
+import Geometry.Construction.AtlasField
+import Geometry.Construction.AtlasTactic
 import Atlas
 
 namespace Geometry.Ch3.Prop
@@ -45,16 +50,25 @@ another side."
   notes "The author doesn't give Pasch's a number, but also calls it a 'theorem', eschewing the possible alliteration.
   While this dodge is sad, it is the case, and theorems are fortunately numbered separately from propositions, solving our
   possible off-by-one situation. Perhaps our disappointment was worth it after all."
+
   figure := by
-    file "./assets/pasch_fig1.svg"
+    construction {
+      exists A B C : Point
+      exists X : Point
+      exists L : Line
+      assert distinct A B C
+      assert ¬ collinear A B C
+      assert between A X B
+      assert incident X L
+      construct segAB := segment A B
+      construct segBC := segment B C
+      construct segAC := segment A C
+    }
     title "Pasch's Theorem"
     index 1
-    caption "A line L crosses segment AB at X and exits through BC."
-  figure := by
-    file "./assets/pasch_fig2.svg"
-    title "Alternative crossing"
-    index 2
-    caption "L crosses AB at X and exits through AC at Y."
+    caption "Line L meets the interior of segment AB at X. The conclusion of Pasch is that L also meets exactly one of the other two segments — AC or BC — provided C is off L."
+    
+    
 
 
 atlas theorem 3.0 "Pasch's Theorem"
@@ -64,6 +78,8 @@ atlas theorem 3.0 "Pasch's Theorem"
   (C off L -> ¬((L intersects segment A C) ∧ (L intersects segment B C))) := by
     comment "mise en place"
     separate at distinctABC
+    -- Here is a place where I might want to add a temporary constraint to the line; `assert segment A B = segment B C`
+    -- and show the degenerate diagram as a result
     clearly (segment A B : Line) ≠ (segment B C : Line) := by
       idea "if AB = BC, then ABC are collinear, which is a contradiction"
       have colABC : collinear A B C := by
