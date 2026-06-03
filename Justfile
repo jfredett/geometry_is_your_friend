@@ -24,6 +24,7 @@ graph:
     # `lean --run` sidesteps the compile entirely so it works regardless).
     lake env lean --run scripts/DumpDecls.lean
     lake env lean --run scripts/DumpImports.lean
+    lake env lean --run scripts/DumpFigures.lean
     -python scripts/run_dumptactics.py
     python scripts/ingest.py
     python scripts/export_graph.py
@@ -40,6 +41,7 @@ dump-obvious:
     GIYF_DUMP_DEPS=1 lake build
     lake env lean --run scripts/DumpDecls.lean
     lake env lean --run scripts/DumpImports.lean
+    lake env lean --run scripts/DumpFigures.lean
     python scripts/ingest.py
     python scripts/export_graph.py
 
@@ -48,6 +50,14 @@ dump-obvious:
 # Assumes `just graph` has produced blueprint/graph.json.
 graph-view port="8765":
     @echo "Open http://localhost:{{port}}/scripts/graph.html"
+    @python -m http.server {{port}}
+
+# Serve the table-of-contents viewer (parallel to `graph-view`). Same
+# data source; left pane lists every atlas decl grouped by kind/file,
+# right pane renders the selected decl's card. The card layout here is
+# the source of truth that the graph view will eventually adopt.
+toc-view port="8765":
+    @echo "Open http://localhost:{{port}}/scripts/toc.html"
     @python -m http.server {{port}}
 
 # Run a bundled query, or list them when called with no name.

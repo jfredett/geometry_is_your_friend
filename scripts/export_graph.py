@@ -207,6 +207,18 @@ def main() -> None:
         # or no dump-deps data ingested yet). Silently fall through.
         pass
 
+    # Pre-load figure SVGs from `blueprint/figures.json` (written by
+    # `scripts/DumpFigures.lean`). Missing file or unreadable → empty
+    # dict; cards just show the placeholder.
+    figures_by_decl: dict[str, str] = {}
+    fig_path = BLUEPRINT_DIR / "figures.json"
+    if fig_path.exists():
+        try:
+            figures_by_decl = json.loads(fig_path.read_text())
+        except Exception as e:
+            print(f"warning: {fig_path} is malformed ({e}); figures omitted",
+                  file=sys.stderr)
+
     nodes = []
     kind_of: dict[str, str] = {}
     doc_of: dict[str, str | None] = {}
@@ -273,6 +285,10 @@ def main() -> None:
                 "atlas_kind": atlas_kind,
                 "atlas_number": atlas_number,
                 "atlas_title": atlas_title,
+                # Figure SVG (None when the decl has no atlas figure).
+                # Populated from `blueprint/figures.json`, written by
+                # `scripts/DumpFigures.lean`.
+                "figure_svg": figures_by_decl.get(name),
                 # Per-decl `obvious`-cascade usage records, populated by a
                 # `GIYF_DUMP_DEPS=1 lake build`. Each entry is
                 # `{stage, closer, count}`. Empty list when the decl
